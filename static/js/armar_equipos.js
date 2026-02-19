@@ -12,6 +12,9 @@ let currentScale = 5; // Variable para la escala actual
 let loading = false;
 let hasResults = false; // Variable para saber si hay resultados generados
 
+// Import limits - should match backend MAX_LINES in ai_player_matcher.py
+const MAX_IMPORT_LINES = 30;
+
 // ==================== HELP MODAL ====================
 const HELP_MODAL_KEY = 'armarEquipos_helpModalShown';
 
@@ -68,6 +71,9 @@ async function init() {
     try {
         // Inicializar modal de ayuda
         initHelpModal();
+        
+        // Inicializar modal de importar lista
+        initImportModal();
         
         // El clubSelector.js se encarga de cargar los clubes automáticamente
         
@@ -857,6 +863,268 @@ function displayTeamsResults(data) {
         carousels.forEach(carousel => createCarousel(carousel));
     }
 }
+
+// ==================== IMPORT PLAYERS MODAL ====================
+let importMatchResults = null; // Almacena los resultados del matching
+
+function initImportModal() {
+    const modal = document.getElementById('import-modal');
+    const importBtn = document.getElementById('import-players-btn');
+    const closeBtn = document.getElementById('close-import-modal');
+    const cancelBtn = document.getElementById('cancel-import-btn');
+    const processBtn = document.getElementById('process-import-btn');
+    const applyBtn = document.getElementById('apply-import-btn');
+    
+    if (!modal) return;
+    
+    // Event listeners
+    importBtn?.addEventListener('click', showImportModal);
+    closeBtn?.addEventListener('click', closeImportModal);
+    cancelBtn?.addEventListener('click', closeImportModal);
+    processBtn?.addEventListener('click', processImportList);
+    applyBtn?.addEventListener('click', applyImportedPlayers);
+    
+    // Cerrar al hacer click fuera del modal
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeImportModal();
+        }
+    });
+    
+    // Cerrar con Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeImportModal();
+        }
+    });
+}
+
+function showImportModal() {
+    const modal = document.getElementById('import-modal');
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    
+    // Reset modal state
+    resetImportModal();
+}
+
+function closeImportModal() {
+    const modal = document.getElementById('import-modal');
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    
+    // Reset state
+    resetImportModal();
+}
+
+function resetImportModal() {
+    const textarea = document.getElementById('import-players-textarea');
+    const resultsDiv = document.getElementById('import-results');
+    const processBtn = document.getElementById('process-import-btn');
+    const applyBtn = document.getElementById('apply-import-btn');
+    
+    if (textarea) textarea.value = '';
+    if (resultsDiv) resultsDiv.style.display = 'none';
+    if (processBtn) processBtn.style.display = 'flex';
+    if (applyBtn) applyBtn.style.display = 'none';
+    
+    importMatchResults = null;
+}
+
+async function processImportList() {
+    const textarea = document.getElementById('import-players-textarea');
+    const processBtn = document.getElementById('process-import-btn');
+    const resultsDiv = document.getElementById('import-results');
+    const matchesDiv = document.getElementById('import-matches');
+    const notFoundDiv = document.getElementById('import-not-found');
+    const applyBtn = document.getElementById('apply-import-btn');
+    
+    const text = textarea.value.trim();
+    
+    if (!text) {
+        alert('Por favor, ingresá una lista de nombres de jugadores');
+        return;
+    }
+    
+    // Parse names from text (handle both commas and newlines)
+    const inputNames = text
+        .split(/[\n,]+/)
+        .map(name => name.trim())
+        .filter(name => name.length > 0);
+    
+    if (inputNames.length === 0) {
+        alert('No se encontraron nombres válidos en la lista');
+        return;
+    }
+    
+    // Limit check (matches backend MAX_LINES)
+    if (inputNames.length > MAX_IMPORT_LINES) {
+        alert(`Se permiten máximo ${MAX_IMPORT_LINES} líneas. Por favor, reduce la lista.`);
+        return;
+    }
+    
+    // Show loading state
+    processBtn.disabled = true;
+    processBtn.innerHTML = '<span class="spinner"></span> Buscando...';
+    resultsDiv.style.display = 'block';
+    matchesDiv.innerHTML = '<div class="import-loading"><div class="spinner"></div>Buscando coincidencias con IA...</div>';
+    notFoundDiv.style.display = 'none';
+    
+    try {
+        // Build request data
+        const requestData = {
+            input_names: inputNames,
+            scale: currentScale === 5 ? '1-5' : '1-10'
+        };
+        
+        // Add club_id if using a club context
+        const clubId = getCurrentClubId();
+        if (clubId !== 'my-players') {
+            requestData.club_id = parseInt(clubId);
+        }
+        
+        // Call API
+        const response = await fetch('/api/match-players', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(requestData)
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Error al buscar coincidencias');
+        }
+        
+        const data = await response.json();
+        importMatchResults = data;
+        
+        // Render results
+        renderImportResults(data);
+        
+        // Show apply button if there are matches
+        if (data.matches && data.matches.length > 0) {
+            processBtn.style.display = 'none';
+            applyBtn.style.display = 'flex';
+        }
+        
+    } catch (error) {
+        console.error('Error processing import:', error);
+        matchesDiv.innerHTML = `<div style="color: #ff6b6b; padding: 20px; text-align: center;">
+            ❌ ${error.message}
+        </div>`;
+    } finally {
+        processBtn.disabled = false;
+        processBtn.innerHTML = '<i class="fa-solid fa-magnifying-glass"></i> Buscar coincidencias';
+    }
+}
+
+function renderImportResults(data) {
+    const matchesDiv = document.getElementById('import-matches');
+    const notFoundDiv = document.getElementById('import-not-found');
+    const notFoundList = document.getElementById('not-found-list');
+    
+    // Clear previous results
+    matchesDiv.innerHTML = '';
+    
+    // Render matches
+    if (data.matches && data.matches.length > 0) {
+        data.matches.forEach((match, index) => {
+            const confidenceClass = match.confidence === 'low' ? 'low-confidence' : '';
+            const matchItem = document.createElement('div');
+            matchItem.className = `import-match-item ${confidenceClass}`;
+            matchItem.innerHTML = `
+                <div class="import-match-info">
+                    <span class="import-match-input">"${escapeHTML(match.input_name)}" →</span>
+                    <span class="import-match-result">${escapeHTML(match.matched_player_name)}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span class="import-match-confidence ${match.confidence}">${getConfidenceLabel(match.confidence)}</span>
+                    <input type="checkbox" class="import-match-checkbox" data-player-id="${match.matched_player_id}" data-player-name="${escapeHTML(match.matched_player_name)}" checked>
+                </div>
+            `;
+            matchesDiv.appendChild(matchItem);
+        });
+    } else {
+        matchesDiv.innerHTML = '<div style="color: #999; padding: 20px; text-align: center;">No se encontraron coincidencias</div>';
+    }
+    
+    // Render not found
+    if (data.not_found && data.not_found.length > 0) {
+        notFoundDiv.style.display = 'block';
+        notFoundList.innerHTML = '';
+        data.not_found.forEach(name => {
+            const li = document.createElement('li');
+            li.textContent = name;
+            notFoundList.appendChild(li);
+        });
+    } else {
+        notFoundDiv.style.display = 'none';
+    }
+}
+
+function getConfidenceLabel(confidence) {
+    switch (confidence) {
+        case 'high': return '✓ Seguro';
+        case 'medium': return '~ Probable';
+        case 'low': return '? Posible';
+        default: return confidence;
+    }
+}
+
+function applyImportedPlayers() {
+    // Get all checked matches
+    const checkboxes = document.querySelectorAll('.import-match-checkbox:checked');
+    
+    if (checkboxes.length === 0) {
+        alert('No hay jugadores seleccionados para agregar');
+        return;
+    }
+    
+    // If there is an existing selection, confirm replacement
+    if (selectedPlayers.size > 0) {
+        const shouldReplace = window.confirm(
+            'Ya tenés jugadores seleccionados manualmente.\n' +
+            'Al aplicar la importación se va a reemplazar la selección actual por los jugadores importados.\n\n' +
+            '¿Querés continuar y reemplazar la selección actual?'
+        );
+        
+        if (!shouldReplace) {
+            return;
+        }
+    }
+    
+    // Clear current selection
+    selectedPlayers.clear();
+    
+    // Add matched players to selection
+    checkboxes.forEach(checkbox => {
+        const playerName = checkbox.dataset.playerName;
+        if (playerName) {
+            selectedPlayers.add(playerName);
+        }
+    });
+    
+    // Render updated player list
+    renderPlayers();
+    
+    // Close modal
+    closeImportModal();
+    
+    // Show success message
+    const count = selectedPlayers.size;
+    const notFoundCount = importMatchResults?.not_found?.length || 0;
+    
+    let message = `✅ Se seleccionaron ${count} jugador${count !== 1 ? 'es' : ''}`;
+    if (notFoundCount > 0) {
+        message += `\n⚠️ ${notFoundCount} nombre${notFoundCount !== 1 ? 's' : ''} no ${notFoundCount !== 1 ? 'fueron encontrados' : 'fue encontrado'}`;
+    }
+    
+    alert(message);
+}
+// ==================== END IMPORT PLAYERS MODAL ====================
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', init);

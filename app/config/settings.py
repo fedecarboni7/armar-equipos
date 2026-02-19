@@ -16,3 +16,4 @@ class Settings:
         self.arg_timezone = pytz.timezone("America/Argentina/Buenos_Aires")
         self.cron_secret = os.getenv("CRON_SECRET_TOKEN")
         self.sentry_dsn = os.getenv("SENTRY_DSN")
+        self.gemini_model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")

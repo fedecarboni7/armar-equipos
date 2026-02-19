@@ -47,7 +47,12 @@
                 <input type="text" class="search-input" placeholder="Buscar jugadores..." id="search-input">
             </div>
             
-            <div class="players-count" id="players-count">Seleccionados: 0 jugadores</div>
+            <div class="players-actions">
+                <div class="players-count" id="players-count">Seleccionados: 0 jugadores</div>
+                <button class="import-btn" id="import-players-btn" title="Importar lista de jugadores con IA">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Importar Lista
+                </button>
+            </div>
             
             <div class="players-list" id="players-list">
                 <!-- Players will be loaded here -->
@@ -146,6 +151,56 @@
             </div>
             <div class="help-modal-footer">
                 <button class="help-modal-btn" id="start-btn">¡Entendido!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Importar Lista -->
+    <div class="import-modal" id="import-modal">
+        <div class="import-modal-content">
+            <div class="import-modal-header">
+                <h2><i class="fa-solid fa-wand-magic-sparkles"></i> Importar Lista con IA</h2>
+                <button class="close-btn" id="close-import-modal" aria-label="Cerrar modal">&times;</button>
+            </div>
+            <div class="import-modal-body">
+                <p class="import-intro">Pegá una lista de nombres de jugadores y la IA buscará coincidencias con los jugadores del sistema.</p>
+                
+                <div class="import-textarea-container">
+                    <label for="import-players-textarea" class="visually-hidden">Lista de nombres de jugadores</label>
+                    <textarea id="import-players-textarea" placeholder="Escribí o pegá los nombres de los jugadores, uno por línea o separados por comas.
+
+Ejemplo:
+Nahue
+Nico
+Martin
+Pedro"></textarea>
+                </div>
+                
+                <div class="import-tip">
+                    💡 <strong>Tip:</strong> La IA reconoce apodos, nombres abreviados y variaciones. Por ejemplo, "Nahue" encontrará a "Nahuel".
+                </div>
+                
+                <div id="import-results" class="import-results" style="display: none;">
+                    <div class="import-results-header">
+                        <h3>Resultados del matching</h3>
+                    </div>
+                    <div id="import-matches" class="import-matches">
+                        <!-- Matches will be shown here -->
+                    </div>
+                    <div id="import-not-found" class="import-not-found" style="display: none;">
+                        <h4>⚠️ No encontrados:</h4>
+                        <ul id="not-found-list"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="import-modal-footer">
+                <button class="import-modal-btn secondary" id="cancel-import-btn">Cancelar</button>
+                <button class="import-modal-btn primary" id="process-import-btn">
+                    <i class="fa-solid fa-magnifying-glass"></i> Buscar coincidencias
+                </button>
+                <button class="import-modal-btn success" id="apply-import-btn" style="display: none;">
+                    <i class="fa-solid fa-check"></i> Seleccionar jugadores
+                </button>
             </div>
         </div>
     </div>

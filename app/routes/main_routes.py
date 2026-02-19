@@ -9,6 +9,7 @@ from app.db.database import get_db
 from app.db.database_utils import execute_with_retries, query_clubs, query_players
 from app.db.models import User
 from app.utils.ai_formations import create_formations
+from app.utils.ai_player_matcher import match_players, MAX_LINES
 from app.utils.auth import get_current_user
 from app.utils.team_optimizer import find_best_combination
 
@@ -195,3 +196,73 @@ async def build_teams_api(
     except Exception as e:
         logging.exception("Error building teams: %s", str(e))
         return JSONResponse(content={"error": "Error interno al armar equipos"}, status_code=500)
+
+
+@router.post("/api/match-players", response_class=JSONResponse)
+async def match_players_api(
+        request: Request,
+        db: Session = Depends(get_db),
+        current_user: User = Depends(get_current_user)
+    ):
+    """
+    Endpoint para buscar coincidencias entre nombres de jugadores ingresados
+    y jugadores disponibles en el sistema usando IA.
+    """
+    if not current_user:
+        return JSONResponse(content={"error": "No autenticado"}, status_code=401)
+    
+    try:
+        data = await request.json()
+        input_names = data.get('input_names', [])
+        club_id = data.get('club_id')
+        scale = data.get('scale', '1-5')
+        
+        # Validate input_names is a list
+        if not isinstance(input_names, list):
+            return JSONResponse(content={"error": "input_names debe ser una lista"}, status_code=400)
+        
+        if not input_names:
+            return JSONResponse(content={"error": "No se proporcionaron nombres"}, status_code=400)
+        
+        # Limit is enforced in match_players, but provide early feedback
+        if len(input_names) > MAX_LINES:
+            return JSONResponse(
+                content={"error": f"Se permiten máximo {MAX_LINES} líneas. Por favor, reduce la lista."},
+                status_code=400
+            )
+        
+        # Obtener jugadores disponibles según el contexto
+        current_user_id = current_user.id
+        
+        # Autorizar acceso al club solicitado (si se especifica)
+        if club_id is not None:
+            user_clubs = execute_with_retries(query_clubs, db, current_user_id)
+            user_club_ids = {club.id for club in user_clubs} if user_clubs else set()
+            if club_id not in user_club_ids:
+                return JSONResponse(
+                    content={"error": "No tienes permisos para acceder a este club"},
+                    status_code=403
+                )
+        
+        all_players = execute_with_retries(query_players, db, current_user_id, club_id, scale)
+        
+        if not all_players:
+            return JSONResponse(content={"error": "No hay jugadores disponibles"}, status_code=400)
+        
+        # Formatear jugadores para el matcher
+        available_players = [{"id": p.id, "name": p.name} for p in all_players]
+        
+        # Usar IA para hacer el matching
+        result = await match_players(input_names, available_players)
+        
+        return JSONResponse(content=result)
+    
+    except ValueError as e:
+        logging.warning("Validation error in match_players: %s", str(e))
+        return JSONResponse(
+            content={"error": "Error de validación en los datos enviados"},
+            status_code=400
+        )
+    except Exception as e:
+        logging.exception("Error matching players: %s", str(e))
+        return JSONResponse(content={"error": "Error al buscar coincidencias de jugadores"}, status_code=500)
