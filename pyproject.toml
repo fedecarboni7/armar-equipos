@@ -1,5 +1,5 @@
 [project]
-name = "teams-optimizer"
+name = "armar-equipos"
 version = "0.1.0"
 description = "Armar Equipos"
 readme = "README.md"
@@ -18,6 +18,7 @@ dependencies = [
     "pyjwt[crypto]>=2.11.0",
     "pytest>=9.0.2",
     "python-dotenv>=1.2.1",
+    "sentry-sdk[fastapi]>=2.53.0",
     "python-multipart>=0.0.22",
     "pytz>=2025.2",
     "sib-api-v3-sdk>=7.6.0",

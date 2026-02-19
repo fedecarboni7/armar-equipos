@@ -17,7 +17,7 @@ def create_database():
     """Crea la base de datos SQLite con todas las tablas"""
 
     # Ruta de la base de datos SQLite
-    db_path = project_root / "teams_optimizer.db"
+    db_path = project_root / "armar_equipos.db"
 
     # Crear la URL de la base de datos
     database_url = f"sqlite:///{db_path}"
