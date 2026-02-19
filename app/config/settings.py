@@ -17,3 +17,5 @@ class Settings:
         self.cron_secret = os.getenv("CRON_SECRET_TOKEN")
         self.sentry_dsn = os.getenv("SENTRY_DSN")
         self.gemini_model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
+        self.environment = os.getenv("ENVIRONMENT", "local")
+        

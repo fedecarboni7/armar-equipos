@@ -26,6 +26,7 @@ def create_app() -> FastAPI:
     if settings.sentry_dsn:
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
+            environment=settings.environment,
             send_default_pii=True,
             enable_logs=True,
             traces_sample_rate=1.0,
