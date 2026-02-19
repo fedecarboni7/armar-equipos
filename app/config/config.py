@@ -1,5 +1,3 @@
-import os
-
 import sentry_sdk
 from fastapi import Depends, FastAPI, Request
 from fastapi.openapi.docs import get_swagger_ui_html
