@@ -10,6 +10,7 @@ def test_sentry_initializes_when_dsn_is_set():
             create_app()
             mock_init.assert_called_once_with(
                 dsn="https://examplePublicKey@o0.ingest.sentry.io/0",
+                environment="local",
                 send_default_pii=True,
                 enable_logs=True,
                 traces_sample_rate=1.0,
