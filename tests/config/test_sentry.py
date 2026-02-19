@@ -4,7 +4,7 @@ import sentry_sdk
 
 
 def test_sentry_initializes_when_dsn_is_set():
-    with patch.dict("os.environ", {"SENTRY_DSN": "https://examplePublicKey@o0.ingest.sentry.io/0"}):
+    with patch.dict("os.environ", {"SENTRY_DSN": "https://examplePublicKey@o0.ingest.sentry.io/0", "ENVIRONMENT": "local"}):
         with patch.object(sentry_sdk, "init") as mock_init:
             from app.config.config import create_app
             create_app()
