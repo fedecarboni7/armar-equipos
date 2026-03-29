@@ -37,7 +37,7 @@ colorama==0.4.6 ; sys_platform == 'win32'
     #   pytest
 colorlog==6.10.1
     # via armar-equipos
-cryptography==46.0.5
+cryptography==46.0.6
     # via
     #   google-auth
     #   pyjwt
