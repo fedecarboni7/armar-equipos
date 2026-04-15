@@ -174,7 +174,7 @@ python-dateutil==2.9.0.post0
     # via sib-api-v3-sdk
 python-dotenv==1.2.1
     # via armar-equipos
-python-multipart==0.0.22
+python-multipart==0.0.26
     # via armar-equipos
 pytz==2025.2
     # via armar-equipos
