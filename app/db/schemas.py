@@ -36,6 +36,7 @@ class PlayerCreate(BaseModel):
     habilidad_arquero: int
     fuerza_cuerpo: int
     vision: int
+    photo_data: Optional[str] = None  # Base64 encoded image data
     club_id: Optional[int] = None
 
 class PlayerResponse(BaseModel):
@@ -52,6 +53,7 @@ class PlayerResponse(BaseModel):
     habilidad_arquero: int
     fuerza_cuerpo: int
     vision: int
+    photo_data: Optional[str] = None  # Base64 encoded image data
     updated_at: datetime
     user_id: Optional[int] = None
     club_id: Optional[int] = None

@@ -1,7 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from passlib.hash import pbkdf2_sha256
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Text
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 from app.config.settings import Settings
@@ -72,6 +72,7 @@ class Player(Base):
     habilidad_arquero = Column(Integer)
     fuerza_cuerpo = Column(Integer)
     vision = Column(Integer)
+    photo_data = Column(Text, nullable=True)  # Base64 encoded image data
     user_id = Column(Integer, ForeignKey("users.id"))
     club_id = Column(Integer, ForeignKey("clubs.id"))
     updated_at = Column(DateTime, default=get_argentina_now, onupdate=get_argentina_now)
@@ -96,6 +97,7 @@ class PlayerV2(Base):
     habilidad_arquero = Column(Integer)
     fuerza_cuerpo = Column(Integer)
     vision = Column(Integer)
+    photo_data = Column(Text, nullable=True)  # Base64 encoded image data
     user_id = Column(Integer, ForeignKey("users.id"))
     club_id = Column(Integer, ForeignKey("clubs.id"))
     updated_at = Column(DateTime, default=get_argentina_now, onupdate=get_argentina_now)

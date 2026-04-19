@@ -54,7 +54,7 @@ class EmailService:
                         <h1>Restablecer contraseña</h1>
                     </div>
                     <div class="content">
-                        <p>Hola {username},</p>
+                        <p>Hola <strong>{username}</strong>,</p>
                         <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en Armar Equipos.</p>
                         <p>Haz clic en el siguiente botón para crear una nueva contraseña:</p>
                         <p style="text-align: center;">
@@ -140,7 +140,7 @@ class EmailService:
                         <h1>¡Bienvenido a Armar Equipos!</h1>
                     </div>
                     <div class="content">
-                        <p>Hola {username},</p>
+                        <p>Hola <strong>{username}</strong>,</p>
                         <p>¡Gracias por registrarte en Armar Equipos! Para completar tu registro, necesitas confirmar tu dirección de email.</p>
                         <p>Haz clic en el siguiente botón para confirmar tu cuenta:</p>
                         <p style="text-align: center;">

@@ -1,5 +1,4 @@
-import os
-
+import sentry_sdk
 from fastapi import Depends, FastAPI, Request
 from fastapi.openapi.docs import get_swagger_ui_html
 from fastapi.responses import JSONResponse, RedirectResponse
@@ -22,6 +21,18 @@ def create_app() -> FastAPI:
 
     settings = Settings()
     secret_key = settings.secret_key
+
+    # Configuración de Sentry
+    if settings.sentry_dsn:
+        sentry_sdk.init(
+            dsn=settings.sentry_dsn,
+            environment=settings.environment,
+            send_default_pii=True,
+            enable_logs=True,
+            traces_sample_rate=1.0,
+            profile_session_sample_rate=1.0,
+            profile_lifecycle="trace",
+        )
 
     app = FastAPI(title="Armar Equipos", docs_url=None, redoc_url=None, openapi_url=None)
 

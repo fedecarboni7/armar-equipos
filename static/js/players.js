@@ -344,19 +344,123 @@ function viewPlayer(id) {
 }
 
 // Función para renderizar el modal del jugador
+// Function to handle avatar image load errors
+function handleAvatarImageError(imgElement) {
+    imgElement.style.display = 'none';
+    const fallbackElement = imgElement.nextElementSibling;
+    if (fallbackElement && fallbackElement.classList.contains('avatar-initials')) {
+        fallbackElement.style.display = 'flex';
+    }
+}
+
+// Maximum file size for photo upload (500KB)
+const MAX_PHOTO_SIZE = 500 * 1024;
+
+// Variable to store the pending photo data during edit/create
+let pendingPhotoData = null;
+
+// Function to validate base64 image data
+function isValidBase64Image(data) {
+    if (!data || typeof data !== 'string') {
+        return false;
+    }
+    // Check if it's a valid data URI for an image
+    const validPrefixes = [
+        'data:image/jpeg;base64,',
+        'data:image/png;base64,',
+        'data:image/gif;base64,',
+        'data:image/webp;base64,',
+        'data:image/svg+xml;base64,',
+        'data:image/bmp;base64,'
+    ];
+    return validPrefixes.some(prefix => data.startsWith(prefix));
+}
+
+// Function to handle photo file selection
+function handlePhotoFileSelect(event, previewId) {
+    const file = event.target.files[0];
+    const preview = document.getElementById(previewId);
+    const removeBtn = document.getElementById(previewId + '-remove');
+    
+    if (!file) {
+        return;
+    }
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+        alert('Por favor selecciona un archivo de imagen válido (JPG, PNG, GIF, etc.)');
+        event.target.value = '';
+        return;
+    }
+    
+    // Validate file size
+    if (file.size > MAX_PHOTO_SIZE) {
+        alert(`La imagen es muy grande. El tamaño máximo es ${MAX_PHOTO_SIZE / 1024}KB. Tu archivo tiene ${Math.round(file.size / 1024)}KB.`);
+        event.target.value = '';
+        return;
+    }
+    
+    // Read file as base64
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const result = e.target.result;
+        // Validate the result is a proper base64 image
+        if (isValidBase64Image(result)) {
+            pendingPhotoData = result;
+            if (preview) {
+                preview.src = pendingPhotoData;
+                preview.style.display = 'block';
+            }
+            if (removeBtn) {
+                removeBtn.style.display = 'inline-block';
+            }
+        } else {
+            alert('El archivo no es una imagen válida.');
+            event.target.value = '';
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+// Function to remove selected photo
+function removeSelectedPhoto(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    const removeBtn = document.getElementById(previewId + '-remove');
+    
+    pendingPhotoData = null;
+    if (input) input.value = '';
+    if (preview) {
+        preview.src = '';
+        preview.style.display = 'none';
+    }
+    if (removeBtn) {
+        removeBtn.style.display = 'none';
+    }
+}
+
 function renderPlayerModal(player) {
     const details = document.getElementById('player-details');
     const average = calculateAverage(player);
     const lastModified = player.updated_at;
     const initial = player.name.charAt(0).toUpperCase();
+    
+    // Reset pending photo data and set it to current player's photo (only if valid)
+    const hasValidPhoto = player.photo_data && isValidBase64Image(player.photo_data);
+    pendingPhotoData = hasValidPhoto ? player.photo_data : null;
+    
+    // Generate avatar content - show photo if available and valid, otherwise show initials
+    const avatarContent = hasValidPhoto
+        ? `<img src="${player.photo_data}" alt="${escapeHTML(player.name)}" class="avatar-image" data-avatar-image="true" /><div class="avatar-initials" style="display: none;">${initial}</div>`
+        : `<div class="avatar-initials">${initial}</div>`;
 
     details.innerHTML = `
         <div class="player-detail-header">
             <div class="player-detail-avatar">
-                <div class="avatar-initials">${initial}</div>
+                ${avatarContent}
             </div>
             <div class="player-detail-info">
-                <h3>${player.name}</h3>
+                <h3>${escapeHTML(player.name)}</h3>
                 <p class="average-score">Promedio General: ${average}/${currentScale}</p>
                 <p class="last-modified">Última Modificación: ${formatDate(lastModified)}</p>
             </div>
@@ -410,7 +514,18 @@ function renderPlayerModal(player) {
         <div id="edit-mode" class="edit-form" style="display: ${isEditMode ? 'block' : 'none'}">
             <div class="form-group">
                 <label for="edit-player-name">Nombre del Jugador</label>
-                <input type="text" id="edit-player-name" value="${player.name}" />
+                <input type="text" id="edit-player-name" value="${escapeHTML(player.name)}" />
+            </div>
+            
+            <div class="form-group">
+                <label>Foto de Perfil (opcional, máx. 500KB)</label>
+                <div class="photo-upload-container">
+                    <input type="file" id="edit-photo-file" accept="image/*" onchange="handlePhotoFileSelect(event, 'edit-photo-preview')" />
+                    <div class="photo-preview-container">
+                        <img id="edit-photo-preview" class="photo-preview" src="${hasValidPhoto ? player.photo_data : ''}" style="display: ${hasValidPhoto ? 'block' : 'none'};" />
+                        <button type="button" id="edit-photo-preview-remove" class="btn-remove-photo" style="display: ${hasValidPhoto ? 'inline-block' : 'none'};" onclick="removeSelectedPhoto('edit-photo-file', 'edit-photo-preview')">✕ Quitar foto</button>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
@@ -475,6 +590,14 @@ function renderPlayerModal(player) {
     // Crear el radar chart después de que el elemento esté en el DOM
     setTimeout(() => {
         createRadarChart(`detail-chart-${player.id}`, player);
+        
+        // Attach error handler to avatar image if present
+        const avatarImage = details.querySelector('[data-avatar-image="true"]');
+        if (avatarImage) {
+            avatarImage.addEventListener('error', function() {
+                handleAvatarImageError(this);
+            });
+        }
         
         // Agregar validación en tiempo real a los inputs de habilidades
         if (isEditMode) {
@@ -590,6 +713,7 @@ async function savePlayerEdits() {
         const playerData = {
             id: currentEditingPlayer.id,
             name: name,
+            photo_data: pendingPhotoData,
             ...skillValues,
             club_id: currentEditingPlayer.club_id || null
         };
@@ -665,6 +789,9 @@ function openCreatePlayerModal() {
     const modal = document.getElementById('createPlayerModal');
     const formContainer = document.getElementById('create-player-form');
     
+    // Reset pending photo data
+    pendingPhotoData = null;
+    
     // Valores por defecto según la escala
     const defaultValue = currentScale === 5 ? 3 : 5;
     
@@ -672,6 +799,17 @@ function openCreatePlayerModal() {
         <div class="form-group">
             <label for="create-player-name">Nombre del Jugador</label>
             <input type="text" id="create-player-name" placeholder="Ingresa el nombre del jugador" required />
+        </div>
+        
+        <div class="form-group">
+            <label>Foto de Perfil (opcional, máx. 500KB)</label>
+            <div class="photo-upload-container">
+                <input type="file" id="create-photo-file" accept="image/*" onchange="handlePhotoFileSelect(event, 'create-photo-preview')" />
+                <div class="photo-preview-container">
+                    <img id="create-photo-preview" class="photo-preview" style="display: none;" />
+                    <button type="button" id="create-photo-preview-remove" class="btn-remove-photo" style="display: none;" onclick="removeSelectedPhoto('create-photo-file', 'create-photo-preview')">✕ Quitar foto</button>
+                </div>
+            </div>
         </div>
         
         <div class="form-group">
@@ -803,6 +941,7 @@ async function saveNewPlayer() {
     // Recopilar datos del formulario
     const playerData = {
         name: name,
+        photo_data: pendingPhotoData,
         velocidad: parseInt(document.getElementById('create-velocidad').value),
         resistencia: parseInt(document.getElementById('create-resistencia').value),
         pases: parseInt(document.getElementById('create-pases').value),

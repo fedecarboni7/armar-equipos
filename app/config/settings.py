@@ -15,3 +15,7 @@ class Settings:
         self.run_db_migration = os.getenv("RUN_DB_MIGRATION", "false").lower() == "true"
         self.arg_timezone = pytz.timezone("America/Argentina/Buenos_Aires")
         self.cron_secret = os.getenv("CRON_SECRET_TOKEN")
+        self.sentry_dsn = os.getenv("SENTRY_DSN")
+        self.gemini_model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
+        self.environment = os.getenv("ENVIRONMENT", "local")
+        
