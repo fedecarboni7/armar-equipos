@@ -21,9 +21,9 @@ def test_pwa_install_script_accessible(client):
     assert response.status_code == 200
     assert "javascript" in response.headers.get("content-type", "").lower()
 
-def test_landing_page_includes_pwa_meta(authenticated_client, db):
+def test_landing_page_includes_pwa_meta(client):
     """Test that the landing page includes PWA meta tags"""
-    response = authenticated_client.get("/home")
+    response = client.get("/")
     assert response.status_code == 200
     
     html_content = response.text
