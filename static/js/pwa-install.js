@@ -3,7 +3,7 @@ let installButton;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/static/service-worker.js')
+    navigator.serviceWorker.register('/static/service-worker.js', { scope: '/' })
       .then(registration => {
         console.log('Service Worker registrado con éxito:', registration);
       })
