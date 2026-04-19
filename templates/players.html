@@ -10,5 +10,142 @@
     <link rel="icon" type="image/png" sizes="16x16" href="../static/favicon/favicon-16x16.png">
     <link rel="manifest" href="../static/favicon/site.webmanifest">
     {% include '_pwa_meta.html' %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/global.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/sidebar.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/navbar.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/scale-selector.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/players.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="/static/js/utils.js" defer></script>
+    <script src="/static/js/clubSelector.js" defer></script>
+    <script src="/static/js/ui.js" defer></script>
+    <script src="/static/js/api.js" defer></script>
+    <script src="/static/js/players.js" defer></script>
+</head>
+<body class="players-page">
+    {% include '_sidebar.html' %}
+    {% include '_navbar.html' %}
+
+    <div class="container">
+        <div class="page-header">
+            <h1 class="title">Jugadores</h1>
+            <button class="help-btn" id="help-btn" title="Ayuda">
+                <i class="fas fa-question-circle"></i>
+            </button>
+        </div>
+
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="player-search" placeholder="Buscar jugador por nombre..." onkeyup="filterPlayers()">
+                <span class="search-icon">🔍</span>
+            </div>
+        </div>
+
+        <div class="players-toolbar">
+            <div class="toolbar-left">
+                {% include '_scale_selector.html' %}
+            </div>
+            <div class="toolbar-right">
+                <button class="add-btn" onclick="addPlayer()" title="Crear jugador" aria-label="Crear jugador">
+                    <i class="fas fa-user-plus"></i>
+                    Crear Jugador
+                </button>
+            </div>
+        </div>
+        
+
+        <div class="players-table">
+            <div class="table-header">
+                <div class="header-cell" onclick="sortPlayers('name')">Nombre</div>
+                <div class="header-cell" onclick="sortPlayers('score')">Puntuación</div>
+                <div class="header-cell" onclick="sortPlayers('date')">Última Modificación</div>
+            </div>
+            <div id="players-list">
+                <!-- Los jugadores se cargarán aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Ayuda (Jugadores) -->
+    <div class="help-modal" id="help-modal-players">
+        <div class="help-modal-content">
+            <div class="help-modal-header">
+                <h2>👋 Bienvenido a Jugadores</h2>
+                <button class="close-btn" id="close-help-modal-players">&times;</button>
+            </div>
+            <div class="help-modal-body">
+                <p class="help-intro">Gestioná tu lista de jugadores, sus habilidades y cómo se muestran según el contexto.</p>
+
+                <div class="help-section">
+                    <h3>👥 Selector de Contexto</h3>
+                    <p>Usá el selector en la barra superior para elegir de dónde tomar los jugadores:</p>
+                    <ul>
+                        <li><strong>Mis Jugadores:</strong> Tu lista personal</li>
+                        <li><strong>Club seleccionado:</strong> Jugadores del club activo</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h3>📏 Escala de valores</h3>
+                    <p>Elegí entre <strong>1-5</strong> o <strong>1-10</strong> para puntuar habilidades. Cada escala guarda a los jugadores en <strong>listas separadas</strong> que nunca se mezclan.</p>
+                </div>
+
+                <div class="help-section">
+                    <h3>🧑‍💻 Crear y modificar jugadores</h3>
+                    <p>Creá jugadores con <strong>nombre</strong> y puntuá sus <strong>habilidades</strong>. Para crear o modificar jugadores dentro de un <strong>club</strong> necesitás <strong>permisos de administrador</strong>.</p>
+                </div>
+
+                <div class="help-section">
+                    <h3>↕️ Ordenar la lista</h3>
+                    <p>Ordená por <strong>Nombre</strong>, <strong>Puntuación</strong> o <strong>Última Modificación</strong> haciendo clic en los encabezados.</p>
+                </div>
+
+                <div class="help-tip">
+                    💡 <strong>Tip:</strong> Podés volver a ver esta ayuda tocando el botón <i class="fas fa-question-circle"></i> en cualquier momento.
+                </div>
+            </div>
+            <div class="help-modal-footer">
+                <button class="help-modal-btn" id="start-btn-players">¡Entendido!</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para ver detalles del jugador -->
+    <div id="playerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Detalles del Jugador</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="player-details" class="player-details">
+                <!-- Los detalles se cargarán aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para crear nuevo jugador -->
+    <div id="createPlayerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Nuevo Jugador</h2>
+                <button class="close-btn" onclick="closeCreateModal()">&times;</button>
+            </div>
+            <div id="create-player-form" class="player-details">
+                <!-- El formulario se cargará aquí -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para crear un nuevo club -->
+    <div id="createClubModal" class="modal">
+        <div class="modal-content">
+            <h2>Crear Club</h2>
+            <input type="text" id="new-club-name" placeholder="Nombre del club">
+            <button class="btn btn-primary" onclick="createNewClub()">Crear</button>
+            <button class="btn" onclick="closeCreateClubModal()">Cancelar</button>
+        </div>
+    </div>
+    <script src="/static/js/pwa-install.js"></script>
 </body>
 </html>
