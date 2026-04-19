@@ -1,0 +1,50 @@
+/* PWA Install Button Styles */
+#install-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    animation: slideInUp 0.5s ease-out;
+}
+
+#install-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+#install-button i {
+    margin-right: 8px;
+}
+
+/* Animation for button appearance */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Installation instructions styling */
+.pwa-install-instructions {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(86, 88, 221, 0.1);
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.pwa-install-instructions p {
+    margin: 0 0 8px 0;
+}
+
+.pwa-install-instructions p:last-child {
+    margin: 0;
+}

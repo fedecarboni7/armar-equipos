@@ -1,1 +1,26 @@
-{"name":"Armar Equipos","icons":[{"src":"/static/favicon/android-chrome-192x192.png","sizes":"192x192","type":"image/png"},{"src":"/static/favicon/android-chrome-512x512.png","sizes":"512x512","type":"image/png"}],"theme_color":"#ffffff","background_color":"#ffffff","display":"standalone"}
+{
+  "name": "Armar Equipos",
+  "short_name": "Armar Equipos",
+  "description": "Creá equipos de fútbol balanceados y disfrutá de partidos más justos, competitivos y parejos.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#5658dd",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/static/favicon/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/favicon/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

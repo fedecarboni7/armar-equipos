@@ -17,6 +17,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="../static/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="../static/favicon/favicon-16x16.png">
     <link rel="manifest" href="../static/favicon/site.webmanifest">
+    {% include '_pwa_meta.html' %}
     <link rel="stylesheet" type="text/css" href="../static/css/daisyui.min.css" />
     <script src="https://cdn.tailwindcss.com"></script>
   </head>
@@ -144,6 +145,7 @@
         </div>
       </div>
     </div>
+    <script src="/static/js/pwa-install.js"></script>
     <script>
       function togglePasswordVisibility(inputId, iconId) {
         const input = document.getElementById(inputId);
