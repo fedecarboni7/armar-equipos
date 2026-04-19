@@ -14,9 +14,14 @@ if ('serviceWorker' in navigator) {
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
+  installButton = document.getElementById('install-button');
+  if (!installButton) {
+    return;
+  }
+
   e.preventDefault();
   deferredPrompt = e;
-  
+
   showInstallPromotion();
 });
 
