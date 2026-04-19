@@ -166,7 +166,7 @@ pydantic-core==2.41.5
     # via pydantic
 pygments==2.19.2
     # via pytest
-pyjwt==2.11.0
+pyjwt==2.12.0
     # via armar-equipos
 pytest==9.0.2
     # via armar-equipos
