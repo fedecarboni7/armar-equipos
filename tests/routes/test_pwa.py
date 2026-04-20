@@ -15,14 +15,21 @@ def test_service_worker_accessible(client):
     assert response.status_code == 200
     assert "javascript" in response.headers.get("content-type", "").lower()
 
+def test_root_service_worker_accessible(client):
+    """Test that the root service worker endpoint is accessible"""
+    response = client.get("/service-worker.js")
+    assert response.status_code == 200
+    assert "javascript" in response.headers.get("content-type", "").lower()
+    assert response.headers.get("service-worker-allowed") == "/"
+
 def test_pwa_install_script_accessible(client):
     """Test that the PWA install script is accessible"""
     response = client.get("/static/js/pwa-install.js")
     assert response.status_code == 200
     assert "javascript" in response.headers.get("content-type", "").lower()
 
-def test_landing_page_includes_pwa_meta(client):
-    """Test that the landing page includes PWA meta tags"""
+def test_landing_page_includes_pwa_meta_and_install_ui(client):
+    """Test that the landing page includes PWA meta tags and install button UI"""
     response = client.get("/")
     assert response.status_code == 200
     
@@ -33,8 +40,9 @@ def test_landing_page_includes_pwa_meta(client):
     assert 'name="apple-mobile-web-app-capable"' in html_content
     assert 'name="theme-color"' in html_content
     assert 'rel="manifest"' in html_content
-    
-    # Check for PWA install script
+
+    # Landing should include install button/script
+    assert 'id="install-button"' in html_content
     assert '/static/js/pwa-install.js' in html_content
 
 def test_manifest_json_content(client):

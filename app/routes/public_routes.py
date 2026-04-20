@@ -21,3 +21,15 @@ async def get_sitemap():
         media_type="application/xml",
         headers={"Content-Disposition": "inline"}
     )
+
+@router.get("/service-worker.js")
+async def get_service_worker():
+    service_worker_path = Path("static/service-worker.js")
+    return FileResponse(
+        service_worker_path,
+        media_type="application/javascript",
+        headers={
+            "Content-Disposition": "inline",
+            "Service-Worker-Allowed": "/",
+        },
+    )

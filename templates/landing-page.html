@@ -38,8 +38,7 @@
     <meta property="twitter:image" content="https://armarequipos.up.railway.app/static/images/social-preview.png">
 
     <title>Armar Equipos | Creación de Equipos de Fútbol Parejos</title>
-    {% include '_pwa_meta.html' %}
-    
+	{% include '_pwa_meta.html' %}
 	<link rel="icon" href="/static/favicon/favicon.ico">
 	<link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
@@ -48,7 +47,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css?family=Heebo:400,700|Oxygen:700" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/pwa-install.css">
     <script src="https://unpkg.com/scrollreveal@4.0.5/dist/scrollreveal.min.js"></script>
 	<link rel="canonical" href="https://armarequipos.up.railway.app" />
 
@@ -127,9 +125,75 @@
 	                        <p class="hero-paragraph" style="color: #ccc; max-width: 600px; margin: 0px auto 30px;">Creá equipos de fútbol balanceados y disfrutá de partidos más justos, competitivos y parejos.</p>
 	                        <div class="hero-cta">
 								<a class="button button-primary button-wide-mobile" href="/signup">Creá tu cuenta gratis</a>
-								<button id="install-button" class="button button-secondary button-wide-mobile" style="display: none; margin-left: 10px;">
-									<i class="fas fa-download"></i> Instalar App
-								</button>
+							<button id="install-button" class="button button-secondary button-wide-mobile" style="display: none; margin-left: 10px;" aria-label="Instalar App">
+								<i class="fas fa-download"></i> Instalar App
+							</button>
+							</div>
+						</div>
+						<div class="mockup-container">
+							<div class="mockup-bg">
+								<img src="/static/images/iphone-hero-bg.svg" alt="iPhone illustration">
+							</div>
+							<div class="youtube-short-container" style="position: relative; width: 100%; max-width: 296px; margin: 0 auto; border-radius: 30px; overflow: hidden; height: 526px;">
+								<iframe width="100%" height="100%" src="https://www.youtube.com/embed/gYBxPctTYRc" title="Armar Equipos Demo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="position: absolute; top: 0; left: 0;"></iframe>
+							</div>
+						</div>
+                    </div>
+                </div>
+            </section>
+
+			<section class="features-extended section">
+                <div class="features-extended-inner section-inner">
+					<div class="features-extended-wrap">
+						<div class="container">
+							<div class="feature-extended">
+								<div class="feature-extended-image">
+									<div class="mockup-bg">
+										<img src="/static/images/iphone-feature-bg-01.svg" alt="iPhone Feature 01 illustration">
+									</div>
+									<img class="device-mockup is-revealing" src="/static/images/iphone-feature-01.png" alt="iPhone Feature 01">
+								</div>
+								<div class="feature-extended-body is-revealing">
+									<h3 class="mt-0 mb-16">Creación de Jugadores</h3>
+									<p class="m-0">Creá perfiles de jugadores, puntuá sus habilidades y guardalos para usarlos en futuros partidos.</p>
+								</div>
+							</div>
+							<div class="feature-extended">
+								<div class="feature-extended-image">
+									<div class="mockup-bg">
+										<img src="/static/images/iphone-feature-bg-02.svg" alt="iPhone Feature 02 illustration">
+									</div>
+									<img class="device-mockup is-revealing" src="/static/images/iphone-feature-02.png" alt="iPhone Feature 02">
+								</div>
+								<div class="feature-extended-body is-revealing">
+									<h3 class="mt-0 mb-16">Composición de Equipos</h3>
+									<p class="m-0">Nuestro algoritmo sugiere equipos óptimos basados en las habilidades de los jugadores.</p>
+								</div>
+							</div>
+							<div class="feature-extended">
+								<div class="feature-extended-image">
+									<div class="mockup-bg">
+										<img src="/static/images/iphone-feature-bg-03.svg" alt="iPhone Feature 03 illustration">
+									</div>
+									<img class="device-mockup is-revealing" src="/static/images/iphone-feature-03.png" alt="iPhone Feature 03">
+								</div>
+								<div class="feature-extended-body is-revealing">
+									<h3 class="mt-0 mb-16">Visualización de Habilidades</h3>
+									<p class="m-0">Compará habilidades con gráficos y tablas para evaluar rápidamente fortalezas y debilidades.</p>
+								</div>
+							</div>
+							<div class="feature-extended">
+								<div class="feature-extended-image">
+									<div class="mockup-bg">
+										<img src="/static/images/iphone-feature-bg-04.svg" alt="iPhone Feature 04 illustration">
+									</div>
+									<img class="device-mockup is-revealing" src="/static/images/iphone-feature-04.png" alt="iPhone Feature 04">
+								</div>
+								<div class="feature-extended-body is-revealing">
+									<h3 class="mt-0 mb-16">Sugerencia de Formaciones</h3>
+									<p class="m-0">Nuestra IA analiza las habilidades de tus jugadores para recomendar las formaciones más efectivas para tus equipos.</p>
+								</div>
+							</div>
 						</div>
 					</div>
                 </div>
@@ -192,6 +256,6 @@
         </footer>
     </div>
     <script src="/static/js/main.min.js"></script>
-    <script src="/static/js/pwa-install.js"></script>
+	<script src="/static/js/pwa-install.js"></script>
 </body>
 </html>

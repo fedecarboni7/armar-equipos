@@ -3,7 +3,7 @@ let installButton;
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/static/service-worker.js', { scope: '/static/' })
+    navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
       .then(registration => {
         console.log('Service Worker registrado con éxito:', registration);
       })
@@ -14,13 +14,13 @@ if ('serviceWorker' in navigator) {
 }
 
 window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+
   installButton = document.getElementById('install-button');
   if (!installButton) {
     return;
   }
-
-  e.preventDefault();
-  deferredPrompt = e;
 
   showInstallPromotion();
 });
@@ -29,7 +29,7 @@ function showInstallPromotion() {
   installButton = document.getElementById('install-button');
   if (installButton && installButton.style.display !== 'inline-block') {
     installButton.style.display = 'inline-block';
-    installButton.addEventListener('click', installApp);
+    installButton.addEventListener('click', installApp, { once: true });
   }
 }
 
