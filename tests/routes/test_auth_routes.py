@@ -7,6 +7,7 @@ def test_get_signup(client):
     assert response.status_code == 200
     assert response.template.name == "signup.html"
 
+@pytest.mark.brevo
 def test_post_signup(client, db):
     username = "newuser1"
     password = "Newpassword1*"
@@ -157,6 +158,7 @@ def test_signup_invalid_email(client):
     assert response.status_code == 200  # Returns form with error
     assert "error" in response.context
 
+@pytest.mark.brevo
 def test_signup_valid_email_formats(client, db):
     """Test signup works with various valid email formats"""
     test_cases = [
@@ -189,6 +191,7 @@ def test_forgot_password_get(client):
     assert response.status_code == 200
     assert response.template.name == "forgot_password.html"
 
+@pytest.mark.brevo
 def test_forgot_password_post_existing_email(client, db):
     """Test forgot password with existing email"""
     # Create a user with email
@@ -297,6 +300,7 @@ def test_reset_password_post_invalid_token(client):
 
 
 # Test profile email update functionality  
+@pytest.mark.brevo
 def test_profile_update_email(client, db):
     """Test updating user email in profile"""
     username = "profileuser"
@@ -396,6 +400,7 @@ def test_confirm_email_with_invalid_token(client):
     assert "no es válido o ha expirado" in response.context["error"]
     assert response.context["invalid_token"] == True
 
+@pytest.mark.brevo
 def test_resend_confirmation_email(client, db):
     """Test resending confirmation email"""
     username = "resend_user"
@@ -437,6 +442,7 @@ def test_resend_confirmation_already_confirmed(client, db):
     assert response.template.name == "email_confirmation_pending.html"
     assert "recibirás un nuevo enlace" in response.context["success"]  # Security: same message for all cases
 
+@pytest.mark.brevo
 def test_profile_resend_email_confirmation(client, db):
     """Test resending email confirmation from profile page"""
     username = "profile_resend_user"

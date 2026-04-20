@@ -38,4 +38,5 @@ log_cli_level = "INFO"
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "integration: marks tests that interact with external systems",
+    "brevo: marks tests that call Brevo email API",
 ]
