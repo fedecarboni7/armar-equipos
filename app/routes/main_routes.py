@@ -15,6 +15,43 @@ from app.utils.team_optimizer import find_best_combination
 
 router = APIRouter()
 
+
+def parse_goalkeeper_skill_flag(value, default=True):
+    if value is None:
+        return default
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, (int, float)):
+        return value != 0
+
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"true", "1", "yes", "si", "on"}:
+            return True
+        if normalized in {"false", "0", "no", "off"}:
+            return False
+
+    return default
+
+
+def build_player_scores(selected_players, consider_goalkeeper_skill=True):
+    return [
+        [
+            p.velocidad,
+            p.resistencia,
+            p.control,
+            p.pases,
+            p.tiro,
+            p.defensa,
+            p.habilidad_arquero if consider_goalkeeper_skill else 0,
+            p.fuerza_cuerpo,
+            p.vision,
+        ]
+        for p in selected_players
+    ]
+
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def landing_page(request: Request):
     return templates.TemplateResponse(request=request, name="landing-page.html")
@@ -116,6 +153,9 @@ async def build_teams_api(
         current_user_id = current_user.id
         club_id = data.get('club_id')
         scale = data.get('scale', '1-5')
+        consider_goalkeeper_skill = parse_goalkeeper_skill_flag(
+            data.get('considerar_habilidad_arquero', True)
+        )
         
         if club_id:
             all_players = execute_with_retries(query_players, db, current_user_id, club_id, scale)
@@ -129,20 +169,7 @@ async def build_teams_api(
             return JSONResponse(content={"error": "Algunos jugadores no fueron encontrados"}, status_code=400)
         
         # Preparar datos para el algoritmo
-        player_scores = [
-            [
-                p.velocidad,
-                p.resistencia,
-                p.control,
-                p.pases,
-                p.tiro,
-                p.defensa,
-                p.habilidad_arquero,
-                p.fuerza_cuerpo,
-                p.vision,
-            ]
-            for p in selected_players
-        ]
+        player_scores = build_player_scores(selected_players, consider_goalkeeper_skill)
         
         # Generar equipos
         mejores_equipos, min_difference_total = find_best_combination(player_scores)

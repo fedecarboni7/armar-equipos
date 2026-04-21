@@ -372,6 +372,26 @@ h1 {
     color: #999;
 }
 
+.goalkeeper-skill-option {
+    margin-bottom: 16px;
+}
+
+.goalkeeper-skill-option label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #ccc;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.goalkeeper-skill-option input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #4a9eff;
+    cursor: pointer;
+}
+
 .import-btn {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #fff;
@@ -708,6 +728,11 @@ h1 {
     .players-actions {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .goalkeeper-skill-option label {
+        font-size: 13px;
+        line-height: 1.35;
     }
     
     .import-btn {

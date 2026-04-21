@@ -1,4 +1,7 @@
+from types import SimpleNamespace
+
 from app.db.models import User
+from app.routes.main_routes import build_player_scores, parse_goalkeeper_skill_flag
 from app.utils.auth import get_current_user
 from app.utils.team_optimizer import find_best_combination
 
@@ -61,3 +64,51 @@ def test_find_best_combination():
     # Check if the teams are balanced
     team1, team2 = best_teams[0]
     assert len(team1) == len(team2)
+
+
+def test_build_player_scores_includes_goalkeeper_skill_when_enabled():
+    players = [
+        SimpleNamespace(
+            velocidad=1,
+            resistencia=2,
+            control=3,
+            pases=4,
+            tiro=5,
+            defensa=6,
+            habilidad_arquero=9,
+            fuerza_cuerpo=7,
+            vision=8,
+        )
+    ]
+
+    scores = build_player_scores(players, True)
+
+    assert scores[0][6] == 9
+
+
+def test_build_player_scores_ignores_goalkeeper_skill_when_disabled():
+    players = [
+        SimpleNamespace(
+            velocidad=1,
+            resistencia=2,
+            control=3,
+            pases=4,
+            tiro=5,
+            defensa=6,
+            habilidad_arquero=9,
+            fuerza_cuerpo=7,
+            vision=8,
+        )
+    ]
+
+    scores = build_player_scores(players, False)
+
+    assert scores[0][6] == 0
+
+
+def test_parse_goalkeeper_skill_flag():
+    assert parse_goalkeeper_skill_flag(True) is True
+    assert parse_goalkeeper_skill_flag(False) is False
+    assert parse_goalkeeper_skill_flag("true") is True
+    assert parse_goalkeeper_skill_flag("off") is False
+    assert parse_goalkeeper_skill_flag(None) is True

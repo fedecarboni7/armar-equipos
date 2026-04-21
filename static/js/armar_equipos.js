@@ -11,6 +11,7 @@ let filteredPlayers = [];
 let currentScale = 5; // Variable para la escala actual
 let loading = false;
 let hasResults = false; // Variable para saber si hay resultados generados
+let considerGoalkeeperSkill = true;
 
 // Import limits - should match backend MAX_LINES in ai_player_matcher.py
 const MAX_IMPORT_LINES = 30;
@@ -227,6 +228,14 @@ function setupEventListeners() {
         );
         renderPlayers();
     });
+
+    const considerGoalkeeperSkillInput = document.getElementById('consider-goalkeeper-skill');
+    if (considerGoalkeeperSkillInput) {
+        considerGoalkeeperSkill = considerGoalkeeperSkillInput.checked;
+        considerGoalkeeperSkillInput.addEventListener('change', (e) => {
+            considerGoalkeeperSkill = e.target.checked;
+        });
+    }
 
     // Generate teams button
     document.querySelector('.generate-btn').addEventListener('click', generateTeams);
@@ -584,7 +593,8 @@ async function generateTeams() {
         const requestData = {
             selected_player_ids: selectedPlayerIds,
             club_id: getCurrentClubId() !== 'my-players' ? parseInt(getCurrentClubId()) : null,
-            scale: currentScale === 5 ? '1-5' : '1-10'
+            scale: currentScale === 5 ? '1-5' : '1-10',
+            considerar_habilidad_arquero: considerGoalkeeperSkill
         };
         
         // Call the backend API
