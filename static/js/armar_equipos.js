@@ -5,6 +5,7 @@ let teamA = [];
 let teamB = [];
 let availablePlayers = [];
 let filteredPlayers = [];
+let manualSearchTerm = '';
 // Variables para el contexto actual (ahora se manejan desde clubSelector.js)
 // let currentClubId = 'my-players';  // Comentado - se usa desde clubSelector.js  
 // let userClubs = [];               // Comentado - se usa desde clubSelector.js
@@ -132,6 +133,7 @@ async function loadPlayersForContext(contextId) {
             ...player,
             rating: calculateAverage(player)
         }));
+        players = sortPlayersByName(players);
         
         // Inicializar jugadores filtrados con todos los jugadores
         filteredPlayers = [...players];
@@ -154,6 +156,12 @@ async function loadPlayersForContext(contextId) {
         if (searchInput) {
             searchInput.value = '';
         }
+
+        const manualSearchInput = document.getElementById('manual-search-input');
+        if (manualSearchInput) {
+            manualSearchInput.value = '';
+        }
+        manualSearchTerm = '';
         
         loading = false;
         renderPlayers();
@@ -195,6 +203,10 @@ function calculateAverage(player) {
     return Math.round(average * 10) / 10;
 }
 
+function sortPlayersByName(playersList) {
+    return [...playersList].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
+}
+
 function setupEventListeners() {
     // Mode selector
     document.querySelectorAll('.mode-btn').forEach(btn => {
@@ -223,11 +235,19 @@ function setupEventListeners() {
     // Search functionality
     document.getElementById('search-input').addEventListener('input', (e) => {
         const searchTerm = e.target.value.toLowerCase();
-        filteredPlayers = players.filter(player => 
+        filteredPlayers = sortPlayersByName(players.filter(player => 
             player.name.toLowerCase().includes(searchTerm)
-        );
+        ));
         renderPlayers();
     });
+
+    const manualSearchInput = document.getElementById('manual-search-input');
+    if (manualSearchInput) {
+        manualSearchInput.addEventListener('input', (e) => {
+            manualSearchTerm = e.target.value.toLowerCase().trim();
+            renderAvailablePlayers();
+        });
+    }
 
     const considerGoalkeeperSkillInput = document.getElementById('consider-goalkeeper-skill');
     if (considerGoalkeeperSkillInput) {
@@ -287,7 +307,7 @@ function renderPlayers() {
         return;
     }
 
-    filteredPlayers.forEach(player => {
+    playersToShow.forEach(player => {
         const playerItem = document.createElement('div');
         playerItem.className = 'player-item';
         
@@ -341,6 +361,8 @@ function renderAvailablePlayers() {
     const container = document.getElementById('available-players-list');
     container.innerHTML = '';
 
+    const playersToShow = availablePlayers.filter(player => player.name.toLowerCase().includes(manualSearchTerm));
+
     if (availablePlayers.length === 0 && players.length === 0) {
         const contextName = getCurrentClubId() === 'my-players' ? 'creados' : 
                           getUserClubs().find(club => club.id == getCurrentClubId())?.name || 'de este club';
@@ -354,7 +376,16 @@ function renderAvailablePlayers() {
         return;
     }
 
-    availablePlayers.forEach(player => {
+    if (playersToShow.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 20px; color: #999;">
+                🔍 No se encontraron jugadores con "${escapeHTML(manualSearchTerm)}"
+            </div>
+        `;
+        return;
+    }
+
+    playersToShow.forEach(player => {
         const playerDiv = document.createElement('div');
         playerDiv.className = 'available-player';
         playerDiv.innerHTML = `
@@ -523,7 +554,7 @@ function addToTeam(teamName, playerName) {
         teamB.push(player);
     }
 
-    availablePlayers = availablePlayers.filter(p => p.name !== playerName);
+    availablePlayers = sortPlayersByName(availablePlayers.filter(p => p.name !== playerName));
     updateManualMode();
 }
 
@@ -539,8 +570,7 @@ function removeFromTeam(teamName, playerName) {
     }
 
     if (player) {
-        availablePlayers.push(player);
-        availablePlayers.sort((a, b) => a.name.localeCompare(b.name));
+        availablePlayers = sortPlayersByName([...availablePlayers, player]);
     }
     
     updateManualMode();

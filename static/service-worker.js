@@ -1,4 +1,4 @@
-const CACHE_NAME = 'armar-equipos-v1';
+const CACHE_NAME = 'armar-equipos-v2';
 const urlsToCache = [
   '/static/css/style.css',
   '/static/js/main.min.js',
