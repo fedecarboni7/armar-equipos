@@ -15,18 +15,18 @@ git clone https://github.com/tu-usuario/nombre-del-proyecto.git
 ### 2. Instalación y Ejecución Local
 
 - Instala las dependencias
-  Asegurate de tener Python y pip instalados. Para instalar las dependencias necesarias, usa el siguiente comando:
+  Asegurate de tener Python y uv instalados. Para instalar las dependencias necesarias, usa el siguiente comando:
   ```bash
-  pip install -r requirements.txt
+  uv sync --group dev
   ```
 - Corre el proyecto localmente
   ```bash
-  uvicorn app.main:app --reload
+  uv run uvicorn app.main:app --reload
   ```
 - Verifica que todo funcione correctamente
   Antes de comenzar a trabajar, verificá que el proyecto se ejecute correctamente y que todas las pruebas pasen. Podés correr las pruebas con:
     ```bash
-    pytest
+    uv run pytest
     ```
 
 ### 3. Crea una rama para tu feature o bugfix

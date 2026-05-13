@@ -28,6 +28,11 @@ dependencies = [
     "uvicorn>=0.40.0",
 ]
 
+[dependency-groups]
+dev = [
+    "flake8>=7.1.2",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
