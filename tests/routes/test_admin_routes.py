@@ -1,5 +1,15 @@
+import pytest
 from datetime import datetime, timedelta, timezone
 from app.db.models import User
+from app.routes import admin_routes
+
+
+TEST_CRON_TOKEN = "test-cron-token"
+
+
+@pytest.fixture(autouse=True)
+def mock_cron_secret(monkeypatch):
+    monkeypatch.setattr(admin_routes, "CRON_SECRET", TEST_CRON_TOKEN)
 
 
 def test_cleanup_expired_users_without_token(client):
@@ -68,7 +78,7 @@ def test_cleanup_expired_users_with_valid_token(client, db):
     # Ejecutar cleanup con token válido
     response = client.post(
         "/cleanup-expired-users",
-        headers={"X-Cron-Token": "your_cron_secret_token_here"},
+        headers={"X-Cron-Token": TEST_CRON_TOKEN},
     )
 
     assert response.status_code == 200
@@ -103,7 +113,7 @@ def test_cleanup_expired_users_no_expired_users(client, db):
 
     response = client.post(
         "/cleanup-expired-users",
-        headers={"X-Cron-Token": "your_cron_secret_token_here"},
+        headers={"X-Cron-Token": TEST_CRON_TOKEN},
     )
 
     assert response.status_code == 200
