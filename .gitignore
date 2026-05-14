@@ -12,5 +12,4 @@ venv/
 # VSCode
 .vscode
 
-# IDX
-.idx
+.github/.DS_Store

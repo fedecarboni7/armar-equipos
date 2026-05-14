@@ -7,14 +7,14 @@ from app.config.settings import Settings
 # Configuración del colorlog
 handler = colorlog.StreamHandler()
 formatter = colorlog.ColoredFormatter(
-    '%(log_color)s%(levelname)s%(white)s: %(message)s',
+    "%(log_color)s%(levelname)s%(white)s: %(message)s",
     log_colors={
-        'DEBUG': 'cyan',
-        'INFO': 'green',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'red,bg_white',
-    }
+        "DEBUG": "cyan",
+        "INFO": "green",
+        "WARNING": "yellow",
+        "ERROR": "red",
+        "CRITICAL": "red,bg_white",
+    },
 )
 handler.setFormatter(formatter)
 
@@ -29,7 +29,8 @@ except AttributeError:
 
 logger.addHandler(handler)
 
+
 def configure_logging():
-    logging.getLogger('libsql_client.dbapi2._async_executor').setLevel(logging.WARNING)
-    logging.getLogger('libsql_client.dbapi2._sync_executor').setLevel(logging.WARNING)
-    logging.getLogger('libsql_client.dbapi2.types').setLevel(logging.WARNING)
+    logging.getLogger("libsql_client.dbapi2._async_executor").setLevel(logging.WARNING)
+    logging.getLogger("libsql_client.dbapi2._sync_executor").setLevel(logging.WARNING)
+    logging.getLogger("libsql_client.dbapi2.types").setLevel(logging.WARNING)

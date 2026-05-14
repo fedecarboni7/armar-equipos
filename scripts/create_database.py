@@ -10,8 +10,9 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from sqlalchemy import create_engine
-from app.db.models import Base
+from sqlalchemy import create_engine  # noqa: E402
+from app.db.models import Base  # noqa: E402
+
 
 def create_database():
     """Crea la base de datos SQLite con todas las tablas"""
@@ -25,7 +26,9 @@ def create_database():
     print(f"Creando base de datos en: {db_path}")
 
     # Crear el engine
-    engine = create_engine(database_url, echo=True)  # echo=True para ver las consultas SQL
+    engine = create_engine(
+        database_url, echo=True
+    )  # echo=True para ver las consultas SQL
 
     # Crear todas las tablas
     print("Creando tablas...")
@@ -33,6 +36,7 @@ def create_database():
 
     print("¡Base de datos creada exitosamente!")
     print(f"Archivo de base de datos: {db_path}")
+
 
 if __name__ == "__main__":
     create_database()

@@ -4,14 +4,14 @@ from pathlib import Path
 
 router = APIRouter()
 
+
 @router.get("/robots.txt")
 async def get_robots():
     robots_path = Path("static/robots.txt")
     return FileResponse(
-        robots_path,
-        media_type="text/plain",
-        headers={"Content-Disposition": "inline"}
+        robots_path, media_type="text/plain", headers={"Content-Disposition": "inline"}
     )
+
 
 @router.get("/sitemap.xml")
 async def get_sitemap():
@@ -19,8 +19,9 @@ async def get_sitemap():
     return FileResponse(
         sitemap_path,
         media_type="application/xml",
-        headers={"Content-Disposition": "inline"}
+        headers={"Content-Disposition": "inline"},
     )
+
 
 @router.get("/service-worker.js")
 async def get_service_worker():
