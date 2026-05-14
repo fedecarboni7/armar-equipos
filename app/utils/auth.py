@@ -6,6 +6,7 @@ from app.db.database import get_db
 from app.db.models import User
 from app.config.logging_config import logger
 
+
 def get_current_user(request: Request, db: Session = Depends(get_db)):
     user_id = request.session.get("user_id")
     if user_id:

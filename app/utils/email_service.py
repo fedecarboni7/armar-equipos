@@ -16,15 +16,17 @@ class EmailService:
     def __init__(self):
         self.from_email = "armarequipos.app@gmail.com"
         self.from_name = "Armar Equipos"
-        
+
         # Configure Brevo API
         configuration = sib_api_v3_sdk.Configuration()
-        configuration.api_key['api-key'] = Settings().brevo_api_key
+        configuration.api_key["api-key"] = Settings().brevo_api_key
         self.api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
             sib_api_v3_sdk.ApiClient(configuration)
         )
 
-    def send_password_reset_email(self, to_email: str, reset_token: str, username: str) -> bool:
+    def send_password_reset_email(
+        self, to_email: str, reset_token: str, username: str
+    ) -> bool:
         """Send password reset email via Brevo API"""
         try:
             # Create reset URL (ajustar según tu dominio)
@@ -32,7 +34,7 @@ class EmailService:
 
             # Create email content
             subject = "Restablecer contraseña - Armar Equipos"
-            
+
             html_body = f"""
             <!DOCTYPE html>
             <html>
@@ -73,7 +75,7 @@ class EmailService:
             </body>
             </html>
             """
-            
+
             text_body = f"""
             Hola {username},
 
@@ -96,13 +98,13 @@ class EmailService:
                 sender={"name": self.from_name, "email": self.from_email},
                 subject=subject,
                 html_content=html_body,
-                text_content=text_body
+                text_content=text_body,
             )
-            
+
             self.api_instance.send_transac_email(send_smtp_email)
-            
+
             return True
-            
+
         except ApiException as e:
             logger.error(f"Brevo API error sending email: {e}")
             return False
@@ -110,15 +112,19 @@ class EmailService:
             logger.error(f"Error sending email: {e}")
             return False
 
-    def send_email_confirmation(self, to_email: str, confirmation_token: str, username: str) -> bool:
+    def send_email_confirmation(
+        self, to_email: str, confirmation_token: str, username: str
+    ) -> bool:
         """Send email confirmation email"""
         try:
             # Create confirmation URL
-            confirmation_url = f"{Settings().frontend_url}/confirm-email/{confirmation_token}"
-            
+            confirmation_url = (
+                f"{Settings().frontend_url}/confirm-email/{confirmation_token}"
+            )
+
             # Create email content
             subject = "Confirma tu cuenta - Armar Equipos"
-            
+
             html_body = f"""
             <!DOCTYPE html>
             <html>
@@ -160,7 +166,7 @@ class EmailService:
             </body>
             </html>
             """
-            
+
             text_body = f"""
             ¡Bienvenido a Armar Equipos!
 
@@ -187,13 +193,13 @@ class EmailService:
                 sender={"name": self.from_name, "email": self.from_email},
                 subject=subject,
                 html_content=html_body,
-                text_content=text_body
+                text_content=text_body,
             )
-            
+
             self.api_instance.send_transac_email(send_smtp_email)
-            
+
             return True
-            
+
         except ApiException as e:
             logger.error(f"Brevo API error sending confirmation email: {e}")
             return False
@@ -207,55 +213,65 @@ class PasswordResetService:
     def generate_reset_token() -> str:
         """Generate a secure random token"""
         return secrets.token_urlsafe(32)
-    
+
     @staticmethod
     def create_reset_token(db: Session, user_id: int) -> str:
         """Create a new password reset token for user"""
         # Invalidate any existing tokens
-        existing_tokens = db.query(models.PasswordResetToken).filter(
-            models.PasswordResetToken.user_id == user_id,
-            models.PasswordResetToken.used == False
-        ).all()
-        
+        existing_tokens = (
+            db.query(models.PasswordResetToken)
+            .filter(
+                models.PasswordResetToken.user_id == user_id,
+                models.PasswordResetToken.used.is_(False),
+            )
+            .all()
+        )
+
         for token in existing_tokens:
             token.used = True
-        
+
         # Create new token
         token_string = PasswordResetService.generate_reset_token()
         expires_at = get_argentina_now() + timedelta(hours=1)  # 1 hour expiration
-        
+
         reset_token = models.PasswordResetToken(
-            user_id=user_id,
-            token=token_string,
-            expires_at=expires_at
+            user_id=user_id, token=token_string, expires_at=expires_at
         )
-        
+
         db.add(reset_token)
         db.commit()
-        
+
         return token_string
-    
+
     @staticmethod
     def validate_reset_token(db: Session, token: str) -> Optional[models.User]:
         """Validate reset token and return user if valid"""
-        reset_token = db.query(models.PasswordResetToken).filter(
-            models.PasswordResetToken.token == token,
-            models.PasswordResetToken.used == False,
-            models.PasswordResetToken.expires_at > get_argentina_now()
-        ).first()
-        
+        reset_token = (
+            db.query(models.PasswordResetToken)
+            .filter(
+                models.PasswordResetToken.token == token,
+                models.PasswordResetToken.used.is_(False),
+                models.PasswordResetToken.expires_at > get_argentina_now(),
+            )
+            .first()
+        )
+
         if reset_token:
             return reset_token.user
         return None
-    
+
     @staticmethod
     def use_reset_token(db: Session, token: str) -> bool:
         """Mark reset token as used"""
-        reset_token = db.query(models.PasswordResetToken).filter(
-            models.PasswordResetToken.token == token,
-            models.PasswordResetToken.used == False
-        ).first()
-        
+        reset_token = (
+            db.query(models.PasswordResetToken)
+            .filter(
+                models.PasswordResetToken.token == token,
+                models.PasswordResetToken.used.is_(False),
+            )
+            .first()
+        )
+
         if reset_token:
             reset_token.used = True
             db.commit()

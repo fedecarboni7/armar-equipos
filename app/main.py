@@ -16,9 +16,9 @@ from app.routes.admin_routes import router as admin_router
 #         # Add scripts directory to path
 #         scripts_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "scripts")
 #         sys.path.insert(0, scripts_path)
-        
+
 #         from migrate_sqlite_to_postgres import migrate_data
-        
+
 #         success = migrate_data()
 #         if success:
 #             print("✅ Database migration completed successfully")
@@ -40,7 +40,7 @@ app.include_router(admin_router, tags=["admin"])
 
 if __name__ == "__main__":
     import uvicorn
-    
+
     # Esta configuración se usa solo cuando ejecutas directamente con:
     # python -m app.main
     # Para desarrollo usa el debugger de VS Code

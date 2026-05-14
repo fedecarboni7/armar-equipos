@@ -15,6 +15,7 @@ from app.utils.security import verify_admin_user
 
 templates = Jinja2Templates(directory="templates")
 
+
 def create_app() -> FastAPI:
     # Configuración de logging
     configure_logging()
@@ -34,31 +35,37 @@ def create_app() -> FastAPI:
             profile_lifecycle="trace",
         )
 
-    app = FastAPI(title="Armar Equipos", docs_url=None, redoc_url=None, openapi_url=None)
+    app = FastAPI(
+        title="Armar Equipos", docs_url=None, redoc_url=None, openapi_url=None
+    )
 
     app.add_middleware(SessionMiddleware, secret_key=secret_key)
-    
+
     app.mount("/static", StaticFiles(directory="static"), name="static")
 
     @app.exception_handler(StarletteHTTPException)
     async def http_exception_handler(request: Request, exc: StarletteHTTPException):
         if exc.status_code in [405]:  # Not Found y Method Not Allowed
             return RedirectResponse(url="/home")
-        
+
         if exc.status_code == 404:
-            return templates.TemplateResponse(request=request, name="404.html", status_code=404, context={"error": exc.detail})
+            return templates.TemplateResponse(
+                request=request,
+                name="404.html",
+                status_code=404,
+                context={"error": exc.detail},
+            )
 
         if exc.status_code == 500:
-            return templates.TemplateResponse(request=request, name="500.html", status_code=500)
+            return templates.TemplateResponse(
+                request=request, name="500.html", status_code=500
+            )
 
         return JSONResponse(
             status_code=exc.status_code,
-            content={
-                "error": exc.status_code,
-                "detail": exc.detail
-            }
+            content={"error": exc.status_code, "detail": exc.detail},
         )
-    
+
     @app.get("/docs", include_in_schema=False)
     async def get_documentation(current_user: User = Depends(get_current_user)):
         verify_admin_user(current_user, detail="Unauthorized: /docs")
