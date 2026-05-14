@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Settings:
     def __init__(self):
         self.database_url = os.getenv("DATABASE_URL")
@@ -18,4 +19,3 @@ class Settings:
         self.sentry_dsn = os.getenv("SENTRY_DSN")
         self.gemini_model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
         self.environment = os.getenv("ENVIRONMENT", "local")
-        

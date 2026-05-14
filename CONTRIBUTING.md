@@ -28,6 +28,13 @@ git clone https://github.com/tu-usuario/nombre-del-proyecto.git
     ```bash
     uv run pytest
     ```
+  Para revisar formato y lint también podés usar:
+    ```bash
+    uv run ruff format --check .
+    ```
+    ```bash
+    uv run ruff check .
+    ```
 
 ### 3. Crea una rama para tu feature o bugfix
     
