@@ -1,23 +1,39 @@
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from fastapi.testclient import TestClient
+import os
+from pathlib import Path
 
-from app.db.database import Base, get_db
+import pytest
+from alembic import command
+from alembic.config import Config
+from fastapi.testclient import TestClient
+from sqlalchemy.orm import sessionmaker
+
+from app.db.database import create_sync_engine, get_db
 from app.main import app
 from app.db.models import User
 import sib_api_v3_sdk
 
 
-# SQLite in-memory database configuration
+def _get_database_url() -> str:
+    database_url = os.environ.get("DATABASE_URL")
+    if not database_url:
+        raise RuntimeError("DATABASE_URL is not set for tests.")
+    return database_url
+
+
+def _run_migrations() -> None:
+    root_dir = Path(__file__).resolve().parents[1]
+    alembic_ini = root_dir / "alembic.ini"
+    config = Config(str(alembic_ini))
+    command.upgrade(config, "head")
+
+
 @pytest.fixture(scope="session")
 def engine():
-    SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-    engine = create_engine(
-        SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
-    )
-    Base.metadata.create_all(bind=engine)
-    return engine
+    _get_database_url()
+    _run_migrations()
+    engine = create_sync_engine(os.environ["DATABASE_URL"])
+    yield engine
+    engine.dispose()
 
 
 @pytest.fixture(scope="session")

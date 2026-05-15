@@ -15,20 +15,18 @@ load_dotenv()
 # Check if the code is being run in a test environment
 TESTING = "pytest" in sys.modules
 
+
+def create_sync_engine(database_url: str):
+    # Si es PostgreSQL, usar el dialecto psycopg3 (psycopg versión 3)
+    if database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+    return create_engine(database_url)
+
 if not TESTING:
     DATABASE_URL = Settings().database_url
 
-    # Configure connection args based on database type
-    connect_args = {}
-    if DATABASE_URL.startswith("sqlite"):
-        connect_args = {"check_same_thread": False}
-
-    # Si es PostgreSQL, usar el dialecto psycopg3 (psycopg versión 3)
-    if DATABASE_URL.startswith("postgresql://"):
-        DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
-
-    engine = create_engine(DATABASE_URL, connect_args=connect_args)
-    Base.metadata.create_all(engine)
+    engine = create_sync_engine(DATABASE_URL)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 else:
     logger.info(

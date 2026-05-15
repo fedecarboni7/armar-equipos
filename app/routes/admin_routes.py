@@ -24,9 +24,6 @@ async def admin_dashboard(
     verify_admin_user(current_user, detail="Unauthorized access.")
 
     try:
-        # Detectar tipo de base de datos
-        db_dialect = db.bind.dialect.name
-
         # Consultas para estadísticas completas
         with db.connection() as conn:
             # Estadísticas básicas
@@ -65,15 +62,9 @@ async def admin_dashboard(
                 float(round(avg_users_per_club, 1)) if avg_users_per_club else 0
             )
 
-            # Definir funciones de fecha según el motor
-            if db_dialect == "postgresql":
-                date_24h = "NOW() - INTERVAL '1 day'"
-                date_7d = "NOW() - INTERVAL '7 days'"
-                date_30d = "NOW() - INTERVAL '1 month'"
-            else:  # SQLite
-                date_24h = "datetime('now', '-1 day')"
-                date_7d = "datetime('now', '-7 days')"
-                date_30d = "datetime('now', '-1 month')"
+            date_24h = "NOW() - INTERVAL '1 day'"
+            date_7d = "NOW() - INTERVAL '7 days'"
+            date_30d = "NOW() - INTERVAL '1 month'"
 
             # Usuarios nuevos en diferentes períodos
             new_users_24h = conn.execute(
