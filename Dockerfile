@@ -24,6 +24,4 @@ USER appuser
 
 EXPOSE 8080
 
-ENV PATH="/app/.venv/bin:$PATH"
-
 CMD uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port 8080
