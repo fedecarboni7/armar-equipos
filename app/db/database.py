@@ -23,6 +23,7 @@ def create_sync_engine(database_url: str):
 
     return create_engine(database_url)
 
+
 if not TESTING:
     DATABASE_URL = Settings().database_url
 

@@ -5,6 +5,7 @@ from alembic import context
 
 from app.db.database import create_sync_engine
 from app.db.models import Base
+
 # Import all model modules here so autogenerate can detect them.
 import app.db.models  # noqa: F401
 
@@ -62,9 +63,7 @@ def run_migrations_online() -> None:
     connectable = create_sync_engine(url)
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()
