@@ -36,7 +36,7 @@ def get_players(
     except OperationalError:
         raise HTTPException(
             status_code=500,
-            detail="Error al acceder a la base de datos. Inténtalo de nuevo más tarde.",
+            detail="Error al acceder a la base de datos. Intentalo de nuevo más tarde.",
         )
 
 
@@ -56,7 +56,7 @@ def save_player(
         if not has_club_write_permission(db, player_data.club_id, current_user.id):
             raise HTTPException(
                 status_code=403,
-                detail="No tienes permisos para crear jugadores en este club",
+                detail="No tenés permisos para crear jugadores en este club",
             )
 
     try:
@@ -71,7 +71,7 @@ def save_player(
     except OperationalError:
         raise HTTPException(
             status_code=500,
-            detail="Error al guardar el jugador. Inténtalo de nuevo más tarde.",
+            detail="Error al guardar el jugador. Intentalo de nuevo más tarde.",
         )
 
 
@@ -101,7 +101,7 @@ def update_player(
             ):
                 raise HTTPException(
                     status_code=403,
-                    detail="No tienes permisos para editar jugadores en este club",
+                    detail="No tenés permisos para editar jugadores en este club",
                 )
 
         for key, value in player_data.model_dump().items():
@@ -113,7 +113,7 @@ def update_player(
     except OperationalError:
         raise HTTPException(
             status_code=500,
-            detail="Error al actualizar el jugador. Inténtalo de nuevo más tarde.",
+            detail="Error al actualizar el jugador. Intentalo de nuevo más tarde.",
         )
 
 
@@ -143,7 +143,7 @@ def delete_player(
             ):
                 raise HTTPException(
                     status_code=403,
-                    detail="No tienes permisos para eliminar jugadores en este club",
+                    detail="No tenés permisos para eliminar jugadores en este club",
                 )
 
         def delete_operation():
@@ -156,5 +156,5 @@ def delete_player(
     except OperationalError:
         raise HTTPException(
             status_code=500,
-            detail="Error al eliminar el jugador. Inténtalo de nuevo más tarde.",
+            detail="Error al eliminar el jugador. Intentalo de nuevo más tarde.",
         )

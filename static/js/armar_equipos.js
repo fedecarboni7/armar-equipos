@@ -290,8 +290,8 @@ function renderPlayers() {
             `👤 No hay jugadores ${contextName}`;
         
         const subMessage = searchTerm !== '' ?
-            'Intenta con otro término de búsqueda' :
-            '¡Agrega jugadores para comenzar a armar equipos!';
+            'Intentá con otro término de búsqueda' :
+            '¡Agrega jugadores para empezar a armar equipos!';
         
         const button = searchTerm === '' ?
             '<a href="/jugadores" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; transition: background-color 0.3s;">Ir a Jugadores</a>' :
@@ -369,7 +369,7 @@ function renderAvailablePlayers() {
         container.innerHTML = `
             <div style="text-align: center; padding: 40px;">
                 <div style="font-size: 18px; color: #aaa; margin-bottom: 10px;">👤 No hay jugadores ${contextName}</div>
-                <div style="font-size: 14px; color: #666;">¡Agrega jugadores para comenzar a armar equipos!</div>
+                <div style="font-size: 14px; color: #666;">¡Agrega jugadores para empezar a armar equipos!</div>
                 <a href="/jugadores" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; transition: background-color 0.3s;">Ir a Jugadores</a>
             </div>
         `;

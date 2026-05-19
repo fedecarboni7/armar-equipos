@@ -55,7 +55,7 @@ def create_sample_players(username: str):
         print(f"Jugadores existentes para usuario '{username}': {existing_players}")
 
         if existing_players > 0:
-            response = input("¿Quieres eliminar los jugadores existentes? (y/n): ")
+            response = input("¿Querés eliminar los jugadores existentes? (y/n): ")
             if response.lower() == "y":
                 db.query(Player).filter(Player.user_id == user.id).delete()
                 db.commit()

@@ -180,8 +180,8 @@ function renderPlayers() {
             `👤 No hay jugadores en ${contextName}`;
         
         const subMessage = searchTerm !== '' ?
-            'Intenta con otro término de búsqueda' :
-            '¡Agrega tu primer jugador para comenzar!';
+            'Intentá con otro término de búsqueda' :
+            '¡Agrega tu primer jugador para empezar!';
         
         playersList.innerHTML = `
             <div style="text-align: center; padding: 40px;">
@@ -738,7 +738,7 @@ async function savePlayerEdits() {
 // Función para eliminar jugador desde el modal
 async function deletePlayerFromModal(id) {
     const player = players.find(p => p.id === id);
-    if (player && confirm(`¿Estás seguro de que quieres eliminar a ${player.name}?`)) {
+    if (player && confirm(`¿Estás seguro de que querés eliminar a ${player.name}?`)) {
         try {
             const scale = currentScale === 5 ? '1-5' : '1-10';
             const response = await fetch(`/api/players/${id}?scale=${scale}`, {

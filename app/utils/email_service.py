@@ -62,10 +62,10 @@ class EmailService:
                         <p style="text-align: center;">
                             <a href="{reset_url}" class="button">Restablecer contraseña</a>
                         </p>
-                        <p>Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:</p>
+                        <p>Si no podés hacer clic en el botón, copia y pega este enlace en tu navegador:</p>
                         <p style="word-break: break-all; color: #007bff;">{reset_url}</p>
                         <p><strong>Este enlace expirará en 1 hora.</strong></p>
-                        <p>Si no solicitaste restablecer tu contraseña, puedes ignorar este email.</p>
+                        <p>Si no solicitaste restablecer tu contraseña, podés ignorar este email.</p>
                         <p>Saludos,<br>Equipo de Armar Equipos</p>
                     </div>
                     <div class="footer">
@@ -86,7 +86,7 @@ class EmailService:
 
             Este enlace expirará en 1 hora.
 
-            Si no solicitaste restablecer tu contraseña, puedes ignorar este email.
+            Si no solicitaste restablecer tu contraseña, podés ignorar este email.
 
             Saludos,
             Equipo de Armar Equipos
@@ -152,11 +152,11 @@ class EmailService:
                         <p style="text-align: center;">
                             <a href="{confirmation_url}" class="button">Confirmar mi cuenta</a>
                         </p>
-                        <p>Si no puedes hacer clic en el botón, copia y pega este enlace en tu navegador:</p>
+                        <p>Si no podés hacer clic en el botón, copia y pega este enlace en tu navegador:</p>
                         <p style="word-break: break-all; color: #28a745;">{confirmation_url}</p>
                         <p><strong>Este enlace expirará en 24 horas.</strong></p>
                         <p>Una vez confirmada tu cuenta, podrás acceder a todas las funcionalidades de Armar Equipos.</p>
-                        <p>Si no te registraste en nuestra plataforma, puedes ignorar este email.</p>
+                        <p>Si no te registraste en nuestra plataforma, podés ignorar este email.</p>
                         <p>Saludos,<br>Equipo de Armar Equipos</p>
                     </div>
                     <div class="footer">
@@ -181,7 +181,7 @@ class EmailService:
 
             Una vez confirmada tu cuenta, podrás acceder a todas las funcionalidades de Armar Equipos.
 
-            Si no te registraste en nuestra plataforma, puedes ignorar este email.
+            Si no te registraste en nuestra plataforma, podés ignorar este email.
 
             Saludos,
             Equipo de Armar Equipos

@@ -82,7 +82,7 @@ async def signup(
         )
     except OperationalError:
         return HTMLResponse(
-            "Error al acceder a la base de datos. Inténtalo de nuevo más tarde.",
+            "Error al acceder a la base de datos. Intentalo de nuevo más tarde.",
             status_code=500,
         )
 
@@ -109,7 +109,7 @@ async def signup(
             name="email_confirmation_pending.html",
             context={
                 "user_email": email,
-                "error": "Cuenta creada, pero hubo un problema enviando el email de confirmación. Intenta reenviar el email.",
+                "error": "Cuenta creada, pero hubo un problema enviando el email de confirmación. Intentá reenviar el email.",
             },
         )
     # Redirect to confirmation pending page
@@ -153,7 +153,7 @@ async def login(
         user: User = execute_with_retries(query_user, db, username)
     except OperationalError:
         return HTMLResponse(
-            "Error al acceder a la base de datos. Inténtalo de nuevo más tarde.",
+            "Error al acceder a la base de datos. Intentalo de nuevo más tarde.",
             status_code=500,
         )
 
@@ -398,7 +398,7 @@ async def forgot_password(
                     request=request,
                     name="forgot_password.html",
                     context={
-                        "error": "Error al enviar el email. Inténtalo de nuevo más tarde."
+                        "error": "Error al enviar el email. Intentalo de nuevo más tarde."
                     },
                 )
 
@@ -419,7 +419,7 @@ async def forgot_password(
         return templates.TemplateResponse(
             request=request,
             name="forgot_password.html",
-            context={"error": "Error interno. Inténtalo de nuevo más tarde."},
+            context={"error": "Error interno. Intentalo de nuevo más tarde."},
         )
 
 
@@ -493,7 +493,7 @@ async def reset_password(
             request=request,
             name="reset_password.html",
             context={
-                "success": "Tu contraseña ha sido restablecida exitosamente. Ahora puedes iniciar sesión.",
+                "success": "Tu contraseña fue restablecida exitosamente. Ahora podés iniciar sesión.",
                 "password_reset": True,
             },
         )
@@ -509,7 +509,7 @@ async def reset_password(
             request=request,
             name="reset_password.html",
             context={
-                "error": "Error interno. Inténtalo de nuevo más tarde.",
+                "error": "Error interno. Intentalo de nuevo más tarde.",
                 "token": token,
             },
         )
@@ -607,7 +607,7 @@ async def update_email(
                 name="profile.html",
                 context={
                     "user": user,
-                    "error": "Email actualizado pero hubo un problema enviando la confirmación. Puedes reenviar el email desde tu perfil.",
+                    "error": "Email actualizado pero hubo un problema enviando la confirmación. Podés reenviar el email desde tu perfil.",
                 },
             )
 
@@ -633,7 +633,7 @@ async def update_email(
             name="profile.html",
             context={
                 "user": user,
-                "error": "Error interno. Inténtalo de nuevo más tarde.",
+                "error": "Error interno. Intentalo de nuevo más tarde.",
             },
         )
 
@@ -782,7 +782,7 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
             name="profile.html",
             context={
                 "user": user,
-                "error": "Error al borrar la cuenta. Inténtalo de nuevo más tarde.",
+                "error": "Error al borrar la cuenta. Intentalo de nuevo más tarde.",
             },
         )
 
@@ -802,7 +802,7 @@ async def confirm_email(request: Request, token: str, db: Session = Depends(get_
             request=request,
             name="signup.html",
             context={
-                "error": "El enlace de confirmación no es válido o ha expirado.",
+                "error": "El enlace de confirmación no es válido o expiró.",
                 "invalid_token": True,
             },
         )
@@ -814,7 +814,7 @@ async def confirm_email(request: Request, token: str, db: Session = Depends(get_
             request=request,
             name="signup.html",
             context={
-                "error": "Error al confirmar el email. Inténtalo de nuevo más tarde.",
+                "error": "Error al confirmar el email. Intentalo de nuevo más tarde.",
                 "confirmation_failed": True,
             },
         )
@@ -824,9 +824,7 @@ async def confirm_email(request: Request, token: str, db: Session = Depends(get_
     return templates.TemplateResponse(
         request=request,
         name="login.html",
-        context={
-            "success": "¡Email confirmado exitosamente! Ya puedes usar tu cuenta."
-        },
+        context={"success": "¡Email confirmado exitosamente! Ya podés usar tu cuenta."},
     )
 
 
@@ -862,7 +860,7 @@ async def resend_confirmation(
                     request=request,
                     name="email_confirmation_pending.html",
                     context={
-                        "error": "Error al enviar el email. Inténtalo de nuevo más tarde.",
+                        "error": "Error al enviar el email. Intentalo de nuevo más tarde.",
                         "user_email": email,
                     },
                 )
@@ -886,7 +884,7 @@ async def resend_confirmation(
             request=request,
             name="email_confirmation_pending.html",
             context={
-                "error": "Error interno. Inténtalo de nuevo más tarde.",
+                "error": "Error interno. Intentalo de nuevo más tarde.",
                 "user_email": email,
             },
         )
@@ -913,7 +911,7 @@ async def resend_email_confirmation_profile(
             name="profile.html",
             context={
                 "user": user,
-                "error": "No tienes un email configurado para confirmar.",
+                "error": "No tenés un email configurado para confirmar.",
             },
         )
     if user.is_email_confirmed():
@@ -959,6 +957,6 @@ async def resend_email_confirmation_profile(
             name="profile.html",
             context={
                 "user": user,
-                "error": "Error interno. Inténtalo de nuevo más tarde.",
+                "error": "Error interno. Intentalo de nuevo más tarde.",
             },
         )

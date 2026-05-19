@@ -557,7 +557,7 @@ async function createNewClub() {
     }
   } catch (error) {
     console.error('Error creating club:', error);
-    alert('Error al crear el club. Intenta de nuevo.');
+    alert('Error al crear el club. Intentá de nuevo.');
   }
 }
 
@@ -586,13 +586,13 @@ function showMembersContent() {
 }
 
 function confirmLeaveClub() {
-  if (confirm('¿Estás seguro de que quieres abandonar este club?')) {
+  if (confirm('¿Estás seguro de que querés abandonar este club?')) {
     leaveClub();
   }
 }
 
 function confirmDeleteClub() {
-  if (confirm('¿Estás seguro de que quieres eliminar este club? Esta acción no se puede deshacer.')) {
+  if (confirm('¿Estás seguro de que querés eliminar este club? Esta acción no se puede deshacer.')) {
     deleteClub();
   }
 }
@@ -607,7 +607,7 @@ async function leaveClub() {
     });
     
     if (response.ok) {
-      alert('Has abandonado el club exitosamente');
+      alert('Saliste del club exitosamente');
       window.location.href = '/clubes';
     } else {
       const error = await response.text();
@@ -615,7 +615,7 @@ async function leaveClub() {
     }
   } catch (error) {
     console.error('Error leaving club:', error);
-    alert('Error al abandonar el club. Intenta de nuevo.');
+    alert('Error al abandonar el club. Intentá de nuevo.');
   }
 }
 
@@ -637,6 +637,6 @@ async function deleteClub() {
     }
   } catch (error) {
     console.error('Error deleting club:', error);
-    alert('Error al eliminar el club. Intenta de nuevo.');
+    alert('Error al eliminar el club. Intentá de nuevo.');
   }
 }

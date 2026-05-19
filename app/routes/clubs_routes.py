@@ -167,11 +167,11 @@ def leave_club(
     )
 
     if not club_user:
-        raise HTTPException(status_code=403, detail="No eres miembro de este club")
+        raise HTTPException(status_code=403, detail="No sos miembro de este club")
 
     db.delete(club_user)
     db.commit()
-    return {"status": "success", "message": "Has salido del club"}
+    return {"status": "success", "message": "Saliste del club"}
 
 
 # Get clubs of the authenticated user

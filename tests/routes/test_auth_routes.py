@@ -619,7 +619,7 @@ def test_profile_resend_email_confirmation_no_email(client, db):
     response = client.post("/perfil/resend-email-confirmation", follow_redirects=False)
     assert response.status_code == 200
     assert response.template.name == "profile.html"
-    assert "No tienes un email configurado" in response.context["error"]
+    assert "No tenés un email configurado" in response.context["error"]
 
 
 def test_profile_resend_email_confirmation_already_confirmed(client, db):

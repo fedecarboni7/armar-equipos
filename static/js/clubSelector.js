@@ -115,7 +115,7 @@ async function switchContext() {
     } catch (error) {
         // Si hay error, restaurar la selección anterior y mostrar error
         console.error('Error switching context:', error);
-        showError('Error al cambiar el contexto. Intenta de nuevo.');
+        showError('Error al cambiar el contexto. Intentá de nuevo.');
     } finally {
         selector.disabled = false;
     }

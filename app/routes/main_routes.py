@@ -292,7 +292,7 @@ async def match_players_api(
             user_club_ids = {club.id for club in user_clubs} if user_clubs else set()
             if club_id not in user_club_ids:
                 return JSONResponse(
-                    content={"error": "No tienes permisos para acceder a este club"},
+                    content={"error": "No tenés permisos para acceder a este club"},
                     status_code=403,
                 )
 

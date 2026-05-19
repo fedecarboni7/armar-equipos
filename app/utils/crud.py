@@ -397,7 +397,7 @@ def invite_user_to_club(
         .first()
     )
     if not club_user:
-        raise ValueError("No tienes permisos para invitar usuarios a este club")
+        raise ValueError("No tenés permisos para invitar usuarios a este club")
 
     invited_username_normalized = invited_username.strip().lower()
     if not invited_username_normalized:

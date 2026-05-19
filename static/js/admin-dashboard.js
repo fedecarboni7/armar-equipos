@@ -151,7 +151,7 @@ function loadDashboard() {
         document.getElementById('app').innerHTML = `
             <div class="loading-screen">
                 <p style="color: #ef4444; font-size: 1.25rem;">Error cargando los datos del dashboard</p>
-                <p style="color: #94a3b8; margin-top: 0.5rem;">Por favor, intenta recargar la página</p>
+                <p style="color: #94a3b8; margin-top: 0.5rem;">Por favor, intentá recargar la página</p>
             </div>
         `;
     }
