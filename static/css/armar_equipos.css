@@ -877,6 +877,12 @@ h1 {
     border-left: 3px solid #555;
 }
 
+.team-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
 .team-b .team-player {
     background: #222;
     border-left-color: #777;

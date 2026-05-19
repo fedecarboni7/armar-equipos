@@ -1,7 +1,16 @@
 from datetime import datetime
 from enum import Enum
 from passlib.hash import pbkdf2_sha256
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Boolean, Text
+from sqlalchemy import (
+    Column,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Boolean,
+    Text,
+    CheckConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 from app.config.settings import Settings
@@ -42,6 +51,7 @@ class User(Base):
     skill_votes = relationship("SkillVote", back_populates="voter")
     skill_votes_v2 = relationship("SkillVoteV2")
     club_users = relationship("ClubUser", back_populates="user")
+    matches_created = relationship("Match", back_populates="creator")
 
     def set_password(self, password):
         self.password = pbkdf2_sha256.hash(password)
@@ -95,6 +105,7 @@ class Player(Base):
     last_modifier = relationship("User", foreign_keys=[last_modified_by])
     club = relationship("Club", back_populates="players")
     skill_votes = relationship("SkillVote", back_populates="player")
+    match_players = relationship("MatchPlayer", back_populates="player_v1")
 
 
 class PlayerV2(Base):
@@ -121,6 +132,7 @@ class PlayerV2(Base):
     last_modifier = relationship("User", foreign_keys=[last_modified_by])
     club = relationship("Club", back_populates="players_v2")
     skill_votes_v2 = relationship("SkillVoteV2", back_populates="player")
+    match_players_v2 = relationship("MatchPlayer", back_populates="player_v2")
 
 
 class SkillVote(Base):
@@ -175,6 +187,7 @@ class Club(Base):
     members = relationship("ClubUser", back_populates="club")
     players = relationship("Player", back_populates="club")
     players_v2 = relationship("PlayerV2", back_populates="club")
+    matches = relationship("Match", back_populates="club")
 
 
 class ClubUser(Base):
@@ -224,3 +237,44 @@ class PasswordResetToken(Base):
     used = Column(Boolean, default=False)
 
     user = relationship("User", backref="password_reset_tokens")
+
+
+class Match(Base):
+    __tablename__ = "matches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    club_id = Column(Integer, ForeignKey("clubs.id"), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    played_at = Column(DateTime, nullable=False)
+    team_a_score = Column(Integer, nullable=False)
+    team_b_score = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=get_argentina_now)
+
+    club = relationship("Club", back_populates="matches")
+    creator = relationship("User", back_populates="matches_created")
+    match_players = relationship(
+        "MatchPlayer", back_populates="match", cascade="all, delete-orphan"
+    )
+
+
+class MatchPlayer(Base):
+    __tablename__ = "match_players"
+
+    id = Column(Integer, primary_key=True, index=True)
+    match_id = Column(Integer, ForeignKey("matches.id"), nullable=False)
+    player_v1_id = Column(Integer, ForeignKey("players.id"), nullable=True)
+    player_v2_id = Column(Integer, ForeignKey("players_v2.id"), nullable=True)
+    team = Column(String, nullable=False)
+    result = Column(String, nullable=False)
+
+    __table_args__ = (
+        CheckConstraint(
+            "(player_v1_id IS NOT NULL AND player_v2_id IS NULL) OR "
+            "(player_v1_id IS NULL AND player_v2_id IS NOT NULL)",
+            name="ck_match_players_one_player",
+        ),
+    )
+
+    match = relationship("Match", back_populates="match_players")
+    player_v1 = relationship("Player", back_populates="match_players")
+    player_v2 = relationship("PlayerV2", back_populates="match_players_v2")

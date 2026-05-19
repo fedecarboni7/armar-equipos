@@ -103,6 +103,29 @@ async def clubs_management_page(
     )
 
 
+@router.get("/partidos", response_class=HTMLResponse, include_in_schema=False)
+async def matches_page(
+    request: Request, current_user: User = Depends(get_current_user)
+):
+    if not current_user:
+        return RedirectResponse("/login", status_code=302)
+
+    current_user_data = {
+        "id": current_user.id,
+        "username": current_user.username,
+    }
+
+    return templates.TemplateResponse(
+        request=request,
+        name="partidos.html",
+        context={
+            "request": request,
+            "user": current_user,
+            "currentUser": current_user_data,
+        },
+    )
+
+
 @router.get("/home", response_class=HTMLResponse, include_in_schema=False)
 async def armar_equipos_page(
     request: Request, current_user: User = Depends(get_current_user)

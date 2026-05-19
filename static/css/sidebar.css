@@ -141,17 +141,7 @@
     .bottom-nav {
         display: flex;
     }
-    
-    /* Ocultar sidebar completamente en móvil */
-    .sidebar {
-        display: none !important;
-    }
-    
-    /* Ocultar overlay del sidebar en móvil */
-    .sidebar-overlay {
-        display: none !important;
-    }
-    
+
     /* Agregar padding-bottom al body para compensar el bottom nav */
     body {
         padding-bottom: 70px;

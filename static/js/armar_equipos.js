@@ -1,11 +1,8 @@
 // Variables globales
 let players = [];
 let selectedPlayers = new Set();
-let teamA = [];
-let teamB = [];
-let availablePlayers = [];
+let manualAssignment = null;
 let filteredPlayers = [];
-let manualSearchTerm = '';
 // Variables para el contexto actual (ahora se manejan desde clubSelector.js)
 // let currentClubId = 'my-players';  // Comentado - se usa desde clubSelector.js  
 // let userClubs = [];               // Comentado - se usa desde clubSelector.js
@@ -68,6 +65,53 @@ function initHelpModal() {
 }
 // ==================== END HELP MODAL ====================
 
+function getManualContextName() {
+    return getCurrentClubId() === 'my-players'
+        ? 'creados'
+        : getUserClubs().find(club => club.id == getCurrentClubId())?.name || 'de este club';
+}
+
+function buildManualEmptyStateHtml() {
+    const contextName = getManualContextName();
+    return `
+        <div style="text-align: center; padding: 40px;">
+            <div style="font-size: 18px; color: #aaa; margin-bottom: 10px;">👤 No hay jugadores ${contextName}</div>
+            <div style="font-size: 14px; color: #666;">¡Agrega jugadores para empezar a armar equipos!</div>
+            <a href="/jugadores" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; transition: background-color 0.3s;">Ir a Jugadores</a>
+        </div>
+    `;
+}
+
+function buildManualNoResultsHtml(searchTerm) {
+    return `
+        <div style="text-align: center; padding: 20px; color: #999;">
+            🔍 No se encontraron jugadores con "${searchTerm}"
+        </div>
+    `;
+}
+
+function initManualAssignment() {
+    if (!window.TeamAssignment) return;
+
+    manualAssignment = window.TeamAssignment.create({
+        availableListId: 'available-players-list',
+        teamAListId: 'team-a-players',
+        teamBListId: 'team-b-players',
+        teamACountId: 'team-a-count',
+        teamBCountId: 'team-b-count',
+        availableCountId: 'available-count',
+        showRating: true,
+        enableSwap: true,
+        addLabelA: '1',
+        addLabelB: '2',
+        addButtonClass: 'add-btn',
+        addButtonClassB: 'team-b',
+        getEmptyStateHtml: buildManualEmptyStateHtml,
+        getNoResultsHtml: buildManualNoResultsHtml,
+        onChange: renderManualComparison,
+    });
+}
+
 // Initialize app
 async function init() {
     try {
@@ -76,6 +120,8 @@ async function init() {
         
         // Inicializar modal de importar lista
         initImportModal();
+
+        initManualAssignment();
         
         // El clubSelector.js se encarga de cargar los clubes automáticamente
         
@@ -137,12 +183,9 @@ async function loadPlayersForContext(contextId) {
         
         // Inicializar jugadores filtrados con todos los jugadores
         filteredPlayers = [...players];
-        availablePlayers = [...players];
         
         // Limpiar selecciones cuando cambia el contexto
         selectedPlayers.clear();
-        teamA = [];
-        teamB = [];
         hasResults = false; // Resetear resultados cuando cambia el contexto
         
         // Ocultar resultados anteriores si existen
@@ -161,10 +204,12 @@ async function loadPlayersForContext(contextId) {
         if (manualSearchInput) {
             manualSearchInput.value = '';
         }
-        manualSearchTerm = '';
         
         loading = false;
         renderPlayers();
+        if (manualAssignment) {
+            manualAssignment.setPlayers(players);
+        }
         updateManualMode();
         
     } catch (error) {
@@ -173,7 +218,9 @@ async function loadPlayersForContext(contextId) {
         showError('Error al cargar jugadores');
         players = [];
         filteredPlayers = [];
-        availablePlayers = [];
+        if (manualAssignment) {
+            manualAssignment.setPlayers([]);
+        }
         renderPlayers();
     }
 }
@@ -244,8 +291,9 @@ function setupEventListeners() {
     const manualSearchInput = document.getElementById('manual-search-input');
     if (manualSearchInput) {
         manualSearchInput.addEventListener('input', (e) => {
-            manualSearchTerm = e.target.value.toLowerCase().trim();
-            renderAvailablePlayers();
+            if (manualAssignment) {
+                manualAssignment.setSearchTerm(e.target.value);
+            }
         });
     }
 
@@ -351,81 +399,9 @@ function updatePlayersCount() {
 
 // Manual mode functions
 function updateManualMode() {
-    renderAvailablePlayers();
-    renderTeamPlayers();
-    updateTeamCounts();
-    renderManualComparison();
-}
-
-function renderAvailablePlayers() {
-    const container = document.getElementById('available-players-list');
-    container.innerHTML = '';
-
-    const playersToShow = availablePlayers.filter(player => player.name.toLowerCase().includes(manualSearchTerm));
-
-    if (availablePlayers.length === 0 && players.length === 0) {
-        const contextName = getCurrentClubId() === 'my-players' ? 'creados' : 
-                          getUserClubs().find(club => club.id == getCurrentClubId())?.name || 'de este club';
-        container.innerHTML = `
-            <div style="text-align: center; padding: 40px;">
-                <div style="font-size: 18px; color: #aaa; margin-bottom: 10px;">👤 No hay jugadores ${contextName}</div>
-                <div style="font-size: 14px; color: #666;">¡Agrega jugadores para empezar a armar equipos!</div>
-                <a href="/jugadores" style="display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 8px; font-weight: 500; transition: background-color 0.3s;">Ir a Jugadores</a>
-            </div>
-        `;
-        return;
+    if (manualAssignment) {
+        manualAssignment.render();
     }
-
-    if (playersToShow.length === 0) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: #999;">
-                🔍 No se encontraron jugadores con "${escapeHTML(manualSearchTerm)}"
-            </div>
-        `;
-        return;
-    }
-
-    playersToShow.forEach(player => {
-        const playerDiv = document.createElement('div');
-        playerDiv.className = 'available-player';
-        playerDiv.innerHTML = `
-            <div class="player-info">
-                <span class="player-name">👤 ${player.name}</span>
-                <span class="player-rating">${player.rating}</span>
-            </div>
-            <div class="add-buttons">
-                <button class="add-btn" onclick="addToTeam('A', '${player.name}')">1</button>
-                <button class="add-btn team-b" onclick="addToTeam('B', '${player.name}')">2</button>
-            </div>
-        `;
-        container.appendChild(playerDiv);
-    });
-}
-
-function renderTeamPlayers() {
-    renderTeam('A', teamA, 'team-a-players');
-    renderTeam('B', teamB, 'team-b-players');
-}
-
-function renderTeam(teamName, team, containerId) {
-    const container = document.getElementById(containerId);
-    container.innerHTML = '';
-
-    team.forEach(player => {
-        const playerDiv = document.createElement('div');
-        playerDiv.className = 'team-player';
-        playerDiv.innerHTML = `
-            <div class="player-info">
-                <span class="player-name">👤 ${player.name}</span>
-                <span class="player-rating">${player.rating}</span>
-            </div>
-            <div style="display: flex; gap: 8px; align-items: center;">
-                <button class="swap-btn" onclick="swapTeam('${teamName}', '${player.name}')"><i class="fa-solid fa-right-left"></i></button>
-                <button class="remove-btn" onclick="removeFromTeam('${teamName}', '${player.name}')"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-        `;
-        container.appendChild(playerDiv);
-    });
 }
 
 // Renderizar gráficos de comparación en modo manual reutilizando el layout de results
@@ -441,6 +417,8 @@ function renderManualComparison() {
     }
 
     // Si no hay jugadores en ambos equipos, ocultar
+    const teamA = manualAssignment ? manualAssignment.getTeamA() : [];
+    const teamB = manualAssignment ? manualAssignment.getTeamB() : [];
     const teamSize = Math.min(teamA.length, teamB.length);
     if (teamSize === 0) {
         comparison.style.display = 'none';
@@ -536,60 +514,6 @@ function renderManualComparison() {
             textSpan.textContent = 'Mostrar detalles';
         }
     };
-}
-
-function updateTeamCounts() {
-    document.getElementById('team-a-count').textContent = `${teamA.length} jugadores`;
-    document.getElementById('team-b-count').textContent = `${teamB.length} jugadores`;
-    document.getElementById('available-count').textContent = `${availablePlayers.length} jugadores`;
-}
-
-function addToTeam(teamName, playerName) {
-    const player = availablePlayers.find(p => p.name === playerName);
-    if (!player) return;
-
-    if (teamName === 'A') {
-        teamA.push(player);
-    } else {
-        teamB.push(player);
-    }
-
-    availablePlayers = sortPlayersByName(availablePlayers.filter(p => p.name !== playerName));
-    updateManualMode();
-}
-
-function removeFromTeam(teamName, playerName) {
-    let player;
-    
-    if (teamName === 'A') {
-        player = teamA.find(p => p.name === playerName);
-        teamA = teamA.filter(p => p.name !== playerName);
-    } else {
-        player = teamB.find(p => p.name === playerName);
-        teamB = teamB.filter(p => p.name !== playerName);
-    }
-
-    if (player) {
-        availablePlayers = sortPlayersByName([...availablePlayers, player]);
-    }
-    
-    updateManualMode();
-}
-
-function swapTeam(currentTeam, playerName) {
-    let player;
-    
-    if (currentTeam === 'A') {
-        player = teamA.find(p => p.name === playerName);
-        teamA = teamA.filter(p => p.name !== playerName);
-        teamB.push(player);
-    } else {
-        player = teamB.find(p => p.name === playerName);
-        teamB = teamB.filter(p => p.name !== playerName);
-        teamA.push(player);
-    }
-    
-    updateManualMode();
 }
 
 // Generate optimized teams function

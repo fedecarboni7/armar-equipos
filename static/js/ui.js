@@ -61,7 +61,8 @@ function navigateTo(page) {
         'jugadores': '/jugadores',
         'equipos': '/home',
         'clubes': '/clubes',
-        'perfil': '/perfil'
+        'perfil': '/perfil',
+        'partidos': '/partidos'
     };
     
     if (routes[page]) {

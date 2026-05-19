@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, ConfigDict, EmailStr
+from typing import Optional, List, Literal
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 # User schemas
@@ -135,3 +135,66 @@ class SkillVoteResponse(BaseModel):
 
 class InviteRequest(BaseModel):
     invited_username: str
+
+
+class MatchPlayerCreate(BaseModel):
+    player_v1_id: Optional[int] = None
+    player_v2_id: Optional[int] = None
+    team: Literal["A", "B"]
+
+
+class MatchCreate(BaseModel):
+    club_id: Optional[int] = None
+    played_at: datetime
+    team_a_score: int
+    team_b_score: int
+    players: List[MatchPlayerCreate]
+
+
+class MatchUpdate(BaseModel):
+    played_at: Optional[datetime] = None
+    team_a_score: Optional[int] = None
+    team_b_score: Optional[int] = None
+    players: Optional[List[MatchPlayerCreate]] = None
+
+
+class MatchPlayerResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    match_id: int
+    player_v1_id: Optional[int] = None
+    player_v2_id: Optional[int] = None
+    team: str
+    result: str
+
+
+class MatchResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    club_id: Optional[int] = None
+    created_by: int
+    played_at: datetime
+    team_a_score: int
+    team_b_score: int
+    created_at: datetime
+    players: List[MatchPlayerResponse] = Field(default_factory=list)
+
+
+class MatchStatsResponse(BaseModel):
+    played: int
+    wins: int
+    losses: int
+    draws: int
+
+
+class MatchStandingResponse(BaseModel):
+    player_id: int
+    player_name: str
+    points: int
+    played: int
+    wins: int
+    draws: int
+    losses: int
+    last_match: datetime

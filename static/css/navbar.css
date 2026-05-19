@@ -123,9 +123,11 @@
 
 /* Estilos responsivos */
 @media (max-width: 768px) {
-    /* Ocultar botón de menú en móvil (se usa bottom nav) */
+    /* Mostrar botón de menú en móvil */
     .menu-btn {
-        display: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
     
     /* Centrar el selector de club absolutamente */
