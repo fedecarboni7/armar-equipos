@@ -500,7 +500,7 @@ def test_confirm_email_with_invalid_token(client):
     response = client.get("/confirm-email/invalid-token", follow_redirects=False)
     assert response.status_code == 200
     assert response.template.name == "signup.html"
-    assert "no es válido o ha expirado" in response.context["error"]
+    assert "no es válido o expiró" in response.context["error"]
     assert response.context["invalid_token"]
 
 
