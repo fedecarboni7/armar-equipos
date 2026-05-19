@@ -29,6 +29,28 @@
     <script src="/static/js/ui.js" defer></script>
     <script src="/static/js/api.js" defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
+        <style>
+            .google-unlink-button {
+                border-color: #e53e3e;
+                color: #e53e3e;
+            }
+
+            .google-unlink-button:hover {
+                background-color: rgba(229, 62, 62, 0.1);
+                border-color: #e53e3e;
+            }
+
+            .delete-account-link {
+                color: rgba(255, 255, 255, 0.35);
+                font-size: 0.875rem;
+                text-decoration: none;
+                transition: color 0.2s ease;
+            }
+
+            .delete-account-link:hover {
+                color: rgba(229, 62, 62, 0.9);
+            }
+        </style>
   </head>
   <body class="profile-page">
     {% include '_sidebar.html' %}
@@ -90,6 +112,15 @@
                     </div>
                 {% endif %}
             </div>
+
+            <!-- Google account section -->
+            <div class="mb-6" id="google-account-section">
+                <div class="text-sm text-gray-400 mb-2">Cuenta de Google:</div>
+                <div id="google-account-status" class="text-sm text-gray-300">
+                    Cargando...
+                </div>
+                <div id="google-account-actions" class="mt-3"></div>
+            </div>
             
             <!-- Email form -->
             <form action="/perfil/update-email" method="POST" class="mt-4 flex flex-col gap-2">
@@ -124,7 +155,7 @@
             
             <!-- Logout button -->
             <div class="mt-6">
-                <a href="/logout" class="btn btn-error w-full">
+                <a href="/logout" class="btn btn-primary w-full">
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span>Cerrar sesión</span>
                 </a>
@@ -141,7 +172,7 @@
                 <div>
                     <button
                     onclick="confirmDeleteAccount()"
-                    class="link link-error text-sm cursor-pointer bg-transparent border-0 hover:underline"
+                    class="delete-account-link cursor-pointer bg-transparent border-0"
                     style="margin-bottom: 1rem;">
                         Borrar cuenta
                     </button>
@@ -153,7 +184,7 @@
       <script>
 
       function confirmDeleteAccount() {
-        const confirmation = confirm(`¿Estás seguro de que quieres borrar tu cuenta permanentemente?
+        const confirmation = confirm(`¿Estás seguro de que querés borrar tu cuenta permanentemente?
 
         ESTA ACCIÓN NO SE PUEDE DESHACER.
 
@@ -162,11 +193,11 @@
         • Todos los jugadores que hayas creado
         • Tu membresía en todos los clubes
 
-        Para clubes donde eres OWNER:
-        • Si eres el único owner: se borrará TODO el club y sus datos
+        Para clubes donde sos OWNER:
+        • Si sos el único owner: se borrará TODO el club y sus datos
         • Si hay otros owners: solo se te removerá del club
 
-        Para clubes donde eres admin/member:
+        Para clubes donde sos admin/member:
         • Solo se te removerá del club
 
         ¿Confirmar el borrado de la cuenta?`);
@@ -191,6 +222,71 @@
         console.log('Contexto cambiado a:', contextId);
         return Promise.resolve();
       }
+
+            async function loadGoogleAccountStatus() {
+                const statusEl = document.getElementById('google-account-status');
+                const actionsEl = document.getElementById('google-account-actions');
+
+                statusEl.textContent = 'Cargando...';
+                actionsEl.innerHTML = '';
+
+                try {
+                    const response = await fetch('/auth/google/status', {
+                        method: 'GET',
+                        credentials: 'include'
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('status');
+                    }
+
+                    const data = await response.json();
+
+                    if (!data.linked) {
+                        statusEl.textContent = 'No vinculada';
+                        const linkButton = document.createElement('button');
+                        linkButton.type = 'button';
+                        linkButton.className = 'btn btn-outline btn-primary w-full';
+                        linkButton.textContent = 'Vincular cuenta de Google';
+                        linkButton.addEventListener('click', () => {
+                            window.location.href = '/auth/google/login';
+                        });
+                        actionsEl.appendChild(linkButton);
+                        return;
+                    }
+
+                    statusEl.textContent = 'Cuenta de Google vinculada ✓';
+                    const unlinkButton = document.createElement('button');
+                    unlinkButton.type = 'button';
+                    unlinkButton.className = 'btn btn-outline google-unlink-button w-full';
+                    unlinkButton.textContent = 'Desvincular';
+                    unlinkButton.addEventListener('click', async () => {
+                        try {
+                            const unlinkResponse = await fetch('/auth/google/unlink', {
+                                method: 'POST',
+                                credentials: 'include'
+                            });
+
+                            const payload = await unlinkResponse.json().catch(() => ({}));
+                            if (!unlinkResponse.ok) {
+                                const message = payload.error || 'No se pudo desvincular.';
+                                statusEl.textContent = message;
+                                return;
+                            }
+
+                            await loadGoogleAccountStatus();
+                        } catch (error) {
+                            statusEl.textContent = 'No se pudo desvincular.';
+                        }
+                    });
+                    actionsEl.appendChild(unlinkButton);
+                } catch (error) {
+                    statusEl.textContent = 'No se pudo cargar el estado.';
+                    actionsEl.innerHTML = '';
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', loadGoogleAccountStatus);
     </script>
 
     <!-- Modal para crear un nuevo club -->

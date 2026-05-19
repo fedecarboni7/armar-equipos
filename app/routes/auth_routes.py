@@ -1,22 +1,36 @@
 from datetime import timedelta
 from typing import Annotated
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import OperationalError
+from authlib.integrations.base_client import OAuthError
 
+from app.config.settings import Settings
 from app.config.config import templates
+from app.config.google_oauth import oauth
 from app.db.database import get_db
 from app.db.database_utils import execute_with_retries, query_user
 from app.db.models import User
 from app.utils.security import create_access_token, create_email_confirmation_token
+from app.utils.auth import get_current_user
 from app.utils.validators import validate_password, validate_username, validate_email
 from app.utils.email_service import EmailService, PasswordResetService
 
 
 router = APIRouter()
+
+
+def _build_unique_username(email: str, db: Session) -> str:
+    base_username = email.split("@", 1)[0].strip().lower()
+    username = base_username
+    suffix = 2
+    while db.query(User).filter(User.username == username).first():
+        username = f"{base_username}_{suffix}"
+        suffix += 1
+    return username
 
 
 @router.get("/signup", response_class=HTMLResponse, include_in_schema=False)
@@ -117,6 +131,9 @@ async def login_page(request: Request):
     # Check if account was deleted
     deleted = request.query_params.get("deleted") == "true"
     context = {"deleted": deleted} if deleted else {}
+    login_error = request.session.pop("login_error", None)
+    if login_error:
+        context["error"] = login_error
 
     return templates.TemplateResponse(
         request=request, name="login.html", context=context
@@ -170,6 +187,150 @@ async def login(
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/login", status_code=307)
+
+
+@router.get("/auth/google/login")
+async def google_login(request: Request):
+    if request.session.get("user_id"):
+        request.session["google_linking"] = True
+
+    settings = Settings()
+    return await oauth.google.authorize_redirect(
+        request, redirect_uri=settings.google_redirect_uri
+    )
+
+
+@router.get("/auth/google/callback")
+async def google_callback(request: Request, db: Session = Depends(get_db)):
+    try:
+        token = await oauth.google.authorize_access_token(request)
+    except OAuthError:
+        request.session["login_error"] = "Error al autenticar con Google."
+        return RedirectResponse(url="/login", status_code=302)
+
+    userinfo = token.get("userinfo")
+    if not userinfo:
+        userinfo = await oauth.google.userinfo(token=token)
+
+    google_sub = userinfo.get("sub")
+    email = userinfo.get("email")
+    email_verified = userinfo.get("email_verified") is True
+
+    if not google_sub:
+        request.session["login_error"] = "No se pudo obtener la cuenta de Google."
+        return RedirectResponse(url="/login", status_code=302)
+
+    linking = request.session.pop("google_linking", False)
+    if linking:
+        user_id = request.session.get("user_id")
+        if not user_id:
+            request.session["login_error"] = "Iniciá sesión para vincular Google."
+            return RedirectResponse(url="/login", status_code=302)
+
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            request.session.clear()
+            return RedirectResponse(url="/login", status_code=302)
+
+        if user.google_id:
+            request.session["profile_error"] = "Tu cuenta ya tiene Google vinculado."
+            return RedirectResponse(url="/perfil", status_code=302)
+
+        if not email_verified:
+            request.session["profile_error"] = (
+                "Tu cuenta de Google no tiene el email verificado."
+            )
+            return RedirectResponse(url="/perfil", status_code=302)
+
+        existing_google = (
+            db.query(User)
+            .filter(User.google_id == google_sub, User.id != user.id)
+            .first()
+        )
+        if existing_google:
+            request.session["profile_error"] = "Esta cuenta de Google ya está en uso."
+            return RedirectResponse(url="/perfil", status_code=302)
+
+        user.google_id = google_sub
+        db.commit()
+        request.session["profile_success"] = "Cuenta de Google vinculada correctamente."
+        return RedirectResponse(url="/perfil", status_code=302)
+
+    user = db.query(User).filter(User.google_id == google_sub).first()
+    if user:
+        request.session["user_id"] = user.id
+        return RedirectResponse(url="/home", status_code=302)
+
+    if email and email_verified:
+        email = email.strip().lower()
+        user = db.query(User).filter(User.email == email).first()
+        if user:
+            if user.google_id and user.google_id != google_sub:
+                request.session["login_error"] = (
+                    "Esta cuenta de Google ya está vinculada a otro usuario."
+                )
+                return RedirectResponse(url="/login", status_code=302)
+
+            user.google_id = google_sub
+            db.commit()
+            request.session["user_id"] = user.id
+            return RedirectResponse(url="/home", status_code=302)
+
+    if not email_verified:
+        request.session["login_error"] = (
+            "Tu cuenta de Google no tiene el email verificado."
+        )
+        return RedirectResponse(url="/login", status_code=302)
+
+    if not email:
+        request.session["login_error"] = "No se pudo obtener el email de Google."
+        return RedirectResponse(url="/login", status_code=302)
+
+    email = email.strip().lower()
+    username = _build_unique_username(email, db)
+
+    new_user = User(
+        username=username,
+        email=email,
+        password=None,
+        google_id=google_sub,
+        email_confirmed=1,
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    request.session["user_id"] = new_user.id
+    return RedirectResponse(url="/home", status_code=302)
+
+
+@router.post("/auth/google/unlink")
+async def google_unlink(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not current_user:
+        return JSONResponse({"error": "No autorizado."}, status_code=401)
+
+    if not current_user.has_password():
+        return JSONResponse(
+            {
+                "error": "No podés desvincular Google si no tenés contraseña configurada."
+            },
+            status_code=400,
+        )
+
+    current_user.google_id = None
+    db.commit()
+    return JSONResponse({"success": "Cuenta de Google desvinculada."})
+
+
+@router.get("/auth/google/status")
+async def google_status(current_user: User = Depends(get_current_user)):
+    if not current_user:
+        return JSONResponse({"linked": False}, status_code=401)
+
+    return JSONResponse({"linked": current_user.google_id is not None})
 
 
 class Token(BaseModel):
@@ -367,8 +528,17 @@ async def profile_page(request: Request, db: Session = Depends(get_db)):
         request.session.clear()
         return RedirectResponse(url="/login", status_code=302)
 
+    profile_error = request.session.pop("profile_error", None)
+    profile_success = request.session.pop("profile_success", None)
+
+    context = {"user": user}
+    if profile_error:
+        context["error"] = profile_error
+    if profile_success:
+        context["success"] = profile_success
+
     return templates.TemplateResponse(
-        request=request, name="profile.html", context={"user": user}
+        request=request, name="profile.html", context=context
     )
 
 

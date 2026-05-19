@@ -23,10 +23,11 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
-    password = Column(String)
+    password = Column(String, nullable=True)
     email = Column(
         String, unique=True, index=True, nullable=True
     )  # Nullable para usuarios existentes
+    google_id = Column(String, unique=True, nullable=True, index=True)
     email_confirmed = Column(
         Integer, default=0, nullable=False
     )  # 0=nuevo sin confirmar, -1=legacy sin confirmar, 1=confirmado
@@ -46,7 +47,12 @@ class User(Base):
         self.password = pbkdf2_sha256.hash(password)
 
     def verify_password(self, password):
+        if self.password is None:
+            return False
         return pbkdf2_sha256.verify(password, self.password)
+
+    def has_password(self) -> bool:
+        return self.password is not None
 
     def is_new_user(self):
         """Check if this is a new user (requires email confirmation to login)"""

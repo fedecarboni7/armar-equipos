@@ -19,3 +19,6 @@ class Settings:
         self.sentry_dsn = os.getenv("SENTRY_DSN")
         self.gemini_model_name = os.getenv("GEMINI_MODEL", "gemini-flash-lite-latest")
         self.environment = os.getenv("ENVIRONMENT", "local")
+        self.google_client_id = os.getenv("GOOGLE_CLIENT_ID")
+        self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
+        self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
