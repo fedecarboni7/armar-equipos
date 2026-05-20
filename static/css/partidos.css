@@ -278,6 +278,7 @@
 .detail-actions {
     display: flex;
     gap: 8px;
+    margin-right: 16px;
 }
 
 .primary-btn,
@@ -513,13 +514,21 @@
     margin-top: 16px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 530px) {
     .page-header {
-        flex-direction: column;
-        align-items: flex-start;
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: nowrap;
+        gap: 12px;
     }
 
-    .detail-header {
+    .filters-row {
+        flex-wrap: nowrap;
+        align-items: flex-start;
+        justify-content: space-between;
+    }
+
+        .detail-header {
         flex-direction: column;
         align-items: flex-start;
     }
