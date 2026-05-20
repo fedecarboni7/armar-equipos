@@ -11,6 +11,14 @@ let isEditMode = false;
 let dateRange = 'month';
 let pendingEditMatch = null;
 let modalAssignment = null;
+let closeDetailTimeout = null;
+let standingsSort = { key: 'points', direction: 'desc' };
+const standingsDateFormatter = new Intl.DateTimeFormat('es-AR', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+});
 
 function getCurrentVersion() {
     return currentScale === 5 ? 'v1' : 'v2';
@@ -21,20 +29,28 @@ function getClubIdParam() {
     return clubId !== 'my-players' ? parseInt(clubId) : null;
 }
 
-function formatDate(date) {
+function formatDateLabel(date) {
     const parsed = new Date(date);
     if (Number.isNaN(parsed.getTime())) {
         return '-';
     }
-    return parsed.toLocaleDateString('es-ES') + ' ' + parsed.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    const parts = standingsDateFormatter.formatToParts(parsed).reduce((acc, part) => {
+        acc[part.type] = part.value;
+        return acc;
+    }, {});
+    const weekday = parts.weekday ? parts.weekday.replace(/\./g, '') : '';
+    const month = parts.month ? parts.month.replace(/\./g, '') : '';
+    const normalizedWeekday = weekday ? weekday.charAt(0).toUpperCase() + weekday.slice(1) : '';
+    const normalizedMonth = month ? month.toLowerCase() : '';
+    return `${normalizedWeekday} ${parts.day} ${normalizedMonth} ${parts.year}`.trim();
+}
+
+function formatDate(date) {
+    return formatDateLabel(date);
 }
 
 function formatDateOnly(date) {
-    const parsed = new Date(date);
-    if (Number.isNaN(parsed.getTime())) {
-        return '-';
-    }
-    return parsed.toLocaleDateString('es-ES');
+    return formatDateLabel(date);
 }
 
 function toDatetimeLocalValue(date) {
@@ -165,6 +181,87 @@ function getMatchBadge(match) {
     return match.team_a_score > match.team_b_score ? 'Ganó A' : 'Ganó B';
 }
 
+function getDefaultSortDirection(key) {
+    if (key === 'player_name') return 'asc';
+    return 'desc';
+}
+
+function getStandingsSortValue(row, key) {
+    if (key === 'player_name') return row.player_name || '';
+    if (key === 'last_match') {
+        return row.last_match ? new Date(row.last_match).getTime() : null;
+    }
+    return row[key] ?? 0;
+}
+
+function compareStandings(a, b) {
+    const { key, direction } = standingsSort;
+    const aValue = getStandingsSortValue(a, key);
+    const bValue = getStandingsSortValue(b, key);
+
+    if (aValue == null && bValue == null) return 0;
+    if (aValue == null) return 1;
+    if (bValue == null) return -1;
+
+    let result = 0;
+    if (typeof aValue === 'string') {
+        result = aValue.localeCompare(bValue, 'es-AR', { sensitivity: 'base' });
+    } else {
+        result = aValue - bValue;
+    }
+
+    return direction === 'asc' ? result : -result;
+}
+
+function getSortedStandings() {
+    return [...standings].sort(compareStandings);
+}
+
+function updateStandingsSortIndicators() {
+    document.querySelectorAll('th.sortable').forEach((header) => {
+        const indicator = header.querySelector('.sort-indicator');
+        const key = header.dataset.sortKey;
+        if (!indicator) return;
+        if (key === standingsSort.key) {
+            indicator.textContent = standingsSort.direction === 'asc' ? '▲' : '▼';
+            header.setAttribute('aria-sort', standingsSort.direction === 'asc' ? 'ascending' : 'descending');
+        } else {
+            indicator.textContent = '';
+            header.setAttribute('aria-sort', 'none');
+        }
+    });
+}
+
+function initStandingsSort() {
+    document.querySelectorAll('th.sortable').forEach((header) => {
+        header.tabIndex = 0;
+        header.setAttribute('role', 'button');
+
+        const onSort = () => {
+            const key = header.dataset.sortKey;
+            if (!key) return;
+
+            if (standingsSort.key === key) {
+                standingsSort.direction = standingsSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                standingsSort = { key, direction: getDefaultSortDirection(key) };
+            }
+
+            renderStandings();
+        };
+
+        header.addEventListener('click', onSort);
+        header.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onSort();
+            }
+        });
+    });
+
+    updateStandingsSortIndicators();
+}
+
 function renderStandings() {
     const tbody = document.getElementById('standings-body');
     const empty = document.getElementById('standings-empty');
@@ -180,7 +277,7 @@ function renderStandings() {
     empty.classList.add('hidden');
     count.textContent = `${standings.length} jugadores`;
 
-    standings.forEach((row) => {
+    getSortedStandings().forEach((row) => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${row.player_name}</td>
@@ -193,13 +290,21 @@ function renderStandings() {
         `;
         tbody.appendChild(tr);
     });
+
+    updateStandingsSortIndicators();
 }
 
 function renderMatches() {
     const list = document.getElementById('matches-list');
+    const detail = document.getElementById('match-detail');
+    if (detail && list.contains(detail)) {
+        list.insertAdjacentElement('afterend', detail);
+    }
     list.innerHTML = '';
 
     document.getElementById('matches-count').textContent = `${matches.length} partidos`;
+
+    closeMatchDetail();
 
     if (!matches.length) {
         list.innerHTML = '<div class="match-card"><span>No hay partidos para mostrar.</span></div>';
@@ -209,6 +314,7 @@ function renderMatches() {
     matches.forEach((match) => {
         const card = document.createElement('div');
         card.className = 'match-card';
+        card.dataset.matchId = match.id;
         const badge = getMatchBadge(match);
 
         card.innerHTML = `
@@ -220,17 +326,48 @@ function renderMatches() {
             <span class="match-badge">${badge}</span>
         `;
 
-        card.addEventListener('click', () => showMatchDetail(match.id));
+        card.addEventListener('click', () => showMatchDetail(match.id, card));
         list.appendChild(card);
     });
 }
 
-function showMatchDetail(matchId) {
+function closeMatchDetail() {
+    const detail = document.getElementById('match-detail');
+    if (!detail) return;
+
+    if (closeDetailTimeout) {
+        clearTimeout(closeDetailTimeout);
+        closeDetailTimeout = null;
+    }
+
+    detail.classList.remove('is-open');
+    detail.setAttribute('aria-hidden', 'true');
+
+    closeDetailTimeout = window.setTimeout(() => {
+        detail.classList.add('hidden');
+    }, 260);
+
+    activeMatchId = null;
+}
+
+function showMatchDetail(matchId, card) {
     const match = matches.find((item) => item.id === matchId);
     if (!match) return;
 
-    activeMatchId = matchId;
+    if (activeMatchId === matchId) {
+        closeMatchDetail();
+        return;
+    }
+
     const detail = document.getElementById('match-detail');
+    if (activeMatchId && activeMatchId !== matchId && detail) {
+        detail.classList.remove('is-open');
+    }
+
+    activeMatchId = matchId;
+    if (!card) {
+        card = document.querySelector(`.match-card[data-match-id="${matchId}"]`);
+    }
     const dateEl = document.getElementById('detail-date');
     const scoreEl = document.getElementById('detail-score');
     const teamAList = document.getElementById('detail-team-a');
@@ -265,7 +402,19 @@ function showMatchDetail(matchId) {
     editBtn.style.display = canEdit ? 'inline-flex' : 'none';
     deleteBtn.style.display = canEdit ? 'inline-flex' : 'none';
 
+    if (card) {
+        card.insertAdjacentElement('afterend', detail);
+    }
+
+    if (closeDetailTimeout) {
+        clearTimeout(closeDetailTimeout);
+        closeDetailTimeout = null;
+    }
     detail.classList.remove('hidden');
+    detail.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => {
+        detail.classList.add('is-open');
+    });
 }
 
 function getMatchVersion(match) {
@@ -394,8 +543,7 @@ async function deleteMatch() {
 
     try {
         await fetchJson(`/matches/${activeMatchId}`, { method: 'DELETE' });
-        activeMatchId = null;
-        document.getElementById('match-detail').classList.add('hidden');
+        closeMatchDetail();
         await refreshData();
     } catch (error) {
         showErrorMessage(error.message);
@@ -443,12 +591,18 @@ async function setScale(scale) {
 }
 
 function initDateFilters() {
-    document.querySelectorAll('.date-option').forEach((button) => {
-        button.addEventListener('click', () => {
-            document.querySelectorAll('.date-option').forEach((btn) => btn.classList.remove('active'));
-            button.classList.add('active');
-            dateRange = button.dataset.range;
-            const customRange = document.getElementById('custom-range');
+    const rangeSelect = document.getElementById('date-range-select');
+    const customRange = document.getElementById('custom-range');
+
+    if (rangeSelect) {
+        rangeSelect.value = dateRange;
+        if (dateRange === 'custom') {
+            customRange.classList.remove('hidden');
+        } else {
+            customRange.classList.add('hidden');
+        }
+        rangeSelect.addEventListener('change', () => {
+            dateRange = rangeSelect.value;
             if (dateRange === 'custom') {
                 customRange.classList.remove('hidden');
             } else {
@@ -456,7 +610,7 @@ function initDateFilters() {
             }
             refreshData();
         });
-    });
+    }
 
     const fromInput = document.getElementById('date-from');
     const toInput = document.getElementById('date-to');
@@ -508,12 +662,17 @@ async function initPartidos() {
     }
 
     initDateFilters();
+    initStandingsSort();
     initModalAssignment();
 
     document.getElementById('new-match-btn').addEventListener('click', () => openMatchModal('create'));
     document.getElementById('close-modal-btn').addEventListener('click', closeMatchModal);
     document.getElementById('cancel-modal-btn').addEventListener('click', closeMatchModal);
     document.getElementById('save-match-btn').addEventListener('click', saveMatch);
+    const closeDetailBtn = document.getElementById('close-detail-btn');
+    if (closeDetailBtn) {
+        closeDetailBtn.addEventListener('click', () => closeMatchDetail());
+    }
     document.getElementById('edit-match-btn').addEventListener('click', () => {
         const match = matches.find((item) => item.id === activeMatchId);
         if (match) {

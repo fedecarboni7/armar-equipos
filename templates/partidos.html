@@ -42,11 +42,14 @@
                 {% include '_scale_selector.html' %}
             </div>
             <div class="date-filter">
-                <div class="date-options">
-                    <button class="date-option active" data-range="month">Mes actual</button>
-                    <button class="date-option" data-range="quarter">Últimos 3 meses</button>
-                    <button class="date-option" data-range="year">Último año</button>
-                    <button class="date-option" data-range="custom">Personalizado</button>
+                <div class="date-select-wrapper">
+                    <label for="date-range-select" class="date-select-label">Rango</label>
+                    <select id="date-range-select" class="date-select">
+                        <option value="month" selected>Mes actual</option>
+                        <option value="quarter">Últimos 3 meses</option>
+                        <option value="year">Último año</option>
+                        <option value="custom">Personalizado</option>
+                    </select>
                 </div>
                 <div class="custom-range hidden" id="custom-range">
                     <div>
@@ -67,22 +70,24 @@
                 <span class="matches-count" id="standings-count">0 jugadores</span>
             </div>
             <div class="standings-table">
-                <table>
+                <div class="standings-table-scroll">
+                    <table>
                     <thead>
                         <tr>
-                            <th>Jugador</th>
-                            <th>PTS</th>
-                            <th>PJ</th>
-                            <th>PG</th>
-                            <th>PE</th>
-                            <th>PP</th>
-                            <th>Último partido</th>
+                            <th class="sortable" data-sort-key="player_name">Jugador <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="points">PTS <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="played">PJ <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="wins">PG <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="draws">PE <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="losses">PP <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="last_match">Último partido <span class="sort-indicator"></span></th>
                         </tr>
                     </thead>
                     <tbody id="standings-body"></tbody>
-                </table>
+                    </table>
+                </div>
                 <div class="standings-empty hidden" id="standings-empty">
-                    No hay datos para el período seleccionado.
+                    No hay datos para el período o escala seleccionada.
                 </div>
             </div>
         </div>
@@ -96,6 +101,7 @@
         </div>
 
         <div id="match-detail" class="match-detail hidden">
+            <button class="detail-close-btn" id="close-detail-btn" type="button" aria-label="Cerrar detalle">&times;</button>
             <div class="detail-header">
                 <div>
                     <h3 id="detail-title">Detalle del partido</h3>

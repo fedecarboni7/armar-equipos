@@ -48,26 +48,25 @@
     flex: 1 1 360px;
 }
 
-.date-options {
+.date-select-wrapper {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 280px;
 }
 
-.date-option {
+.date-select-label {
+    color: #bbb;
+    font-size: 0.85rem;
+}
+
+.date-select {
     background: #2a2a2a;
     border: 1px solid #444;
-    color: #ccc;
-    padding: 8px 14px;
-    border-radius: 9999px;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.date-option.active {
-    background: #4a9eff;
     color: #fff;
-    border-color: transparent;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.95rem;
 }
 
 .custom-range {
@@ -114,8 +113,14 @@
     overflow: hidden;
 }
 
+.standings-table-scroll {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
 .standings-table table {
     width: 100%;
+    min-width: 680px;
     border-collapse: collapse;
 }
 
@@ -131,6 +136,23 @@
     background: #262626;
     color: #bbb;
     font-weight: 600;
+}
+
+.standings-table th.sortable {
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.standings-table th.sortable:focus {
+    outline: 2px solid #4a9eff;
+    outline-offset: -2px;
+}
+
+.sort-indicator {
+    margin-left: 6px;
+    color: #7fb7ff;
+    font-size: 0.8rem;
 }
 
 .standings-empty {
@@ -189,11 +211,36 @@
 }
 
 .match-detail {
-    margin-top: 20px;
+    position: relative;
+    margin-top: 0;
     background: #242424;
     border: 1px solid #333;
     border-radius: 12px;
+    padding: 0 16px;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-6px);
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease, transform 0.2s ease, margin-top 0.2s ease, padding 0.2s ease;
+}
+
+.match-detail.is-open {
+    margin-top: 12px;
     padding: 16px;
+    max-height: 900px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.detail-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 22px;
+    cursor: pointer;
 }
 
 .detail-header {
