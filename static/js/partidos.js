@@ -162,7 +162,7 @@ function getMatchBadge(match) {
     if (match.team_a_score === match.team_b_score) {
         return 'Empate';
     }
-    return match.team_a_score > match.team_b_score ? 'Gano A' : 'Gano B';
+    return match.team_a_score > match.team_b_score ? 'Ganó A' : 'Ganó B';
 }
 
 function renderStandings() {
