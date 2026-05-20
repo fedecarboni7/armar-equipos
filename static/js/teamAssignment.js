@@ -34,6 +34,15 @@
             return [...list].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
         }
 
+        function escapeText(value) {
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
         function getContainer(id) {
             return id ? document.getElementById(id) : null;
         }
@@ -58,7 +67,7 @@
         }
 
         function setSearchTerm(term) {
-            state.searchTerm = (term || '').toLowerCase().trim();
+            state.searchTerm = String(term || '').toLowerCase().trim();
             renderAvailable();
         }
 
@@ -78,7 +87,7 @@
             }
 
             if (!playersToShow.length) {
-                const term = typeof escapeHTML === 'function' ? escapeHTML(state.searchTerm) : state.searchTerm;
+                const term = escapeText(state.searchTerm);
                 const noResultsHtml = settings.getNoResultsHtml(term);
                 if (noResultsHtml) {
                     container.innerHTML = noResultsHtml;
