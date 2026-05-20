@@ -16,6 +16,7 @@ from app.db.models import User
 from app.utils.auth import get_current_user
 from app.utils.security import verify_admin_user
 
+
 def compute_static_version() -> str:
     h = hashlib.md5()
     for file_path in sorted(Path("static").rglob("*")):
