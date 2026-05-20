@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="../static/favicon/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="../static/favicon/favicon-16x16.png">
     <link rel="manifest" href="../static/favicon/site.webmanifest">
-    <link rel="stylesheet" href="/static/css/admin-dashboard.css">
+    <link rel="stylesheet" href="/static/css/admin-dashboard.css?v={{ static_version }}">
 </head>
 <body>
     <div id="app">
@@ -17,7 +17,7 @@
             <p style="font-size: 1.25rem;">Analizando uso de la aplicación...</p>
         </div>
     </div>
-    <script src="/static/js/admin-dashboard.js"></script>
+    <script src="/static/js/admin-dashboard.js?v={{ static_version }}"></script>
     <script>
         // Inicializar datos del dashboard
         const stats = {{ stats|tojson }};

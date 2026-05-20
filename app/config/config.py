@@ -1,3 +1,6 @@
+import hashlib
+from pathlib import Path
+
 import sentry_sdk
 from fastapi import Depends, FastAPI, Request
 from fastapi.openapi.docs import get_swagger_ui_html
@@ -13,7 +16,18 @@ from app.db.models import User
 from app.utils.auth import get_current_user
 from app.utils.security import verify_admin_user
 
+def compute_static_version() -> str:
+    h = hashlib.md5()
+    for file_path in sorted(Path("static").rglob("*")):
+        if file_path.is_file():
+            h.update(file_path.read_bytes())
+    return h.hexdigest()[:8]
+
+
+STATIC_VERSION = compute_static_version()
+
 templates = Jinja2Templates(directory="templates")
+templates.env.globals["static_version"] = STATIC_VERSION
 
 
 def create_app() -> FastAPI:

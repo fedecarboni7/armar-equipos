@@ -18,7 +18,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="../static/favicon/favicon-16x16.png">
     <link rel="manifest" href="../static/favicon/site.webmanifest">
     {% include '_pwa_meta.html' %}
-    <link rel="stylesheet" type="text/css" href="../static/css/daisyui.min.css" />
+    <link rel="stylesheet" type="text/css" href="../static/css/daisyui.min.css?v={{ static_version }}" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       .gsi-material-button {
@@ -279,7 +279,7 @@
         </div>
       </div>
     </div>
-    <script src="/static/js/pwa-install.js"></script>
+    <script src="/static/js/pwa-install.js?v={{ static_version }}"></script>
     <script>
       function togglePasswordVisibility(inputId, iconId) {
         const input = document.getElementById(inputId);
