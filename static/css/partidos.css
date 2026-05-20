@@ -33,12 +33,15 @@
     display: flex;
     flex-wrap: wrap;
     gap: 16px;
-    align-items: flex-end;
+    align-items: flex-start;
     margin-bottom: 20px;
 }
 
 .scale-wrapper {
     flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 
 .date-filter {
@@ -46,13 +49,14 @@
     flex-direction: column;
     gap: 12px;
     flex: 1 1 360px;
+    align-items: flex-start;
 }
 
 .date-select-wrapper {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    max-width: 280px;
+    max-width: 170px;
 }
 
 .date-select-label {
@@ -67,6 +71,21 @@
     padding: 10px 12px;
     border-radius: 10px;
     font-size: 0.95rem;
+}
+
+.partidos-page .scale-selector {
+    margin-bottom: 0;
+    justify-content: flex-start;
+}
+
+.partidos-page .scale-toggle {
+    border-radius: 25px;
+    padding: 4px;
+    min-height: 42px;
+}
+
+.partidos-page .scale-option {
+    padding: 8px 14px;
 }
 
 .custom-range {
