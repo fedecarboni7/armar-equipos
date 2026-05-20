@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    {% set active_page = 'partidos' %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partidos</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="../static/favicon/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="../static/favicon/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="../static/favicon/favicon-16x16.png">
+    <link rel="manifest" href="../static/favicon/site.webmanifest">
+    {% include '_pwa_meta.html' %}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/global.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/sidebar.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/navbar.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/scale-selector.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/partidos.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/pwa-install.css">
+    <script src="/static/js/utils.js" defer></script>
+    <script src="/static/js/clubSelector.js" defer></script>
+    <script src="/static/js/ui.js" defer></script>
+    <script src="/static/js/api.js" defer></script>
+    <script src="/static/js/teamAssignment.js" defer></script>
+    <script src="/static/js/partidos.js" defer></script>
+</head>
+<body class="partidos-page">
+    {% include '_sidebar.html' %}
+    {% include '_navbar.html' %}
+
+    <div class="container partidos-container">
+        <div class="page-header">
+            <h1 class="title">Partidos</h1>
+            <button class="new-match-btn" id="new-match-btn" title="Nuevo partido">
+                <i class="fa-solid fa-plus"></i>
+                Nuevo partido
+            </button>
+        </div>
+
+        <div class="filters-row">
+            <div class="scale-wrapper">
+                <label class="date-select-label" for="scale-selector">Escala</label>
+                {% include '_scale_selector.html' %}
+            </div>
+            <div class="date-filter">
+                <div class="date-select-wrapper">
+                    <label for="date-range-select" class="date-select-label">Rango</label>
+                    <select id="date-range-select" class="date-select">
+                        <option value="month" selected>Mes actual</option>
+                        <option value="quarter">Últimos 3 meses</option>
+                        <option value="year">Último año</option>
+                        <option value="custom">Personalizado</option>
+                    </select>
+                </div>
+                <div class="custom-range hidden" id="custom-range">
+                    <div>
+                        <label for="date-from">Fecha desde</label>
+                        <input type="date" id="date-from" />
+                    </div>
+                    <div>
+                        <label for="date-to">Fecha hasta</label>
+                        <input type="date" id="date-to" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="standings-section">
+            <div class="section-header">
+                <h2>Tabla de posiciones</h2>
+                <span class="matches-count" id="standings-count">0 jugadores</span>
+            </div>
+            <div class="standings-table">
+                <div class="standings-table-scroll">
+                    <table>
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort-key="player_name">Jugador <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="points">PTS <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="played">PJ <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="wins">PG <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="draws">PE <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="losses">PP <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="last_match">Último partido <span class="sort-indicator"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="standings-body"></tbody>
+                    </table>
+                </div>
+                <div class="standings-empty hidden" id="standings-empty">
+                    No hay datos para el período o escala seleccionada.
+                </div>
+            </div>
+        </div>
+
+        <div class="matches-section">
+            <div class="section-header">
+                <h2>Historial</h2>
+                <span class="matches-count" id="matches-count">0 partidos</span>
+            </div>
+            <div id="matches-list" class="matches-list"></div>
+        </div>
+
+        <div id="match-detail" class="match-detail hidden">
+            <button class="detail-close-btn" id="close-detail-btn" type="button" aria-label="Cerrar detalle">&times;</button>
+            <div class="detail-header">
+                <div>
+                    <h3 id="detail-title">Detalle del partido</h3>
+                    <p id="detail-date"></p>
+                </div>
+                <div class="detail-actions">
+                    <button class="secondary-btn" id="edit-match-btn">
+                        <i class="fa-solid fa-pen"></i>
+                        Editar
+                    </button>
+                    <button class="danger-btn" id="delete-match-btn">
+                        <i class="fa-solid fa-trash"></i>
+                        Eliminar
+                    </button>
+                </div>
+            </div>
+            <div class="detail-score" id="detail-score"></div>
+            <div class="detail-teams">
+                <div class="team-column">
+                    <h4>Equipo A</h4>
+                    <ul id="detail-team-a" class="team-list"></ul>
+                </div>
+                <div class="team-column">
+                    <h4>Equipo B</h4>
+                    <ul id="detail-team-b" class="team-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="match-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Nuevo partido</h3>
+                <button class="close-btn" id="close-modal-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-row">
+                    <label for="match-date">Fecha</label>
+                    <input type="datetime-local" id="match-date" />
+                </div>
+                <div class="modal-teams">
+                    <div class="team-column">
+                        <div class="team-header">
+                            <h4>Equipo A</h4>
+                            <span id="modal-team-a-count">0 jugadores</span>
+                        </div>
+                        <div id="modal-team-a" class="team-list"></div>
+                    </div>
+                    <div class="team-column">
+                        <div class="team-header">
+                            <h4>Equipo B</h4>
+                            <span id="modal-team-b-count">0 jugadores</span>
+                        </div>
+                        <div id="modal-team-b" class="team-list"></div>
+                    </div>
+                </div>
+                <div class="available-section">
+                    <div class="team-header">
+                        <h4>Jugadores disponibles</h4>
+                        <span id="modal-available-count">0 jugadores</span>
+                    </div>
+                    <input type="text" id="modal-player-search" class="modal-search" placeholder="Buscar jugador..." />
+                    <div id="modal-available-players" class="available-list"></div>
+                </div>
+                <div class="modal-scores">
+                    <div>
+                        <label for="team-a-score">Goles Equipo A</label>
+                        <input type="number" id="team-a-score" min="0" value="0" />
+                    </div>
+                    <div>
+                        <label for="team-b-score">Goles Equipo B</label>
+                        <input type="number" id="team-b-score" min="0" value="0" />
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="secondary-btn" id="cancel-modal-btn">Cancelar</button>
+                <button class="primary-btn" id="save-match-btn">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    {% if currentUser %}
+    <script id="user-data" type="application/json">{{ currentUser | tojson | safe }}</script>
+    {% endif %}
+    <script src="/static/js/pwa-install.js"></script>
+</body>
+</html>

@@ -97,7 +97,7 @@
     right: 0;
     background-color: #2d2d2d;
     border-top: 1px solid #444;
-    padding: 8px 0;
+    /* padding: 8px 0; */
     z-index: 1000;
     box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
 }
@@ -112,7 +112,10 @@
     border: none;
     color: #ccc;
     cursor: pointer;
-    padding: 8px 4px;
+    padding-top: 6px;
+    padding-right: 4px;
+    padding-bottom: 8px;
+    padding-left: 4px;
     transition: color 0.3s, background-color 0.3s;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
@@ -127,7 +130,7 @@
 }
 
 .bottom-nav-icon {
-    font-size: 20px;
+    font-size: 15px;
     margin-bottom: 2px;
 }
 
@@ -141,17 +144,7 @@
     .bottom-nav {
         display: flex;
     }
-    
-    /* Ocultar sidebar completamente en móvil */
-    .sidebar {
-        display: none !important;
-    }
-    
-    /* Ocultar overlay del sidebar en móvil */
-    .sidebar-overlay {
-        display: none !important;
-    }
-    
+
     /* Agregar padding-bottom al body para compensar el bottom nav */
     body {
         padding-bottom: 70px;

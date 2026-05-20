@@ -14,8 +14,12 @@
             <span>Jugadores</span>
         </button>
         <button class="nav-item {{ 'active' if active_page == 'clubes' else '' }}" onclick="navigateTo('clubes')">
-            <span>🏆</span>
+            <span>🏟️</span>
             <span>Clubes</span>
+        </button>
+        <button class="nav-item {{ 'active' if active_page == 'partidos' else '' }}" onclick="navigateTo('partidos')">
+            <span>🏆</span>
+            <span>Partidos</span>
         </button>
         <div class="nav-separator"></div>
         <button class="nav-item {{ 'active' if active_page == 'perfil' else '' }}" onclick="navigateTo('perfil')">
@@ -36,11 +40,11 @@
         <span class="bottom-nav-label">Jugadores</span>
     </button>
     <button class="bottom-nav-item {{ 'active' if active_page == 'clubes' else '' }}" onclick="navigateTo('clubes')">
-        <span class="bottom-nav-icon">🏆</span>
+        <span class="bottom-nav-icon">🏟️</span>
         <span class="bottom-nav-label">Clubes</span>
     </button>
-    <button class="bottom-nav-item {{ 'active' if active_page == 'perfil' else '' }}" onclick="navigateTo('perfil')">
-        <span class="bottom-nav-icon">👤</span>
-        <span class="bottom-nav-label">Perfil</span>
+    <button class="bottom-nav-item {{ 'active' if active_page == 'partidos' else '' }}" onclick="navigateTo('partidos')">
+        <span class="bottom-nav-icon">🏆</span>
+        <span class="bottom-nav-label">Partidos</span>
     </button>
 </div>
