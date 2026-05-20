@@ -16,6 +16,7 @@ const MAX_IMPORT_LINES = 30;
 
 // ==================== HELP MODAL ====================
 const HELP_MODAL_KEY = 'armarEquipos_helpModalShown';
+const IMPORT_TIP_KEY = 'armarEquipos_importTipHidden';
 
 function initHelpModal() {
     const modal = document.getElementById('help-modal');
@@ -838,8 +839,12 @@ function initImportModal() {
     const cancelBtn = document.getElementById('cancel-import-btn');
     const processBtn = document.getElementById('process-import-btn');
     const applyBtn = document.getElementById('apply-import-btn');
+    const tip = document.getElementById('import-tip');
+    const closeTipBtn = document.getElementById('close-import-tip');
     
     if (!modal) return;
+
+    applyImportTipVisibility();
     
     // Event listeners
     importBtn?.addEventListener('click', showImportModal);
@@ -847,6 +852,10 @@ function initImportModal() {
     cancelBtn?.addEventListener('click', closeImportModal);
     processBtn?.addEventListener('click', processImportList);
     applyBtn?.addEventListener('click', applyImportedPlayers);
+    closeTipBtn?.addEventListener('click', () => {
+        if (tip) tip.style.display = 'none';
+        localStorage.setItem(IMPORT_TIP_KEY, 'true');
+    });
     
     // Cerrar al hacer click fuera del modal
     modal.addEventListener('click', (e) => {
@@ -870,6 +879,8 @@ function showImportModal() {
     
     // Reset modal state
     resetImportModal();
+
+    applyImportTipVisibility();
 }
 
 function closeImportModal() {
@@ -893,6 +904,14 @@ function resetImportModal() {
     if (applyBtn) applyBtn.style.display = 'none';
     
     importMatchResults = null;
+}
+
+function applyImportTipVisibility() {
+    const tip = document.getElementById('import-tip');
+    if (!tip) return;
+
+    const isHidden = localStorage.getItem(IMPORT_TIP_KEY) === 'true';
+    tip.style.display = isHidden ? 'none' : 'flex';
 }
 
 async function processImportList() {

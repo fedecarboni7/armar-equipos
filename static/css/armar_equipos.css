@@ -527,6 +527,10 @@ h1 {
 }
 
 .import-tip {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
     background: rgba(102, 126, 234, 0.1);
     border: 1px solid rgba(102, 126, 234, 0.3);
     border-radius: 8px;
@@ -534,6 +538,26 @@ h1 {
     color: #a8b4ff;
     font-size: 0.9rem;
     margin-bottom: 20px;
+}
+
+.import-tip-text {
+    line-height: 1.4;
+}
+
+.import-tip-close {
+    background: none;
+    border: none;
+    color: #a8b4ff;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    margin-left: auto;
+    transition: color 0.2s ease;
+}
+
+.import-tip-close:hover {
+    color: #fff;
 }
 
 .import-results {
