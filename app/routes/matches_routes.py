@@ -79,6 +79,44 @@ def _serialize_match(match: models.Match) -> schemas.MatchResponse:
     }
 
 
+def _validate_player_stats(
+    players: List[schemas.MatchPlayerCreate], team_a_score: int, team_b_score: int
+) -> None:
+    team_a_goals = 0
+    team_b_goals = 0
+    team_a_assists = 0
+    team_b_assists = 0
+
+    for player in players:
+        if player.team == "A":
+            team_a_goals += player.goals
+            team_a_assists += player.assists
+        elif player.team == "B":
+            team_b_goals += player.goals
+            team_b_assists += player.assists
+
+    if team_a_goals > team_a_score:
+        raise HTTPException(
+            status_code=400,
+            detail="Los goles del Equipo A no pueden superar el marcador",
+        )
+    if team_b_goals > team_b_score:
+        raise HTTPException(
+            status_code=400,
+            detail="Los goles del Equipo B no pueden superar el marcador",
+        )
+    if team_a_assists > team_a_score:
+        raise HTTPException(
+            status_code=400,
+            detail="Las asistencias del Equipo A no pueden superar el marcador",
+        )
+    if team_b_assists > team_b_score:
+        raise HTTPException(
+            status_code=400,
+            detail="Las asistencias del Equipo B no pueden superar el marcador",
+        )
+
+
 @router.post("/matches", response_model=schemas.MatchResponse)
 async def create_match(
     match_data: schemas.MatchCreate,
@@ -92,6 +130,10 @@ async def create_match(
 
     if not match_data.players:
         raise HTTPException(status_code=400, detail="Debes incluir jugadores")
+
+    _validate_player_stats(
+        match_data.players, match_data.team_a_score, match_data.team_b_score
+    )
 
     match = models.Match(
         club_id=match_data.club_id,
@@ -308,6 +350,9 @@ async def get_match_standings(
         key=lambda item: (
             item["points"],
             item["wins"],
+            item["goals"],
+            item["assists"],
+            -(item["played"] or 0),
             item["last_match"] or datetime.min,
         ),
         reverse=True,
@@ -386,6 +431,7 @@ async def update_match(
         match.notes = match_data.notes
 
     if match_data.players is not None:
+        _validate_player_stats(match_data.players, team_a_score, team_b_score)
         for existing in match.match_players:
             db.delete(existing)
         db.flush()
@@ -466,39 +512,3 @@ def delete_match(
     db.delete(match)
     db.commit()
     return {"status": "deleted"}
-
-
-@router.get("/players/{player_id}/stats", response_model=schemas.MatchStatsResponse)
-def get_player_stats(
-    player_id: int,
-    version: str = Query(..., pattern="^(v1|v2)$"),
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    _require_auth(current_user)
-
-    if version == "v1":
-        results = (
-            db.query(models.MatchPlayer.result)
-            .filter(models.MatchPlayer.player_v1_id == player_id)
-            .all()
-        )
-    else:
-        results = (
-            db.query(models.MatchPlayer.result)
-            .filter(models.MatchPlayer.player_v2_id == player_id)
-            .all()
-        )
-
-    counts = {"win": 0, "loss": 0, "draw": 0}
-    for (result,) in results:
-        if result in counts:
-            counts[result] += 1
-
-    played = sum(counts.values())
-    return {
-        "played": played,
-        "wins": counts["win"],
-        "losses": counts["loss"],
-        "draws": counts["draw"],
-    }

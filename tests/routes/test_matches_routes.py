@@ -1,132 +1,271 @@
 from datetime import datetime, timezone
 
-
-def _create_player(authenticated_client, scale: str = "1-5"):
-    payload = {
-        "name": f"Test Player {scale}",
-        "velocidad": 4,
-        "resistencia": 5,
-        "control": 5,
-        "pases": 3,
-        "tiro": 3,
-        "defensa": 2,
-        "habilidad_arquero": 3,
-        "fuerza_cuerpo": 5,
-        "vision": 1,
-    }
-    suffix = "?scale=1-10" if scale == "1-10" else ""
-    response = authenticated_client.post(f"/api/player{suffix}", json=payload)
-    assert response.status_code == 200
-    return response.json()["id"]
+from app.db import models
 
 
-def get_result(players, field, player_id):
-    return next(p["result"] for p in players if p[field] == player_id)
+def create_club_with_players(db, user, n=4, scale=2):
+    club = models.Club(name=f"Test Club {scale}")
+    db.add(club)
+    db.flush()
+
+    club_user = models.ClubUser(club_id=club.id, user_id=user.id, role="admin")
+    db.add(club_user)
+
+    players = []
+    for index in range(n):
+        player = models.PlayerV2(
+            name=f"Player {scale}-{index + 1}",
+            velocidad=5,
+            resistencia=5,
+            control=5,
+            pases=5,
+            tiro=5,
+            defensa=5,
+            habilidad_arquero=5,
+            fuerza_cuerpo=5,
+            vision=5,
+            user_id=user.id,
+            club_id=club.id,
+        )
+        db.add(player)
+        players.append(player)
+
+    db.commit()
+    return club, players
 
 
-def test_create_match_and_stats_v1(authenticated_client):
-    player_v1_id = _create_player(authenticated_client, scale="1-5")
-    player_v2_id = _create_player(authenticated_client, scale="1-5")
+def _get_test_user(db):
+    return db.query(models.User).filter(models.User.username == "testuser").first()
 
-    played_at = datetime(2026, 5, 19, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+
+def test_create_match_basic(authenticated_client, db):
+    user = _get_test_user(db)
+    club, players = create_club_with_players(db, user, n=4)
+    played_at = datetime(2026, 5, 20, 10, 0, 0, tzinfo=timezone.utc).isoformat()
 
     response = authenticated_client.post(
         "/matches",
         json={
+            "club_id": club.id,
+            "played_at": played_at,
+            "team_a_score": 2,
+            "team_b_score": 1,
+            "notes": "Test note",
+            "players": [
+                {"player_v2_id": players[0].id, "team": "A", "goals": 0, "assists": 0},
+                {"player_v2_id": players[1].id, "team": "A", "goals": 0, "assists": 0},
+                {"player_v2_id": players[2].id, "team": "B", "goals": 0, "assists": 0},
+                {"player_v2_id": players[3].id, "team": "B", "goals": 0, "assists": 0},
+            ],
+        },
+    )
+
+    assert response.status_code in (200, 201)
+    payload = response.json()
+    assert payload["notes"] == "Test note"
+    assert all(
+        player["goals"] == 0 and player["assists"] == 0 for player in payload["players"]
+    )
+
+
+def test_create_match_goals_assists_persisted(authenticated_client, db):
+    user = _get_test_user(db)
+    club, players = create_club_with_players(db, user, n=4)
+    played_at = datetime(2026, 5, 20, 11, 0, 0, tzinfo=timezone.utc).isoformat()
+
+    response = authenticated_client.post(
+        "/matches",
+        json={
+            "club_id": club.id,
+            "played_at": played_at,
+            "team_a_score": 3,
+            "team_b_score": 1,
+            "players": [
+                {"player_v2_id": players[0].id, "team": "A", "goals": 2, "assists": 1},
+                {"player_v2_id": players[1].id, "team": "A", "goals": 1, "assists": 0},
+                {"player_v2_id": players[2].id, "team": "B", "goals": 1, "assists": 0},
+                {"player_v2_id": players[3].id, "team": "B", "goals": 0, "assists": 1},
+            ],
+        },
+    )
+
+    assert response.status_code in (200, 201)
+    match_id = response.json()["id"]
+
+    detail_response = authenticated_client.get(f"/matches/{match_id}")
+    assert detail_response.status_code == 200
+    detail = detail_response.json()
+    players_by_id = {player["player_v2_id"]: player for player in detail["players"]}
+
+    assert players_by_id[players[0].id]["goals"] == 2
+    assert players_by_id[players[0].id]["assists"] == 1
+    assert players_by_id[players[1].id]["goals"] == 1
+    assert players_by_id[players[1].id]["assists"] == 0
+    assert players_by_id[players[2].id]["goals"] == 1
+    assert players_by_id[players[2].id]["assists"] == 0
+    assert players_by_id[players[3].id]["goals"] == 0
+    assert players_by_id[players[3].id]["assists"] == 1
+
+
+def test_create_match_goals_exceed_score(authenticated_client, db):
+    user = _get_test_user(db)
+    club, players = create_club_with_players(db, user, n=2)
+    played_at = datetime(2026, 5, 20, 12, 0, 0, tzinfo=timezone.utc).isoformat()
+
+    response = authenticated_client.post(
+        "/matches",
+        json={
+            "club_id": club.id,
+            "played_at": played_at,
+            "team_a_score": 1,
+            "team_b_score": 0,
+            "players": [
+                {"player_v2_id": players[0].id, "team": "A", "goals": 2, "assists": 0},
+                {"player_v2_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
+            ],
+        },
+    )
+
+    assert response.status_code in (400, 422)
+
+
+def test_create_match_assists_exceed_score(authenticated_client, db):
+    user = _get_test_user(db)
+    club, players = create_club_with_players(db, user, n=2)
+    played_at = datetime(2026, 5, 20, 13, 0, 0, tzinfo=timezone.utc).isoformat()
+
+    response = authenticated_client.post(
+        "/matches",
+        json={
+            "club_id": club.id,
+            "played_at": played_at,
+            "team_a_score": 0,
+            "team_b_score": 1,
+            "players": [
+                {"player_v2_id": players[0].id, "team": "A", "goals": 0, "assists": 0},
+                {"player_v2_id": players[1].id, "team": "B", "goals": 0, "assists": 2},
+            ],
+        },
+    )
+
+    assert response.status_code in (400, 422)
+
+
+def test_edit_match_updates_notes_goals_assists(authenticated_client, db):
+    user = _get_test_user(db)
+    club, players = create_club_with_players(db, user, n=2)
+    played_at = datetime(2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc).isoformat()
+
+    response = authenticated_client.post(
+        "/matches",
+        json={
+            "club_id": club.id,
+            "played_at": played_at,
+            "team_a_score": 1,
+            "team_b_score": 0,
+            "notes": "original",
+            "players": [
+                {"player_v2_id": players[0].id, "team": "A", "goals": 0, "assists": 0},
+                {"player_v2_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
+            ],
+        },
+    )
+    assert response.status_code in (200, 201)
+    match_id = response.json()["id"]
+
+    patch_response = authenticated_client.patch(
+        f"/matches/{match_id}",
+        json={
+            "team_a_score": 1,
+            "team_b_score": 0,
+            "notes": "updated",
+            "players": [
+                {"player_v2_id": players[0].id, "team": "A", "goals": 1, "assists": 0},
+                {"player_v2_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
+            ],
+        },
+    )
+    assert patch_response.status_code == 200
+
+    detail_response = authenticated_client.get(f"/matches/{match_id}")
+    assert detail_response.status_code == 200
+    detail = detail_response.json()
+    players_by_id = {player["player_v2_id"]: player for player in detail["players"]}
+
+    assert detail["notes"] == "updated"
+    assert players_by_id[players[0].id]["goals"] == 1
+
+
+def test_leaderboard_returns_goals_assists(authenticated_client, db):
+    user = _get_test_user(db)
+    club, players = create_club_with_players(db, user, n=2)
+    played_at = datetime(2026, 5, 20, 15, 0, 0, tzinfo=timezone.utc).isoformat()
+
+    response = authenticated_client.post(
+        "/matches",
+        json={
+            "club_id": club.id,
+            "played_at": played_at,
+            "team_a_score": 2,
+            "team_b_score": 0,
+            "players": [
+                {"player_v2_id": players[0].id, "team": "A", "goals": 2, "assists": 1},
+                {"player_v2_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
+            ],
+        },
+    )
+    assert response.status_code in (200, 201)
+
+    standings_response = authenticated_client.get(
+        f"/matches/standings?version=v2&club_id={club.id}"
+    )
+    assert standings_response.status_code == 200
+    standings = standings_response.json()
+    standings_by_id = {row["player_id"]: row for row in standings}
+
+    assert standings_by_id[players[0].id]["goals"] == 2
+    assert standings_by_id[players[0].id]["assists"] == 1
+    assert standings_by_id[players[1].id]["goals"] == 0
+    assert standings_by_id[players[1].id]["assists"] == 0
+
+
+def test_leaderboard_orders_by_goals_tiebreaker(authenticated_client, db):
+    user = _get_test_user(db)
+    club, players = create_club_with_players(db, user, n=2)
+    played_at = datetime(2026, 5, 20, 16, 0, 0, tzinfo=timezone.utc).isoformat()
+
+    authenticated_client.post(
+        "/matches",
+        json={
+            "club_id": club.id,
             "played_at": played_at,
             "team_a_score": 2,
             "team_b_score": 1,
             "players": [
-                {"player_v1_id": player_v1_id, "team": "A"},
-                {"player_v1_id": player_v2_id, "team": "B"},
+                {"player_v2_id": players[0].id, "team": "A", "goals": 2, "assists": 0},
+                {"player_v2_id": players[1].id, "team": "B", "goals": 1, "assists": 0},
             ],
         },
     )
-    assert response.status_code == 200
-    match_data = response.json()
-    assert get_result(match_data["players"], "player_v1_id", player_v1_id) == "win"
-    assert get_result(match_data["players"], "player_v1_id", player_v2_id) == "loss"
 
-    response = authenticated_client.post(
+    authenticated_client.post(
         "/matches",
         json={
+            "club_id": club.id,
             "played_at": played_at,
             "team_a_score": 1,
-            "team_b_score": 1,
+            "team_b_score": 2,
             "players": [
-                {"player_v1_id": player_v1_id, "team": "A"},
-                {"player_v1_id": player_v2_id, "team": "B"},
+                {"player_v2_id": players[0].id, "team": "A", "goals": 1, "assists": 0},
+                {"player_v2_id": players[1].id, "team": "B", "goals": 1, "assists": 0},
             ],
         },
     )
-    assert response.status_code == 200
 
-    stats_v1 = authenticated_client.get(
-        f"/players/{player_v1_id}/stats?version=v1"
-    ).json()
-    assert stats_v1["played"] == 2
-    assert stats_v1["wins"] == 1
-    assert stats_v1["losses"] == 0
-    assert stats_v1["draws"] == 1
-
-    stats_v2 = authenticated_client.get(
-        f"/players/{player_v2_id}/stats?version=v1"
-    ).json()
-    assert stats_v2["played"] == 2
-    assert stats_v2["wins"] == 0
-    assert stats_v2["losses"] == 1
-    assert stats_v2["draws"] == 1
-
-
-def test_create_match_and_stats_v2(authenticated_client):
-    player_v1_id = _create_player(authenticated_client, scale="1-10")
-    player_v2_id = _create_player(authenticated_client, scale="1-10")
-
-    played_at = datetime(2026, 5, 19, 10, 0, 0, tzinfo=timezone.utc).isoformat()
-
-    response = authenticated_client.post(
-        "/matches",
-        json={
-            "played_at": played_at,
-            "team_a_score": 2,
-            "team_b_score": 1,
-            "players": [
-                {"player_v2_id": player_v1_id, "team": "A"},
-                {"player_v2_id": player_v2_id, "team": "B"},
-            ],
-        },
+    standings_response = authenticated_client.get(
+        f"/matches/standings?version=v2&club_id={club.id}"
     )
-    assert response.status_code == 200
-    match_data = response.json()
-    assert get_result(match_data["players"], "player_v2_id", player_v1_id) == "win"
-    assert get_result(match_data["players"], "player_v2_id", player_v2_id) == "loss"
+    assert standings_response.status_code == 200
+    standings = standings_response.json()
 
-    response = authenticated_client.post(
-        "/matches",
-        json={
-            "played_at": played_at,
-            "team_a_score": 1,
-            "team_b_score": 1,
-            "players": [
-                {"player_v2_id": player_v1_id, "team": "A"},
-                {"player_v2_id": player_v2_id, "team": "B"},
-            ],
-        },
-    )
-    assert response.status_code == 200
-
-    stats_v1 = authenticated_client.get(
-        f"/players/{player_v1_id}/stats?version=v2"
-    ).json()
-    assert stats_v1["played"] == 2
-    assert stats_v1["wins"] == 1
-    assert stats_v1["losses"] == 0
-    assert stats_v1["draws"] == 1
-
-    stats_v2 = authenticated_client.get(
-        f"/players/{player_v2_id}/stats?version=v2"
-    ).json()
-    assert stats_v2["played"] == 2
-    assert stats_v2["wins"] == 0
-    assert stats_v2["losses"] == 1
-    assert stats_v2["draws"] == 1
+    assert standings[0]["player_id"] == players[0].id

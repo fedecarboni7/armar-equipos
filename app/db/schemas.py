@@ -189,13 +189,6 @@ class MatchResponse(BaseModel):
     players: List[MatchPlayerResponse] = Field(default_factory=list)
 
 
-class MatchStatsResponse(BaseModel):
-    played: int
-    wins: int
-    losses: int
-    draws: int
-
-
 class MatchStandingResponse(BaseModel):
     player_id: int
     player_name: str

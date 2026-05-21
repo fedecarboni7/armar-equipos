@@ -83,7 +83,7 @@ function getDateRangeParams() {
 
     if (dateRange === 'month') {
         start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = now;
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     } else if (dateRange === 'quarter') {
         start = new Date(now);
         start.setMonth(start.getMonth() - 3);
