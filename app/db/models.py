@@ -11,6 +11,7 @@ from sqlalchemy import (
     Text,
     CheckConstraint,
 )
+from sqlalchemy import Date
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 from app.config.settings import Settings
@@ -245,7 +246,7 @@ class Match(Base):
     id = Column(Integer, primary_key=True, index=True)
     club_id = Column(Integer, ForeignKey("clubs.id"), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
-    played_at = Column(DateTime, nullable=False)
+    played_at = Column(Date, nullable=False)
     team_a_score = Column(Integer, nullable=False)
     team_b_score = Column(Integer, nullable=False)
     notes = Column(Text, nullable=True)

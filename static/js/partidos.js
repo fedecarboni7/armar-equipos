@@ -29,8 +29,24 @@ function getClubIdParam() {
     return clubId !== 'my-players' ? parseInt(clubId) : null;
 }
 
+function parseDateValue(date) {
+    if (date instanceof Date) {
+        return date;
+    }
+    if (typeof date === 'string') {
+        const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (match) {
+            const year = Number(match[1]);
+            const month = Number(match[2]) - 1;
+            const day = Number(match[3]);
+            return new Date(year, month, day);
+        }
+    }
+    return new Date(date);
+}
+
 function formatDateLabel(date) {
-    const parsed = new Date(date);
+    const parsed = parseDateValue(date);
     if (Number.isNaN(parsed.getTime())) {
         return '-';
     }
@@ -53,14 +69,15 @@ function formatDateOnly(date) {
     return formatDateLabel(date);
 }
 
-function toDatetimeLocalValue(date) {
-    const parsed = new Date(date);
+function toDateInputValue(date) {
+    const parsed = parseDateValue(date);
     if (Number.isNaN(parsed.getTime())) {
         return '';
     }
-    const offset = parsed.getTimezoneOffset() * 60000;
-    const local = new Date(parsed.getTime() - offset);
-    return local.toISOString().slice(0, 16);
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
 
 async function fetchJson(url, options = {}) {
@@ -83,7 +100,7 @@ function getDateRangeParams() {
 
     if (dateRange === 'month') {
         start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     } else if (dateRange === 'quarter') {
         start = new Date(now);
         start.setMonth(start.getMonth() - 3);
@@ -105,10 +122,10 @@ function getDateRangeParams() {
 
     const params = {};
     if (start) {
-        params.start_date = start.toISOString();
+        params.start_date = toDateInputValue(start);
     }
     if (end) {
-        params.end_date = end.toISOString();
+        params.end_date = toDateInputValue(end);
     }
     return params;
 }
@@ -475,7 +492,10 @@ async function openMatchModal(mode, match = null) {
     title.textContent = isEditMode ? 'Editar partido' : 'Nuevo partido';
     saveBtn.textContent = isEditMode ? 'Guardar cambios' : 'Guardar';
 
-    dateInput.value = match ? toDatetimeLocalValue(match.played_at) : '';
+    if (dateInput) {
+        dateInput.type = 'date';
+    }
+    dateInput.value = match ? toDateInputValue(match.played_at) : '';
     teamAScore.value = match ? match.team_a_score : 0;
     teamBScore.value = match ? match.team_b_score : 0;
     notesInput.value = match && match.notes ? match.notes : '';
@@ -578,7 +598,7 @@ async function saveMatch() {
     }
 
     const payload = {
-        played_at: new Date(dateInput.value).toISOString(),
+        played_at: dateInput.value,
         team_a_score: teamAScoreValue,
         team_b_score: teamBScoreValue,
         notes: notesValue ? notesValue : null,

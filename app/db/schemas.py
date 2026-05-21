@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional, List, Literal
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -147,7 +147,7 @@ class MatchPlayerCreate(BaseModel):
 
 class MatchCreate(BaseModel):
     club_id: Optional[int] = None
-    played_at: datetime
+    played_at: date
     team_a_score: int
     team_b_score: int
     notes: Optional[str] = None
@@ -155,7 +155,7 @@ class MatchCreate(BaseModel):
 
 
 class MatchUpdate(BaseModel):
-    played_at: Optional[datetime] = None
+    played_at: Optional[date] = None
     team_a_score: Optional[int] = None
     team_b_score: Optional[int] = None
     notes: Optional[str] = None
@@ -181,7 +181,7 @@ class MatchResponse(BaseModel):
     id: int
     club_id: Optional[int] = None
     created_by: int
-    played_at: datetime
+    played_at: date
     team_a_score: int
     team_b_score: int
     notes: Optional[str] = None
@@ -199,4 +199,4 @@ class MatchStandingResponse(BaseModel):
     losses: int
     goals: int
     assists: int
-    last_match: datetime
+    last_match: date

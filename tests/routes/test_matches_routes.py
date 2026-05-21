@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import date
 
 from app.db import models
 
@@ -41,7 +41,7 @@ def _get_test_user(db):
 def test_create_match_basic(authenticated_client, db):
     user = _get_test_user(db)
     club, players = create_club_with_players(db, user, n=4)
-    played_at = datetime(2026, 5, 20, 10, 0, 0, tzinfo=timezone.utc).isoformat()
+    played_at = date(2026, 5, 20).isoformat()
 
     response = authenticated_client.post(
         "/matches",
@@ -71,7 +71,7 @@ def test_create_match_basic(authenticated_client, db):
 def test_create_match_goals_assists_persisted(authenticated_client, db):
     user = _get_test_user(db)
     club, players = create_club_with_players(db, user, n=4)
-    played_at = datetime(2026, 5, 20, 11, 0, 0, tzinfo=timezone.utc).isoformat()
+    played_at = date(2026, 5, 20).isoformat()
 
     response = authenticated_client.post(
         "/matches",
@@ -110,7 +110,7 @@ def test_create_match_goals_assists_persisted(authenticated_client, db):
 def test_create_match_goals_exceed_score(authenticated_client, db):
     user = _get_test_user(db)
     club, players = create_club_with_players(db, user, n=2)
-    played_at = datetime(2026, 5, 20, 12, 0, 0, tzinfo=timezone.utc).isoformat()
+    played_at = date(2026, 5, 20).isoformat()
 
     response = authenticated_client.post(
         "/matches",
@@ -132,7 +132,7 @@ def test_create_match_goals_exceed_score(authenticated_client, db):
 def test_create_match_assists_exceed_score(authenticated_client, db):
     user = _get_test_user(db)
     club, players = create_club_with_players(db, user, n=2)
-    played_at = datetime(2026, 5, 20, 13, 0, 0, tzinfo=timezone.utc).isoformat()
+    played_at = date(2026, 5, 20).isoformat()
 
     response = authenticated_client.post(
         "/matches",
@@ -154,7 +154,7 @@ def test_create_match_assists_exceed_score(authenticated_client, db):
 def test_edit_match_updates_notes_goals_assists(authenticated_client, db):
     user = _get_test_user(db)
     club, players = create_club_with_players(db, user, n=2)
-    played_at = datetime(2026, 5, 20, 14, 0, 0, tzinfo=timezone.utc).isoformat()
+    played_at = date(2026, 5, 20).isoformat()
 
     response = authenticated_client.post(
         "/matches",
@@ -199,7 +199,7 @@ def test_edit_match_updates_notes_goals_assists(authenticated_client, db):
 def test_leaderboard_returns_goals_assists(authenticated_client, db):
     user = _get_test_user(db)
     club, players = create_club_with_players(db, user, n=2)
-    played_at = datetime(2026, 5, 20, 15, 0, 0, tzinfo=timezone.utc).isoformat()
+    played_at = date(2026, 5, 20).isoformat()
 
     response = authenticated_client.post(
         "/matches",
@@ -232,7 +232,7 @@ def test_leaderboard_returns_goals_assists(authenticated_client, db):
 def test_leaderboard_orders_by_goals_tiebreaker(authenticated_client, db):
     user = _get_test_user(db)
     club, players = create_club_with_players(db, user, n=2)
-    played_at = datetime(2026, 5, 20, 16, 0, 0, tzinfo=timezone.utc).isoformat()
+    played_at = date(2026, 5, 20).isoformat()
 
     authenticated_client.post(
         "/matches",

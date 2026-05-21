@@ -1,5 +1,5 @@
 from typing import List, Optional
-from datetime import datetime, time
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import or_, case, func
@@ -36,20 +36,14 @@ def _compute_result(team: str, team_a_score: int, team_b_score: int) -> str:
     return "win" if team_b_score > team_a_score else "loss"
 
 
-def _parse_date_param(value: Optional[str], is_end: bool) -> Optional[datetime]:
+def _parse_date_param(value: Optional[str]) -> Optional[date]:
     if not value:
         return None
 
     try:
-        parsed = datetime.fromisoformat(value)
+        return date.fromisoformat(value)
     except ValueError:
         raise HTTPException(status_code=400, detail="Fecha inválida")
-
-    if "T" not in value:
-        parsed_date = parsed.date()
-        return datetime.combine(parsed_date, time.max if is_end else time.min)
-
-    return parsed
 
 
 def _serialize_match(match: models.Match) -> schemas.MatchResponse:
@@ -213,8 +207,8 @@ def list_matches(
 ):
     current_user = _require_auth(current_user)
 
-    start_dt = _parse_date_param(start_date, is_end=False)
-    end_dt = _parse_date_param(end_date, is_end=True)
+    start_dt = _parse_date_param(start_date)
+    end_dt = _parse_date_param(end_date)
     if start_dt and end_dt and start_dt > end_dt:
         raise HTTPException(status_code=400, detail="Rango de fechas inválido")
 
@@ -261,8 +255,8 @@ async def get_match_standings(
 ):
     current_user = _require_auth(current_user)
 
-    start_dt = _parse_date_param(start_date, is_end=False)
-    end_dt = _parse_date_param(end_date, is_end=True)
+    start_dt = _parse_date_param(start_date)
+    end_dt = _parse_date_param(end_date)
     if start_dt and end_dt and start_dt > end_dt:
         raise HTTPException(status_code=400, detail="Rango de fechas inválido")
 
@@ -353,7 +347,7 @@ async def get_match_standings(
             item["goals"],
             item["assists"],
             -(item["played"] or 0),
-            item["last_match"] or datetime.min,
+            item["last_match"] or date.min,
         ),
         reverse=True,
     )
