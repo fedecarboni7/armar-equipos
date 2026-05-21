@@ -141,6 +141,8 @@ class MatchPlayerCreate(BaseModel):
     player_v1_id: Optional[int] = None
     player_v2_id: Optional[int] = None
     team: Literal["A", "B"]
+    goals: int = 0
+    assists: int = 0
 
 
 class MatchCreate(BaseModel):
@@ -148,6 +150,7 @@ class MatchCreate(BaseModel):
     played_at: datetime
     team_a_score: int
     team_b_score: int
+    notes: Optional[str] = None
     players: List[MatchPlayerCreate]
 
 
@@ -155,6 +158,7 @@ class MatchUpdate(BaseModel):
     played_at: Optional[datetime] = None
     team_a_score: Optional[int] = None
     team_b_score: Optional[int] = None
+    notes: Optional[str] = None
     players: Optional[List[MatchPlayerCreate]] = None
 
 
@@ -167,6 +171,8 @@ class MatchPlayerResponse(BaseModel):
     player_v2_id: Optional[int] = None
     team: str
     result: str
+    goals: int
+    assists: int
 
 
 class MatchResponse(BaseModel):
@@ -178,6 +184,7 @@ class MatchResponse(BaseModel):
     played_at: datetime
     team_a_score: int
     team_b_score: int
+    notes: Optional[str] = None
     created_at: datetime
     players: List[MatchPlayerResponse] = Field(default_factory=list)
 
@@ -197,4 +204,6 @@ class MatchStandingResponse(BaseModel):
     wins: int
     draws: int
     losses: int
+    goals: int
+    assists: int
     last_match: datetime

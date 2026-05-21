@@ -408,6 +408,7 @@
     border: 1px solid #333;
     border-radius: 12px;
     padding: 12px;
+    min-width: 0;
 }
 
 .team-header {
@@ -459,12 +460,29 @@
     background: #262626;
     padding: 10px 12px;
     border-radius: 10px;
+    min-width: 0;
 }
 
 .player-info {
     display: flex;
     align-items: center;
     gap: 8px;
+}
+
+.team-player .player-info,
+.available-player .player-info {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+}
+
+.team-player .player-info .player-name,
+.available-player .player-info .player-name {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
 }
 
 .add-buttons {
@@ -491,6 +509,35 @@
     gap: 6px;
 }
 
+.team-stats {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.team-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #bbb;
+    font-size: 0.75rem;
+}
+
+.team-stat input {
+    width: 46px;
+    background: #1f1f1f;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 4px 6px;
+    border-radius: 6px;
+}
+
+.player-stats {
+    font-size: 0.85em;
+    opacity: 0.7;
+    margin-left: 8px;
+}
+
 .remove-btn,
 .swap-btn {
     border: none;
@@ -505,6 +552,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 12px;
+    justify-items: center;
 }
 
 .modal-footer {
@@ -536,5 +584,11 @@
     .detail-actions {
         width: 100%;
         justify-content: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .modal-teams {
+        grid-template-columns: 1fr;
     }
 }

@@ -86,3 +86,57 @@ function renumerarJugadoresEquipo(teamList) {
         }
     });
 }
+
+// Función común para mostrar errores
+function showError(message) {
+    console.error(message);
+    // Crear un toast de error
+    showToast(message, 'error');
+}
+
+// Función común para mostrar mensajes de éxito
+function showSuccessMessage(message) {
+    showToast(message, 'success');
+}
+
+// Función para mostrar toasts/notificaciones
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? '#28a745' : '#dc3545';
+    
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background-color: ${bgColor};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        z-index: 10000;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+        transform: translateX(100px);
+        opacity: 0;
+    `;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    // Animar entrada
+    setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+        toast.style.opacity = '1';
+    }, 100);
+    
+    // Remover después de 3 segundos
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100px)';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                document.body.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}

@@ -90,9 +90,3 @@ function updateContextIcon() {
         contextIcon.textContent = '⚽'; // Icono de club
     }
 }
-
-// Función común para mostrar errores
-function showError(message) {
-    console.error(message);
-    // Aquí podrías agregar una notificación visual para el usuario
-}

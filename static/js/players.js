@@ -646,44 +646,6 @@ function cancelEdit() {
     renderPlayerModal(currentEditingPlayer);
 }
 
-// Función para mostrar mensaje de éxito
-function showSuccessMessage(message) {
-    // Crear un toast o mensaje temporal
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background-color: #28a745;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        font-weight: 500;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        transition: all 0.3s ease;
-    `;
-    toast.textContent = message;
-    
-    document.body.appendChild(toast);
-    
-    // Animar entrada
-    setTimeout(() => {
-        toast.style.transform = 'translateX(-10px)';
-    }, 100);
-    
-    // Remover después de 3 segundos
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100px)';
-        setTimeout(() => {
-            if (toast.parentNode) {
-                document.body.removeChild(toast);
-            }
-        }, 300);
-    }, 3000);
-}
-
 // Función para guardar los cambios del jugador
 async function savePlayerEdits() {
     try {

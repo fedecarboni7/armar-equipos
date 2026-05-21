@@ -61,6 +61,8 @@ def _serialize_match(match: models.Match) -> schemas.MatchResponse:
             "player_v2_id": player.player_v2_id,
             "team": player.team,
             "result": player.result,
+            "goals": player.goals,
+            "assists": player.assists,
         }
         for player in match.match_players
     ]
@@ -71,13 +73,14 @@ def _serialize_match(match: models.Match) -> schemas.MatchResponse:
         "played_at": match.played_at,
         "team_a_score": match.team_a_score,
         "team_b_score": match.team_b_score,
+        "notes": match.notes,
         "created_at": match.created_at,
         "players": players,
     }
 
 
 @router.post("/matches", response_model=schemas.MatchResponse)
-def create_match(
+async def create_match(
     match_data: schemas.MatchCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -96,6 +99,7 @@ def create_match(
         played_at=match_data.played_at,
         team_a_score=match_data.team_a_score,
         team_b_score=match_data.team_b_score,
+        notes=match_data.notes,
     )
     db.add(match)
     db.flush()
@@ -136,6 +140,8 @@ def create_match(
                 player_v2_id=player_entry.player_v2_id,
                 team=player_entry.team,
                 result=result,
+                goals=player_entry.goals,
+                assists=player_entry.assists,
             )
         )
 
@@ -203,7 +209,7 @@ def list_matches(
 
 
 @router.get("/matches/standings", response_model=List[schemas.MatchStandingResponse])
-def get_match_standings(
+async def get_match_standings(
     version: str = Query(..., pattern="^(v1|v2)$"),
     club_id: Optional[int] = Query(None),
     start_date: Optional[str] = Query(None),
@@ -224,6 +230,8 @@ def get_match_standings(
     win_count = func.sum(case((models.MatchPlayer.result == "win", 1), else_=0))
     draw_count = func.sum(case((models.MatchPlayer.result == "draw", 1), else_=0))
     loss_count = func.sum(case((models.MatchPlayer.result == "loss", 1), else_=0))
+    goals_sum = func.sum(models.MatchPlayer.goals)
+    assists_sum = func.sum(models.MatchPlayer.assists)
 
     if version == "v1":
         query = (
@@ -234,6 +242,8 @@ def get_match_standings(
                 win_count.label("wins"),
                 draw_count.label("draws"),
                 loss_count.label("losses"),
+                goals_sum.label("goals"),
+                assists_sum.label("assists"),
                 func.max(models.Match.played_at).label("last_match"),
             )
             .join(
@@ -250,6 +260,8 @@ def get_match_standings(
                 win_count.label("wins"),
                 draw_count.label("draws"),
                 loss_count.label("losses"),
+                goals_sum.label("goals"),
+                assists_sum.label("assists"),
                 func.max(models.Match.played_at).label("last_match"),
             )
             .join(
@@ -286,6 +298,8 @@ def get_match_standings(
                 "wins": row.wins or 0,
                 "draws": row.draws or 0,
                 "losses": row.losses or 0,
+                "goals": row.goals or 0,
+                "assists": row.assists or 0,
                 "last_match": row.last_match,
             }
         )
@@ -303,7 +317,7 @@ def get_match_standings(
 
 
 @router.get("/matches/{match_id}", response_model=schemas.MatchResponse)
-def get_match(
+async def get_match(
     match_id: int,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
@@ -328,7 +342,7 @@ def get_match(
 
 
 @router.patch("/matches/{match_id}", response_model=schemas.MatchResponse)
-def update_match(
+async def update_match(
     match_id: int,
     match_data: schemas.MatchUpdate,
     db: Session = Depends(get_db),
@@ -368,6 +382,8 @@ def update_match(
     match.played_at = played_at
     match.team_a_score = team_a_score
     match.team_b_score = team_b_score
+    if "notes" in match_data.model_fields_set:
+        match.notes = match_data.notes
 
     if match_data.players is not None:
         for existing in match.match_players:
@@ -408,6 +424,8 @@ def update_match(
                     player_v2_id=player_entry.player_v2_id,
                     team=player_entry.team,
                     result=result,
+                    goals=player_entry.goals,
+                    assists=player_entry.assists,
                 )
             )
 

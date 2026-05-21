@@ -248,6 +248,7 @@ class Match(Base):
     played_at = Column(DateTime, nullable=False)
     team_a_score = Column(Integer, nullable=False)
     team_b_score = Column(Integer, nullable=False)
+    notes = Column(Text, nullable=True)
     created_at = Column(DateTime, default=get_argentina_now)
 
     club = relationship("Club", back_populates="matches")
@@ -266,6 +267,8 @@ class MatchPlayer(Base):
     player_v2_id = Column(Integer, ForeignKey("players_v2.id"), nullable=True)
     team = Column(String, nullable=False)
     result = Column(String, nullable=False)
+    goals = Column(Integer, nullable=False, default=0)
+    assists = Column(Integer, nullable=False, default=0)
 
     __table_args__ = (
         CheckConstraint(

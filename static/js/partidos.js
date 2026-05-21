@@ -63,14 +63,6 @@ function toDatetimeLocalValue(date) {
     return local.toISOString().slice(0, 16);
 }
 
-function showErrorMessage(message) {
-    if (typeof showError === 'function') {
-        showError(message);
-        return;
-    }
-    alert(message);
-}
-
 async function fetchJson(url, options = {}) {
     const response = await fetch(url, {
         credentials: 'include',
@@ -286,6 +278,8 @@ function renderStandings() {
             <td>${row.wins}</td>
             <td>${row.draws}</td>
             <td>${row.losses}</td>
+            <td>${row.goals ?? 0}</td>
+            <td>${row.assists ?? 0}</td>
             <td>${row.last_match ? formatDateOnly(row.last_match) : '-'}</td>
         `;
         tbody.appendChild(tr);
@@ -372,27 +366,62 @@ function showMatchDetail(matchId, card) {
     const scoreEl = document.getElementById('detail-score');
     const teamAList = document.getElementById('detail-team-a');
     const teamBList = document.getElementById('detail-team-b');
+    const noteText = match.notes && match.notes.trim() ? match.notes.trim() : '';
 
     dateEl.textContent = formatDate(match.played_at);
     scoreEl.textContent = `${match.team_a_score} - ${match.team_b_score}`;
+    let notesEl = document.getElementById('detail-notes');
+    if (!notesEl && detail) {
+        notesEl = document.createElement('p');
+        notesEl.id = 'detail-notes';
+        detail.insertBefore(notesEl, detail.querySelector('.detail-teams'));
+    }
+    if (notesEl) {
+        if (noteText) {
+            notesEl.textContent = noteText;
+            notesEl.classList.remove('hidden');
+        } else {
+            notesEl.textContent = '';
+            notesEl.classList.add('hidden');
+        }
+    }
 
     teamAList.innerHTML = '';
     teamBList.innerHTML = '';
 
+    const buildPlayerRow = (player) => {
+        const li = document.createElement('li');
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = getPlayerName(player);
+        li.appendChild(nameSpan);
+
+        const goals = player.goals ?? 0;
+        const assists = player.assists ?? 0;
+        if (goals > 0 || assists > 0) {
+            const statsSpan = document.createElement('span');
+            statsSpan.className = 'player-stats';
+            if (goals > 0 && assists > 0) {
+                statsSpan.textContent = `⚽ ${goals}  🅰️ ${assists}`;
+            } else if (goals > 0) {
+                statsSpan.textContent = `⚽ ${goals}`;
+            } else {
+                statsSpan.textContent = `🅰️ ${assists}`;
+            }
+            li.appendChild(statsSpan);
+        }
+        return li;
+    };
+
     match.players
         .filter((player) => player.team === 'A')
         .forEach((player) => {
-            const li = document.createElement('li');
-            li.textContent = getPlayerName(player);
-            teamAList.appendChild(li);
+            teamAList.appendChild(buildPlayerRow(player));
         });
 
     match.players
         .filter((player) => player.team === 'B')
         .forEach((player) => {
-            const li = document.createElement('li');
-            li.textContent = getPlayerName(player);
-            teamBList.appendChild(li);
+            teamBList.appendChild(buildPlayerRow(player));
         });
 
     const canEdit = match.club_id !== null || (currentUser && match.created_by === currentUser.id);
@@ -426,6 +455,7 @@ async function openMatchModal(mode, match = null) {
     const title = document.getElementById('modal-title');
     const saveBtn = document.getElementById('save-match-btn');
     const dateInput = document.getElementById('match-date');
+    const notesInput = document.getElementById('match-notes');
     const teamAScore = document.getElementById('team-a-score');
     const teamBScore = document.getElementById('team-b-score');
 
@@ -444,12 +474,25 @@ async function openMatchModal(mode, match = null) {
     dateInput.value = match ? toDatetimeLocalValue(match.played_at) : '';
     teamAScore.value = match ? match.team_a_score : 0;
     teamBScore.value = match ? match.team_b_score : 0;
+    notesInput.value = match && match.notes ? match.notes : '';
 
     if (modalAssignment) {
         if (match) {
-            const teamAIds = match.players.filter((player) => player.team === 'A').map((player) => player.player_v1_id || player.player_v2_id);
-            const teamBIds = match.players.filter((player) => player.team === 'B').map((player) => player.player_v1_id || player.player_v2_id);
-            modalAssignment.setTeams(teamAIds, teamBIds);
+            const teamAEntries = match.players
+                .filter((player) => player.team === 'A')
+                .map((player) => ({
+                    id: player.player_v1_id || player.player_v2_id,
+                    goals: player.goals ?? 0,
+                    assists: player.assists ?? 0,
+                }));
+            const teamBEntries = match.players
+                .filter((player) => player.team === 'B')
+                .map((player) => ({
+                    id: player.player_v1_id || player.player_v2_id,
+                    goals: player.goals ?? 0,
+                    assists: player.assists ?? 0,
+                }));
+            modalAssignment.setTeams(teamAEntries, teamBEntries);
         } else {
             modalAssignment.reset();
         }
@@ -462,43 +505,82 @@ function closeMatchModal() {
 
 async function saveMatch() {
     const dateInput = document.getElementById('match-date');
+    const notesInput = document.getElementById('match-notes');
     const teamAScore = document.getElementById('team-a-score');
     const teamBScore = document.getElementById('team-b-score');
     const saveBtn = document.getElementById('save-match-btn');
 
     if (!dateInput.value) {
-        showErrorMessage('Selecciona una fecha para el partido.');
+        showError('Selecciona una fecha para el partido.');
         return;
     }
 
     if (!modalAssignment) return;
-    const teamAIds = modalAssignment.getTeamIds('A');
-    const teamBIds = modalAssignment.getTeamIds('B');
+    const teamAEntries = modalAssignment.getTeamEntries('A');
+    const teamBEntries = modalAssignment.getTeamEntries('B');
+    const teamAIds = teamAEntries.map((entry) => entry.id);
+    const teamBIds = teamBEntries.map((entry) => entry.id);
 
     if (!teamAIds.length && !teamBIds.length) {
-        showErrorMessage('Debes seleccionar jugadores para el partido.');
+        showError('Debes seleccionar jugadores para el partido.');
         return;
     }
 
     const overlap = teamAIds.filter((id) => teamBIds.includes(id));
     if (overlap.length) {
-        showErrorMessage('Un jugador no puede estar en ambos equipos.');
+        showError('Un jugador no puede estar en ambos equipos.');
         return;
     }
 
-    const buildPlayerEntry = (playerId, team) => {
-        return currentScale === 5
-            ? { player_v1_id: playerId, team }
-            : { player_v2_id: playerId, team };
+    const buildPlayerEntry = (playerEntry, team) => {
+        const base = currentScale === 5
+            ? { player_v1_id: playerEntry.id, team }
+            : { player_v2_id: playerEntry.id, team };
+        return {
+            ...base,
+            goals: playerEntry.goals,
+            assists: playerEntry.assists,
+        };
     };
+
+    const notesValue = notesInput ? notesInput.value.trim() : '';
+
+    const teamAScoreValue = parseInt(teamAScore.value || 0, 10);
+    const teamBScoreValue = parseInt(teamBScore.value || 0, 10);
+    const teamAGoals = teamAEntries.reduce((total, entry) => total + (entry.goals || 0), 0);
+    const teamBGoals = teamBEntries.reduce((total, entry) => total + (entry.goals || 0), 0);
+
+    if (teamAGoals > teamAScoreValue) {
+        showError(`Los goles del Equipo A no pueden superar el marcador (${teamAScoreValue} goles)`);
+        return;
+    }
+
+    if (teamBGoals > teamBScoreValue) {
+        showError(`Los goles del Equipo B no pueden superar el marcador (${teamBScoreValue} goles)`);
+        return;
+    }
+
+    const teamAAssists = teamAEntries.reduce((total, entry) => total + (entry.assists || 0), 0);
+    const teamBAssists = teamBEntries.reduce((total, entry) => total + (entry.assists || 0), 0);
+
+    if (teamAAssists > teamAScoreValue) {
+        showError(`Las asistencias del Equipo A no pueden superar el marcador (${teamAScoreValue} goles)`);
+        return;
+    }
+
+    if (teamBAssists > teamBScoreValue) {
+        showError(`Las asistencias del Equipo B no pueden superar el marcador (${teamBScoreValue} goles)`);
+        return;
+    }
 
     const payload = {
         played_at: new Date(dateInput.value).toISOString(),
-        team_a_score: parseInt(teamAScore.value || 0, 10),
-        team_b_score: parseInt(teamBScore.value || 0, 10),
+        team_a_score: teamAScoreValue,
+        team_b_score: teamBScoreValue,
+        notes: notesValue ? notesValue : null,
         players: [
-            ...teamAIds.map((id) => buildPlayerEntry(id, 'A')),
-            ...teamBIds.map((id) => buildPlayerEntry(id, 'B'))
+            ...teamAEntries.map((entry) => buildPlayerEntry(entry, 'A')),
+            ...teamBEntries.map((entry) => buildPlayerEntry(entry, 'B'))
         ]
     };
 
@@ -530,7 +612,7 @@ async function saveMatch() {
             showMatchDetail(activeMatchId);
         }
     } catch (error) {
-        showErrorMessage(error.message);
+        showError(error.message);
     } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = isEditMode ? 'Guardar cambios' : 'Guardar';
@@ -546,7 +628,7 @@ async function deleteMatch() {
         closeMatchDetail();
         await refreshData();
     } catch (error) {
-        showErrorMessage(error.message);
+        showError(error.message);
     }
 }
 
@@ -556,7 +638,7 @@ async function refreshData() {
         renderStandings();
         renderMatches();
     } catch (error) {
-        showErrorMessage(error.message);
+        showError(error.message);
     }
 }
 
@@ -633,6 +715,7 @@ function initModalAssignment() {
         availableCountId: 'modal-available-count',
         showRating: false,
         enableSwap: false,
+        enableStatsInputs: true,
         addLabelA: '➜ A',
         addLabelB: '➜ B',
         addButtonClass: 'add-btn',

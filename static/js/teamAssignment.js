@@ -9,6 +9,7 @@
             availableCountId: config.availableCountId,
             showRating: Boolean(config.showRating),
             enableSwap: Boolean(config.enableSwap),
+            enableStatsInputs: Boolean(config.enableStatsInputs),
             addLabelA: config.addLabelA || 'A',
             addLabelB: config.addLabelB || 'B',
             addButtonClass: config.addButtonClass || 'add-btn',
@@ -28,7 +29,31 @@
             teamA: [],
             teamB: [],
             searchTerm: '',
+            playerStats: new Map(),
         };
+
+        function normalizeTeamEntries(entries) {
+            return (entries || []).map((entry) => {
+                if (typeof entry === 'number') {
+                    return { id: entry, goals: 0, assists: 0 };
+                }
+                if (entry && typeof entry === 'object') {
+                    return {
+                        id: entry.id,
+                        goals: Number.isFinite(entry.goals) ? entry.goals : 0,
+                        assists: Number.isFinite(entry.assists) ? entry.assists : 0,
+                    };
+                }
+                return { id: entry, goals: 0, assists: 0 };
+            });
+        }
+
+        function getPlayerStats(playerId) {
+            if (!settings.enableStatsInputs) {
+                return { goals: 0, assists: 0 };
+            }
+            return state.playerStats.get(playerId) || { goals: 0, assists: 0 };
+        }
 
         function sortPlayersByName(list) {
             return [...list].sort((a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' }));
@@ -52,14 +77,37 @@
             state.available = sortPlayersByName(state.allPlayers);
             state.teamA = [];
             state.teamB = [];
+            state.playerStats = new Map();
             render();
         }
 
         function setTeams(teamAIds, teamBIds) {
             const map = new Map(state.allPlayers.map((player) => [player.id, player]));
-            state.teamA = teamAIds.map((id) => map.get(id)).filter(Boolean);
-            state.teamB = teamBIds.map((id) => map.get(id)).filter(Boolean);
-            const selectedIds = new Set([...teamAIds, ...teamBIds]);
+            const teamAEntries = normalizeTeamEntries(teamAIds);
+            const teamBEntries = normalizeTeamEntries(teamBIds);
+            state.playerStats = new Map();
+            state.teamA = teamAEntries
+                .map((entry) => {
+                    const player = map.get(entry.id);
+                    if (player && settings.enableStatsInputs) {
+                        state.playerStats.set(entry.id, { goals: entry.goals, assists: entry.assists });
+                    }
+                    return player;
+                })
+                .filter(Boolean);
+            state.teamB = teamBEntries
+                .map((entry) => {
+                    const player = map.get(entry.id);
+                    if (player && settings.enableStatsInputs) {
+                        state.playerStats.set(entry.id, { goals: entry.goals, assists: entry.assists });
+                    }
+                    return player;
+                })
+                .filter(Boolean);
+            const selectedIds = new Set([
+                ...teamAEntries.map((entry) => entry.id),
+                ...teamBEntries.map((entry) => entry.id),
+            ]);
             state.available = sortPlayersByName(
                 state.allPlayers.filter((player) => !selectedIds.has(player.id))
             );
@@ -100,7 +148,7 @@
                 row.className = 'available-player';
                 row.innerHTML = `
                     <div class="player-info">
-                        <span class="player-name">👤 ${player.name}</span>
+                        <span class="player-name">${player.name}</span>
                         ${settings.showRating && player.rating !== undefined ? `<span class="player-rating">${player.rating}</span>` : ''}
                     </div>
                     <div class="add-buttons">
@@ -123,21 +171,52 @@
 
             container.innerHTML = '';
             team.forEach((player) => {
+                const stats = getPlayerStats(player.id);
                 const row = document.createElement('div');
                 row.className = 'team-player';
                 const swapButton = settings.enableSwap
                     ? `<button class="swap-btn" data-team="${teamName}" data-player="${player.id}"><i class="fa-solid fa-right-left"></i></button>`
                     : '';
+                const statsInputs = settings.enableStatsInputs
+                    ? `
+                        <div class="team-stats">
+                            <label class="team-stat">
+                                <span>G</span>
+                                <input type="number" min="0" max="99" value="${stats.goals}" data-stat="goals" data-player="${player.id}" aria-label="Goles" />
+                            </label>
+                            <label class="team-stat">
+                                <span>A</span>
+                                <input type="number" min="0" max="99" value="${stats.assists}" data-stat="assists" data-player="${player.id}" aria-label="Asistencias" />
+                            </label>
+                        </div>
+                    `
+                    : '';
                 row.innerHTML = `
                     <div class="player-info">
-                        <span class="player-name">👤 ${player.name}</span>
+                        <span class="player-name">${player.name}</span>
                         ${settings.showRating && player.rating !== undefined ? `<span class="player-rating">${player.rating}</span>` : ''}
                     </div>
                     <div class="team-actions">
+                        ${statsInputs}
                         ${swapButton}
                         <button class="remove-btn" data-team="${teamName}" data-player="${player.id}"><i class="fa-solid fa-xmark"></i></button>
                     </div>
                 `;
+                if (settings.enableStatsInputs) {
+                    row.querySelectorAll('input[data-stat]').forEach((input) => {
+                        input.addEventListener('input', () => {
+                            const playerId = parseInt(input.dataset.player, 10);
+                            const stat = input.dataset.stat;
+                            const current = state.playerStats.get(playerId) || { goals: 0, assists: 0 };
+                            const parsed = parseInt(input.value || '0', 10);
+                            const value = Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+                            state.playerStats.set(playerId, {
+                                goals: stat === 'goals' ? value : current.goals,
+                                assists: stat === 'assists' ? value : current.assists,
+                            });
+                        });
+                    });
+                }
                 row.querySelectorAll('button').forEach((button) => {
                     button.addEventListener('click', () => {
                         const team = button.dataset.team;
@@ -187,6 +266,10 @@
                 state.teamB.push(player);
             }
 
+            if (settings.enableStatsInputs && !state.playerStats.has(playerId)) {
+                state.playerStats.set(playerId, { goals: 0, assists: 0 });
+            }
+
             state.available = sortPlayersByName(state.available.filter((item) => item.id !== playerId));
             render();
         }
@@ -203,6 +286,9 @@
 
             if (player) {
                 state.available = sortPlayersByName([...state.available, player]);
+            }
+            if (settings.enableStatsInputs) {
+                state.playerStats.delete(playerId);
             }
             render();
         }
@@ -225,6 +311,7 @@
             state.available = sortPlayersByName(state.allPlayers);
             state.teamA = [];
             state.teamB = [];
+            state.playerStats = new Map();
             render();
         }
 
@@ -241,6 +328,14 @@
             return list.map((player) => player.id);
         }
 
+        function getTeamEntries(teamName) {
+            const list = teamName === 'A' ? state.teamA : state.teamB;
+            return list.map((player) => {
+                const stats = getPlayerStats(player.id);
+                return { id: player.id, goals: stats.goals, assists: stats.assists };
+            });
+        }
+
         return {
             setPlayers,
             setTeams,
@@ -250,6 +345,7 @@
             getTeamA,
             getTeamB,
             getTeamIds,
+            getTeamEntries,
         };
     }
 

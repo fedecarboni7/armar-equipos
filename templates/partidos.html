@@ -81,6 +81,8 @@
                             <th class="sortable" data-sort-key="wins">PG <span class="sort-indicator"></span></th>
                             <th class="sortable" data-sort-key="draws">PE <span class="sort-indicator"></span></th>
                             <th class="sortable" data-sort-key="losses">PP <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="goals">Goles <span class="sort-indicator"></span></th>
+                            <th class="sortable" data-sort-key="assists">Asist. <span class="sort-indicator"></span></th>
                             <th class="sortable" data-sort-key="last_match">Último partido <span class="sort-indicator"></span></th>
                         </tr>
                     </thead>
@@ -144,6 +146,10 @@
                     <label for="match-date">Fecha</label>
                     <input type="datetime-local" id="match-date" />
                 </div>
+                <div class="modal-row">
+                    <label for="match-notes">Notas (opcional)</label>
+                    <input type="text" id="match-notes" maxlength="300" placeholder="Notas del partido" />
+                </div>
                 <div class="modal-teams">
                     <div class="team-column">
                         <div class="team-header">
@@ -171,11 +177,11 @@
                 <div class="modal-scores">
                     <div>
                         <label for="team-a-score">Goles Equipo A</label>
-                        <input type="number" id="team-a-score" min="0" value="0" />
+                        <input type="number" id="team-a-score" min="0" max="99" value="0" />
                     </div>
                     <div>
                         <label for="team-b-score">Goles Equipo B</label>
-                        <input type="number" id="team-b-score" min="0" value="0" />
+                        <input type="number" id="team-b-score" min="0" max="99" value="0" />
                     </div>
                 </div>
             </div>
