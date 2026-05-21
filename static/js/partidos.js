@@ -310,10 +310,14 @@ function renderMatches() {
         card.className = 'match-card';
         card.dataset.matchId = match.id;
         const badge = getMatchBadge(match);
+        const hasNotes = Boolean(match.notes && match.notes.trim());
+        const noteIndicator = hasNotes
+            ? '<span class="match-note-indicator" title="Tiene nota"><i class="fa-solid fa-note-sticky"></i></span>'
+            : '';
 
         card.innerHTML = `
             <div class="match-meta">
-                <span>${formatDate(match.played_at)}</span>
+                <span>${formatDate(match.played_at)} ${noteIndicator}</span>
                 <span>${match.players.length} jugadores</span>
             </div>
             <div class="match-score">${match.team_a_score} - ${match.team_b_score}</div>

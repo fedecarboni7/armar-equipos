@@ -215,6 +215,12 @@
     font-size: 0.85rem;
 }
 
+.match-note-indicator {
+    margin-left: 8px;
+    color: #bbb;
+    opacity: 0.8;
+}
+
 .match-score {
     font-size: 1.2rem;
     font-weight: 700;
@@ -313,6 +319,11 @@
     font-size: 1.4rem;
     font-weight: 700;
     margin-bottom: 12px;
+}
+
+#detail-notes {
+    margin: 0 0 12px;
+    color: #bbb;
 }
 
 .detail-teams {
