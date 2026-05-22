@@ -263,7 +263,7 @@ function renderDashboard(stats) {
                         ${createIcon('trophy', 'metric-icon yellow')}
                     </div>
                     <h3 class="metric-title">Total de Jugadores</h3>
-                    <p class="metric-value">${stats.total_players_v1 + stats.total_players_v2}</p>
+                    <p class="metric-value">${stats.total_players_s5 + stats.total_players_s10}</p>
                     <p class="metric-subtitle" style="color: #fbbf24;">En toda la app</p>
                 </div>
 
@@ -390,44 +390,44 @@ function renderDashboard(stats) {
                 </div>
             </div>
 
-            <!-- SECCIÓN 6: Versiones V1 vs V2 -->
+            <!-- SECCIÓN 6: Escalas S5 vs S10 -->
             <div class="section-header">
-                <h2 class="section-title">📊 Adopción de Versiones</h2>
+                <h2 class="section-title">📊 Adopción de Escalas</h2>
             </div>
             <div class="metrics-grid">
                 <div class="metric-card">
                     <div class="metric-header">
                         ${createIcon('trending-up', 'metric-icon')}
                     </div>
-                    <h3 class="metric-title">Usuarios V1</h3>
-                    <p class="metric-value">${stats.users_v1_only}</p>
-                    <p class="metric-subtitle" style="color: #fbbf24;">Solo en V1</p>
+                    <h3 class="metric-title">Usuarios S5</h3>
+                    <p class="metric-value">${stats.users_s5_only}</p>
+                    <p class="metric-subtitle" style="color: #fbbf24;">Solo en S5</p>
                 </div>
 
                 <div class="metric-card">
                     <div class="metric-header">
                         ${createIcon('trending-up', 'metric-icon')}
                     </div>
-                    <h3 class="metric-title">Usuarios V2</h3>
-                    <p class="metric-value">${stats.users_v2_only}</p>
-                    <p class="metric-subtitle" style="color: #60a5fa;">Solo en V2</p>
+                    <h3 class="metric-title">Usuarios S10</h3>
+                    <p class="metric-value">${stats.users_s10_only}</p>
+                    <p class="metric-subtitle" style="color: #60a5fa;">Solo en S10</p>
                 </div>
 
                 <div class="metric-card">
                     <div class="metric-header">
                         ${createIcon('trophy', 'metric-icon')}
                     </div>
-                    <h3 class="metric-title">Ambas Versiones</h3>
-                    <p class="metric-value">${stats.users_both_versions}</p>
-                    <p class="metric-subtitle" style="color: #34d399;">Usando V1 y V2</p>
+                    <h3 class="metric-title">Ambas Escalas</h3>
+                    <p class="metric-value">${stats.users_both_scales}</p>
+                    <p class="metric-subtitle" style="color: #34d399;">Usando S5 y S10</p>
                 </div>
 
                 <div class="metric-card">
                     <div class="metric-header">
                         ${createIcon('zap', 'metric-icon')}
                     </div>
-                    <h3 class="metric-title">Jugadores V1</h3>
-                    <p class="metric-value">${stats.total_players_v1}</p>
+                    <h3 class="metric-title">Jugadores S5</h3>
+                    <p class="metric-value">${stats.total_players_s5}</p>
                     <p class="metric-subtitle" style="color: #93c5fd;">Jugadores creados</p>
                 </div>
 
@@ -435,8 +435,8 @@ function renderDashboard(stats) {
                     <div class="metric-header">
                         ${createIcon('zap', 'metric-icon')}
                     </div>
-                    <h3 class="metric-title">Jugadores V2</h3>
-                    <p class="metric-value">${stats.total_players_v2}</p>
+                    <h3 class="metric-title">Jugadores S10</h3>
+                    <p class="metric-value">${stats.total_players_s10}</p>
                     <p class="metric-subtitle" style="color: #34d399;">Jugadores creados</p>
                 </div>
             </div>

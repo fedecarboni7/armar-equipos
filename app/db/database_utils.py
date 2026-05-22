@@ -2,7 +2,7 @@ from sqlalchemy.exc import OperationalError, DatabaseError
 from sqlalchemy.orm import Session
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-from app.db.models import Club, ClubUser, Player, PlayerV2, User
+from app.db.models import Club, ClubUser, PlayerScale5, PlayerScale10, User
 
 
 @retry(wait=wait_fixed(2), stop=stop_after_attempt(5))
@@ -18,7 +18,7 @@ def query_user(db: Session, username: str):
 
 
 def query_player(db: Session, player_id: int, current_user_id: int, scale: str = "1-5"):
-    PlayerModel = PlayerV2 if scale == "1-10" else Player
+    PlayerModel = PlayerScale10 if scale == "1-10" else PlayerScale5
     player = db.query(PlayerModel).filter(PlayerModel.id == player_id).first()
 
     if player is None:
@@ -51,21 +51,29 @@ def query_players(
     if scale == "1-10":
         if club_id is None:
             return (
-                db.query(PlayerV2)
-                .filter(PlayerV2.user_id == current_user_id, PlayerV2.club_id.is_(None))
+                db.query(PlayerScale10)
+                .filter(
+                    PlayerScale10.user_id == current_user_id,
+                    PlayerScale10.club_id.is_(None),
+                )
                 .all()
             )
         else:
-            return db.query(PlayerV2).filter(PlayerV2.club_id == club_id).all()
+            return (
+                db.query(PlayerScale10).filter(PlayerScale10.club_id == club_id).all()
+            )
     else:
         if club_id is None:
             return (
-                db.query(Player)
-                .filter(Player.user_id == current_user_id, Player.club_id.is_(None))
+                db.query(PlayerScale5)
+                .filter(
+                    PlayerScale5.user_id == current_user_id,
+                    PlayerScale5.club_id.is_(None),
+                )
                 .all()
             )
         else:
-            return db.query(Player).filter(Player.club_id == club_id).all()
+            return db.query(PlayerScale5).filter(PlayerScale5.club_id == club_id).all()
 
 
 def query_clubs(db: Session, current_user_id: int):

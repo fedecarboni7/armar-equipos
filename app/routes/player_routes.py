@@ -10,7 +10,7 @@ from app.db.database_utils import (
     query_players,
     has_club_write_permission,
 )
-from app.db.models import Player, PlayerV2, User
+from app.db.models import PlayerScale5, PlayerScale10, User, MatchPlayer
 from app.db.schemas import PlayerCreate, PlayerResponse
 from app.utils.auth import get_current_user
 
@@ -62,9 +62,13 @@ def save_player(
     try:
         # Crear nuevo jugador
         if scale == "1-10":
-            new_player = PlayerV2(**player_data.model_dump(), user_id=current_user.id)
+            new_player = PlayerScale10(
+                **player_data.model_dump(), user_id=current_user.id
+            )
         else:
-            new_player = Player(**player_data.model_dump(), user_id=current_user.id)
+            new_player = PlayerScale5(
+                **player_data.model_dump(), user_id=current_user.id
+            )
         db.add(new_player)
         db.commit()
         return new_player
@@ -147,6 +151,19 @@ def delete_player(
                 )
 
         def delete_operation():
+            # First delete all match_players that reference this player
+            if scale == "1-10":
+                # Deleting PlayerScale10 - delete match_players where player_s10_id matches
+                db.query(MatchPlayer).filter(
+                    MatchPlayer.player_s10_id == player_id
+                ).delete()
+            else:
+                # Deleting PlayerScale5 - delete match_players where player_s5_id matches
+                db.query(MatchPlayer).filter(
+                    MatchPlayer.player_s5_id == player_id
+                ).delete()
+
+            # Then delete the player itself
             db.delete(existing_player)
             db.commit()
 

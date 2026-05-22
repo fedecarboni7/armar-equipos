@@ -51,8 +51,8 @@ def _serialize_match(match: models.Match) -> schemas.MatchResponse:
         {
             "id": player.id,
             "match_id": player.match_id,
-            "player_v1_id": player.player_v1_id,
-            "player_v2_id": player.player_v2_id,
+            "player_s5_id": player.player_s5_id,
+            "player_s10_id": player.player_s10_id,
             "team": player.team,
             "result": player.result,
             "goals": player.goals,
@@ -142,24 +142,24 @@ async def create_match(
 
     match_players: List[models.MatchPlayer] = []
     for player_entry in match_data.players:
-        has_v1 = player_entry.player_v1_id is not None
-        has_v2 = player_entry.player_v2_id is not None
-        if has_v1 == has_v2:
+        has_s5 = player_entry.player_s5_id is not None
+        has_s10 = player_entry.player_s10_id is not None
+        if has_s5 == has_s10:
             raise HTTPException(
                 status_code=400,
-                detail="Debes enviar exactamente un player_v1_id o player_v2_id",
+                detail="Debes enviar exactamente un player_s5_id o player_s10_id",
             )
 
-        if has_v1:
+        if has_s5:
             player = (
-                db.query(models.Player)
-                .filter(models.Player.id == player_entry.player_v1_id)
+                db.query(models.PlayerScale5)
+                .filter(models.PlayerScale5.id == player_entry.player_s5_id)
                 .first()
             )
         else:
             player = (
-                db.query(models.PlayerV2)
-                .filter(models.PlayerV2.id == player_entry.player_v2_id)
+                db.query(models.PlayerScale10)
+                .filter(models.PlayerScale10.id == player_entry.player_s10_id)
                 .first()
             )
 
@@ -172,8 +172,8 @@ async def create_match(
         match_players.append(
             models.MatchPlayer(
                 match_id=match.id,
-                player_v1_id=player_entry.player_v1_id,
-                player_v2_id=player_entry.player_v2_id,
+                player_s5_id=player_entry.player_s5_id,
+                player_s10_id=player_entry.player_s10_id,
                 team=player_entry.team,
                 result=result,
                 goals=player_entry.goals,
@@ -228,8 +228,8 @@ def list_matches(
             query.join(models.Match.match_players)
             .filter(
                 or_(
-                    models.MatchPlayer.player_v1_id == player_id,
-                    models.MatchPlayer.player_v2_id == player_id,
+                    models.MatchPlayer.player_s5_id == player_id,
+                    models.MatchPlayer.player_s10_id == player_id,
                 )
             )
             .distinct()
@@ -246,7 +246,7 @@ def list_matches(
 
 @router.get("/matches/standings", response_model=List[schemas.MatchStandingResponse])
 async def get_match_standings(
-    version: str = Query(..., pattern="^(v1|v2)$"),
+    version: str = Query(..., pattern="^(s5|s10)$"),
     club_id: Optional[int] = Query(None),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
@@ -269,29 +269,11 @@ async def get_match_standings(
     goals_sum = func.sum(models.MatchPlayer.goals)
     assists_sum = func.sum(models.MatchPlayer.assists)
 
-    if version == "v1":
+    if version == "s5":
         query = (
             db.query(
-                models.Player.id.label("player_id"),
-                models.Player.name.label("player_name"),
-                func.count(models.MatchPlayer.id).label("played"),
-                win_count.label("wins"),
-                draw_count.label("draws"),
-                loss_count.label("losses"),
-                goals_sum.label("goals"),
-                assists_sum.label("assists"),
-                func.max(models.Match.played_at).label("last_match"),
-            )
-            .join(
-                models.MatchPlayer, models.MatchPlayer.player_v1_id == models.Player.id
-            )
-            .join(models.Match, models.Match.id == models.MatchPlayer.match_id)
-        )
-    else:
-        query = (
-            db.query(
-                models.PlayerV2.id.label("player_id"),
-                models.PlayerV2.name.label("player_name"),
+                models.PlayerScale5.id.label("player_id"),
+                models.PlayerScale5.name.label("player_name"),
                 func.count(models.MatchPlayer.id).label("played"),
                 win_count.label("wins"),
                 draw_count.label("draws"),
@@ -302,7 +284,26 @@ async def get_match_standings(
             )
             .join(
                 models.MatchPlayer,
-                models.MatchPlayer.player_v2_id == models.PlayerV2.id,
+                models.MatchPlayer.player_s5_id == models.PlayerScale5.id,
+            )
+            .join(models.Match, models.Match.id == models.MatchPlayer.match_id)
+        )
+    else:
+        query = (
+            db.query(
+                models.PlayerScale10.id.label("player_id"),
+                models.PlayerScale10.name.label("player_name"),
+                func.count(models.MatchPlayer.id).label("played"),
+                win_count.label("wins"),
+                draw_count.label("draws"),
+                loss_count.label("losses"),
+                goals_sum.label("goals"),
+                assists_sum.label("assists"),
+                func.max(models.Match.played_at).label("last_match"),
+            )
+            .join(
+                models.MatchPlayer,
+                models.MatchPlayer.player_s10_id == models.PlayerScale10.id,
             )
             .join(models.Match, models.Match.id == models.MatchPlayer.match_id)
         )
@@ -432,24 +433,24 @@ async def update_match(
 
         match_players: List[models.MatchPlayer] = []
         for player_entry in match_data.players:
-            has_v1 = player_entry.player_v1_id is not None
-            has_v2 = player_entry.player_v2_id is not None
-            if has_v1 == has_v2:
+            has_s5 = player_entry.player_s5_id is not None
+            has_s10 = player_entry.player_s10_id is not None
+            if has_s5 == has_s10:
                 raise HTTPException(
                     status_code=400,
-                    detail="Debes enviar exactamente un player_v1_id o player_v2_id",
+                    detail="Debes enviar exactamente un player_s5_id o player_s10_id",
                 )
 
-            if has_v1:
+            if has_s5:
                 player = (
-                    db.query(models.Player)
-                    .filter(models.Player.id == player_entry.player_v1_id)
+                    db.query(models.PlayerScale5)
+                    .filter(models.PlayerScale5.id == player_entry.player_s5_id)
                     .first()
                 )
             else:
                 player = (
-                    db.query(models.PlayerV2)
-                    .filter(models.PlayerV2.id == player_entry.player_v2_id)
+                    db.query(models.PlayerScale10)
+                    .filter(models.PlayerScale10.id == player_entry.player_s10_id)
                     .first()
                 )
 
@@ -460,8 +461,8 @@ async def update_match(
             match_players.append(
                 models.MatchPlayer(
                     match_id=match.id,
-                    player_v1_id=player_entry.player_v1_id,
-                    player_v2_id=player_entry.player_v2_id,
+                    player_s5_id=player_entry.player_s5_id,
+                    player_s10_id=player_entry.player_s10_id,
                     team=player_entry.team,
                     result=result,
                     goals=player_entry.goals,

@@ -45,12 +45,16 @@ class User(Base):
     email_confirmation_expires = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=get_argentina_now)
 
-    players = relationship(
-        "Player", foreign_keys="[Player.user_id]", back_populates="user"
+    players_s5 = relationship(
+        "PlayerScale5",
+        foreign_keys="[PlayerScale5.user_id]",
+        back_populates="user",
     )
-    players_v2 = relationship("PlayerV2", foreign_keys="[PlayerV2.user_id]")
-    skill_votes = relationship("SkillVote", back_populates="voter")
-    skill_votes_v2 = relationship("SkillVoteV2")
+    players_s10 = relationship(
+        "PlayerScale10",
+        foreign_keys="[PlayerScale10.user_id]",
+        back_populates="user",
+    )
     club_users = relationship("ClubUser", back_populates="user")
     matches_created = relationship("Match", back_populates="creator")
 
@@ -82,8 +86,8 @@ class User(Base):
         return self.email_confirmed in [0, -1]
 
 
-class Player(Base):
-    __tablename__ = "players"
+class PlayerScale5(Base):
+    __tablename__ = "players_s5"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
@@ -102,15 +106,14 @@ class Player(Base):
     updated_at = Column(DateTime, default=get_argentina_now, onupdate=get_argentina_now)
     last_modified_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    user = relationship("User", foreign_keys=[user_id], back_populates="players")
+    user = relationship("User", foreign_keys=[user_id], back_populates="players_s5")
     last_modifier = relationship("User", foreign_keys=[last_modified_by])
-    club = relationship("Club", back_populates="players")
-    skill_votes = relationship("SkillVote", back_populates="player")
-    match_players = relationship("MatchPlayer", back_populates="player_v1")
+    club = relationship("Club", back_populates="players_s5")
+    match_players = relationship("MatchPlayer", back_populates="player_s5")
 
 
-class PlayerV2(Base):
-    __tablename__ = "players_v2"
+class PlayerScale10(Base):
+    __tablename__ = "players_s10"
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
@@ -129,53 +132,10 @@ class PlayerV2(Base):
     updated_at = Column(DateTime, default=get_argentina_now, onupdate=get_argentina_now)
     last_modified_by = Column(Integer, ForeignKey("users.id"), nullable=True)
 
-    user = relationship("User", foreign_keys=[user_id], back_populates="players_v2")
+    user = relationship("User", foreign_keys=[user_id], back_populates="players_s10")
     last_modifier = relationship("User", foreign_keys=[last_modified_by])
-    club = relationship("Club", back_populates="players_v2")
-    skill_votes_v2 = relationship("SkillVoteV2", back_populates="player")
-    match_players_v2 = relationship("MatchPlayer", back_populates="player_v2")
-
-
-class SkillVote(Base):
-    __tablename__ = "skill_votes"
-
-    id = Column(Integer, primary_key=True, index=True)
-    player_id = Column(Integer, ForeignKey("players.id"))
-    voter_id = Column(Integer, ForeignKey("users.id"))
-    velocidad = Column(Integer)
-    resistencia = Column(Integer)
-    control = Column(Integer)
-    pases = Column(Integer)
-    tiro = Column(Integer)
-    defensa = Column(Integer)
-    habilidad_arquero = Column(Integer)
-    fuerza_cuerpo = Column(Integer)
-    vision = Column(Integer)
-    vote_date = Column(DateTime, default=get_argentina_now)
-
-    player = relationship("Player", back_populates="skill_votes")
-    voter = relationship("User", back_populates="skill_votes")
-
-
-class SkillVoteV2(Base):
-    __tablename__ = "skill_votes_v2"
-
-    id = Column(Integer, primary_key=True, index=True)
-    player_id = Column(Integer, ForeignKey("players_v2.id"))
-    voter_id = Column(Integer, ForeignKey("users.id"))
-    velocidad = Column(Integer)
-    resistencia = Column(Integer)
-    control = Column(Integer)
-    pases = Column(Integer)
-    tiro = Column(Integer)
-    defensa = Column(Integer)
-    habilidad_arquero = Column(Integer)
-    fuerza_cuerpo = Column(Integer)
-    vision = Column(Integer)
-    vote_date = Column(DateTime, default=get_argentina_now)
-
-    player = relationship("PlayerV2", back_populates="skill_votes_v2")
-    voter = relationship("User", back_populates="skill_votes_v2")
+    club = relationship("Club", back_populates="players_s10")
+    match_players_s10 = relationship("MatchPlayer", back_populates="player_s10")
 
 
 class Club(Base):
@@ -186,8 +146,8 @@ class Club(Base):
     creation_date = Column(DateTime, default=get_argentina_now)
 
     members = relationship("ClubUser", back_populates="club")
-    players = relationship("Player", back_populates="club")
-    players_v2 = relationship("PlayerV2", back_populates="club")
+    players_s5 = relationship("PlayerScale5", back_populates="club")
+    players_s10 = relationship("PlayerScale10", back_populates="club")
     matches = relationship("Match", back_populates="club")
 
 
@@ -264,8 +224,8 @@ class MatchPlayer(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     match_id = Column(Integer, ForeignKey("matches.id"), nullable=False)
-    player_v1_id = Column(Integer, ForeignKey("players.id"), nullable=True)
-    player_v2_id = Column(Integer, ForeignKey("players_v2.id"), nullable=True)
+    player_s5_id = Column(Integer, ForeignKey("players_s5.id"), nullable=True)
+    player_s10_id = Column(Integer, ForeignKey("players_s10.id"), nullable=True)
     team = Column(String, nullable=False)
     result = Column(String, nullable=False)
     goals = Column(Integer, nullable=False, default=0)
@@ -273,12 +233,12 @@ class MatchPlayer(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "(player_v1_id IS NOT NULL AND player_v2_id IS NULL) OR "
-            "(player_v1_id IS NULL AND player_v2_id IS NOT NULL)",
+            "(player_s5_id IS NOT NULL AND player_s10_id IS NULL) OR "
+            "(player_s5_id IS NULL AND player_s10_id IS NOT NULL)",
             name="ck_match_players_one_player",
         ),
     )
 
     match = relationship("Match", back_populates="match_players")
-    player_v1 = relationship("Player", back_populates="match_players")
-    player_v2 = relationship("PlayerV2", back_populates="match_players_v2")
+    player_s5 = relationship("PlayerScale5", back_populates="match_players")
+    player_s10 = relationship("PlayerScale10", back_populates="match_players_s10")

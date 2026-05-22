@@ -6,7 +6,7 @@ let filteredPlayers = [];
 // Variables para el contexto actual (ahora se manejan desde clubSelector.js)
 // let currentClubId = 'my-players';  // Comentado - se usa desde clubSelector.js  
 // let userClubs = [];               // Comentado - se usa desde clubSelector.js
-let currentScale = 5; // Variable para la escala actual
+let currentScale = getCurrentScale();
 let loading = false;
 let hasResults = false; // Variable para saber si hay resultados generados
 let considerGoalkeeperSkill = true;
@@ -226,19 +226,10 @@ async function loadPlayersForContext(contextId) {
     }
 }
 
-// Función para cambiar escala (igual que en players.js)
-function setScale(scale) {
-    currentScale = scale;
-    
-    // Actualizar botones activos
-    document.querySelectorAll('.scale-option').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    // Recargar jugadores de la tabla correspondiente
+document.addEventListener('scaleChanged', function (e) {
+    currentScale = e.detail.scale;
     loadPlayers();
-}
+});
 
 // Calcular promedio de habilidades
 function calculateAverage(player) {

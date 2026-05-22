@@ -654,45 +654,37 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
         # Import models here to avoid circular imports
         from app.db.models import (
             PasswordResetToken,
-            Player,
-            PlayerV2,
+            PlayerScale5,
+            PlayerScale10,
             ClubUser,
             Club,
-            SkillVote,
-            SkillVoteV2,
             ClubInvitation,
         )
 
-        # 0. Clear last_modified_by references in both Player and PlayerV2 tables
+        # 0. Clear last_modified_by references in both player tables
         # (for players this user modified but doesn't own)
-        db.query(Player).filter(Player.last_modified_by == user_id).update(
+        db.query(PlayerScale5).filter(PlayerScale5.last_modified_by == user_id).update(
             {"last_modified_by": None}
         )
-        db.query(PlayerV2).filter(PlayerV2.last_modified_by == user_id).update(
-            {"last_modified_by": None}
-        )
+        db.query(PlayerScale10).filter(
+            PlayerScale10.last_modified_by == user_id
+        ).update({"last_modified_by": None})
 
-        # 1. Delete all players created by this user (legacy Player table)
-        user_players = db.query(Player).filter(Player.user_id == user_id).all()
+        # 1. Delete all players created by this user (scale 1-5)
+        user_players = (
+            db.query(PlayerScale5).filter(PlayerScale5.user_id == user_id).all()
+        )
         for player in user_players:
-            # Delete skill votes for this player first (foreign key constraint)
-            db.query(SkillVote).filter(SkillVote.player_id == player.id).delete()
-            # Delete the player
             db.delete(player)
 
-        # 1b. Delete all players created by this user (PlayerV2 table)
-        user_players_v2 = db.query(PlayerV2).filter(PlayerV2.user_id == user_id).all()
-        for player in user_players_v2:
-            # Delete skill votes for this player first (foreign key constraint)
-            db.query(SkillVoteV2).filter(SkillVoteV2.player_id == player.id).delete()
-            # Delete the player
+        # 1b. Delete all players created by this user (scale 1-10)
+        user_players_s10 = (
+            db.query(PlayerScale10).filter(PlayerScale10.user_id == user_id).all()
+        )
+        for player in user_players_s10:
             db.delete(player)
 
-        # 2. Delete all skill votes made by this user (as voter)
-        db.query(SkillVote).filter(SkillVote.voter_id == user_id).delete()
-        db.query(SkillVoteV2).filter(SkillVoteV2.voter_id == user_id).delete()
-
-        # 3. Handle club memberships
+        # 2. Handle club memberships
         user_club_memberships = (
             db.query(ClubUser).filter(ClubUser.user_id == user_id).all()
         )
@@ -724,19 +716,13 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
                         ClubInvitation.club_id == club_id
                     ).delete()
 
-                    # Delete all skill votes for players in this club
-                    club_players = (
-                        db.query(Player).filter(Player.club_id == club_id).all()
-                    )
-                    for player in club_players:
-                        db.query(SkillVote).filter(
-                            SkillVote.player_id == player.id
-                        ).delete()
-
                     # Delete all club players (set club_id to None, they become personal players)
-                    db.query(Player).filter(Player.club_id == club_id).update(
-                        {"club_id": None}
-                    )
+                    db.query(PlayerScale5).filter(
+                        PlayerScale5.club_id == club_id
+                    ).update({"club_id": None})
+                    db.query(PlayerScale10).filter(
+                        PlayerScale10.club_id == club_id
+                    ).update({"club_id": None})
 
                     # Delete all club members
                     db.query(ClubUser).filter(ClubUser.club_id == club_id).delete()
@@ -749,20 +735,20 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
                 # User is admin or member, just remove from club
                 db.delete(membership)
 
-        # 4. Delete invitations sent by this user
+        # 3. Delete invitations sent by this user
         db.query(ClubInvitation).filter(ClubInvitation.inviter_id == user_id).delete()
 
-        # 5. Delete invitations received by this user
+        # 4. Delete invitations received by this user
         db.query(ClubInvitation).filter(
             ClubInvitation.invited_user_id == user_id
         ).delete()
 
-        # 6. Delete password reset tokens for this user
+        # 5. Delete password reset tokens for this user
         db.query(PasswordResetToken).filter(
             PasswordResetToken.user_id == user_id
         ).delete()
 
-        # 7. Finally, delete the user account
+        # 6. Finally, delete the user account
         db.delete(user)
         db.commit()
 

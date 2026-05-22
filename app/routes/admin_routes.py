@@ -29,13 +29,15 @@ async def admin_dashboard(
             # Estadísticas básicas
             total_users = conn.execute(text("SELECT COUNT(*) FROM users")).scalar()
             users_with_players = conn.execute(
-                text("SELECT COUNT(DISTINCT user_id) FROM players")
+                text("SELECT COUNT(DISTINCT user_id) FROM players_s5")
             ).scalar()
             users_in_clubs = conn.execute(
                 text("SELECT COUNT(DISTINCT user_id) FROM club_users")
             ).scalar()
             total_clubs = conn.execute(text("SELECT COUNT(*) FROM clubs")).scalar()
-            total_players = conn.execute(text("SELECT COUNT(*) FROM players")).scalar()
+            total_players = conn.execute(
+                text("SELECT COUNT(*) FROM players_s5")
+            ).scalar()
 
             # Promedio de jugadores por usuario (solo usuarios activos)
             avg_players_per_user = (
@@ -110,13 +112,13 @@ async def admin_dashboard(
                 """)
             ).scalar()
 
-            # Calcular usuarios activos (que han creado jugadores en v1 o v2, O están en clubes)
+            # Calcular usuarios activos (que han creado jugadores en s5 o s10, O están en clubes)
             active_users = conn.execute(
                 text("""
                     SELECT COUNT(DISTINCT user_id) FROM (
-                        SELECT user_id FROM players
+                        SELECT user_id FROM players_s5
                         UNION
-                        SELECT user_id FROM players_v2
+                        SELECT user_id FROM players_s10
                         UNION
                         SELECT user_id FROM club_users
                     ) AS active_users_combined
@@ -136,9 +138,9 @@ async def admin_dashboard(
                 return conn.execute(
                     text(f"""
                         SELECT COUNT(DISTINCT user_id) FROM (
-                            SELECT user_id FROM players WHERE updated_at >= {date_expr}
+                            SELECT user_id FROM players_s5 WHERE updated_at >= {date_expr}
                             UNION
-                            SELECT user_id FROM players_v2 WHERE updated_at >= {date_expr}
+                            SELECT user_id FROM players_s10 WHERE updated_at >= {date_expr}
                         ) AS recently_active_users
                     """)
                 ).scalar()
@@ -191,43 +193,43 @@ async def admin_dashboard(
                 text("SELECT COUNT(DISTINCT user_id) FROM password_reset_tokens")
             ).scalar()
 
-            # Usuarios en V1 vs V2 (usando NOT EXISTS para evitar problemas con NULL)
-            users_v1_only = conn.execute(
+            # Usuarios en S5 vs S10 (usando NOT EXISTS para evitar problemas con NULL)
+            users_s5_only = conn.execute(
                 text("""
-                    SELECT COUNT(DISTINCT p.user_id) FROM players p
-                    WHERE NOT EXISTS (SELECT 1 FROM players_v2 p2 WHERE p2.user_id = p.user_id)
+                    SELECT COUNT(DISTINCT p.user_id) FROM players_s5 p
+                    WHERE NOT EXISTS (SELECT 1 FROM players_s10 p2 WHERE p2.user_id = p.user_id)
                 """)
             ).scalar()
 
-            users_v2_only = conn.execute(
+            users_s10_only = conn.execute(
                 text("""
-                    SELECT COUNT(DISTINCT p2.user_id) FROM players_v2 p2
-                    WHERE NOT EXISTS (SELECT 1 FROM players p WHERE p.user_id = p2.user_id)
+                    SELECT COUNT(DISTINCT p2.user_id) FROM players_s10 p2
+                    WHERE NOT EXISTS (SELECT 1 FROM players_s5 p WHERE p.user_id = p2.user_id)
                 """)
             ).scalar()
 
-            users_both_versions = conn.execute(
+            users_both_scales = conn.execute(
                 text("""
-                    SELECT COUNT(DISTINCT p.user_id) FROM players p
-                    WHERE EXISTS (SELECT 1 FROM players_v2 p2 WHERE p2.user_id = p.user_id)
+                    SELECT COUNT(DISTINCT p.user_id) FROM players_s5 p
+                    WHERE EXISTS (SELECT 1 FROM players_s10 p2 WHERE p2.user_id = p.user_id)
                 """)
             ).scalar()
 
-            total_players_v1 = conn.execute(
-                text("SELECT COUNT(*) FROM players")
+            total_players_s5 = conn.execute(
+                text("SELECT COUNT(*) FROM players_s5")
             ).scalar()
 
-            total_players_v2 = conn.execute(
-                text("SELECT COUNT(*) FROM players_v2")
+            total_players_s10 = conn.execute(
+                text("SELECT COUNT(*) FROM players_s10")
             ).scalar()
 
             # Jugadores en clubs vs sin club (ambas versiones)
             players_in_clubs = conn.execute(
                 text("""
                     SELECT COUNT(*) FROM (
-                        SELECT id FROM players WHERE club_id IS NOT NULL
+                        SELECT id FROM players_s5 WHERE club_id IS NOT NULL
                         UNION ALL
-                        SELECT id FROM players_v2 WHERE club_id IS NOT NULL
+                        SELECT id FROM players_s10 WHERE club_id IS NOT NULL
                     ) AS combined_players
                 """)
             ).scalar()
@@ -235,9 +237,9 @@ async def admin_dashboard(
             players_without_club = conn.execute(
                 text("""
                     SELECT COUNT(*) FROM (
-                        SELECT id FROM players WHERE club_id IS NULL
+                        SELECT id FROM players_s5 WHERE club_id IS NULL
                         UNION ALL
-                        SELECT id FROM players_v2 WHERE club_id IS NULL
+                        SELECT id FROM players_s10 WHERE club_id IS NULL
                     ) AS combined_players
                 """)
             ).scalar()
@@ -284,11 +286,11 @@ async def admin_dashboard(
             "email_confirmation_rate": email_confirmation_rate,
             "total_password_resets": total_password_resets,
             "users_with_reset": users_with_reset,
-            "users_v1_only": users_v1_only,
-            "users_v2_only": users_v2_only,
-            "users_both_versions": users_both_versions,
-            "total_players_v1": total_players_v1,
-            "total_players_v2": total_players_v2,
+            "users_s5_only": users_s5_only,
+            "users_s10_only": users_s10_only,
+            "users_both_scales": users_both_scales,
+            "total_players_s5": total_players_s5,
+            "total_players_s10": total_players_s10,
             "players_in_clubs": players_in_clubs,
             "players_without_club": players_without_club,
         }

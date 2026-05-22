@@ -75,11 +75,11 @@
                         <span class="stat-label">Miembros</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number" id="playerCountV1">0</span>
+                        <span class="stat-number" id="playerCountS5">0</span>
                         <span class="stat-label">Jugadores (1-5)</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number" id="playerCountV2">0</span>
+                        <span class="stat-number" id="playerCountS10">0</span>
                         <span class="stat-label">Jugadores (1-10)</span>
                     </div>
                 </div>
@@ -377,8 +377,8 @@
         // Mostrar estadísticas de miembros en cards
         async function updateMemberStats(members) {
             const memberCountEl = document.getElementById('memberCount');
-            const playerCountV1El = document.getElementById('playerCountV1');
-            const playerCountV2El = document.getElementById('playerCountV2');
+            const playerCountS5El = document.getElementById('playerCountS5');
+            const playerCountS10El = document.getElementById('playerCountS10');
             
             if (memberCountEl) {
                 memberCountEl.textContent = members.length;
@@ -386,32 +386,32 @@
             
             if (window.clubId) {
                 try {
-                    const [responseV1, responseV2] = await Promise.all([
+                    const [responseS5, responseS10] = await Promise.all([
                         fetch(`/api/players?scale=1-5&club_id=${window.clubId}`),
                         fetch(`/api/players?scale=1-10&club_id=${window.clubId}`)
                     ]);
                     
-                    if (responseV1.ok && playerCountV1El) {
-                        const playersV1 = await responseV1.json();
-                        playerCountV1El.textContent = playersV1.length;
-                    } else if (playerCountV1El) {
-                        playerCountV1El.textContent = '0';
+                    if (responseS5.ok && playerCountS5El) {
+                        const playersS5 = await responseS5.json();
+                        playerCountS5El.textContent = playersS5.length;
+                    } else if (playerCountS5El) {
+                        playerCountS5El.textContent = '0';
                     }
                     
-                    if (responseV2.ok && playerCountV2El) {
-                        const playersV2 = await responseV2.json();
-                        playerCountV2El.textContent = playersV2.length;
-                    } else if (playerCountV2El) {
-                        playerCountV2El.textContent = '0';
+                    if (responseS10.ok && playerCountS10El) {
+                        const playersS10 = await responseS10.json();
+                        playerCountS10El.textContent = playersS10.length;
+                    } else if (playerCountS10El) {
+                        playerCountS10El.textContent = '0';
                     }
                 } catch (error) {
                     console.error('Error al cargar jugadores del club:', error);
-                    if (playerCountV1El) playerCountV1El.textContent = '0';
-                    if (playerCountV2El) playerCountV2El.textContent = '0';
+                    if (playerCountS5El) playerCountS5El.textContent = '0';
+                    if (playerCountS10El) playerCountS10El.textContent = '0';
                 }
             } else {
-                if (playerCountV1El) playerCountV1El.textContent = '0';
-                if (playerCountV2El) playerCountV2El.textContent = '0';
+                if (playerCountS5El) playerCountS5El.textContent = '0';
+                if (playerCountS10El) playerCountS10El.textContent = '0';
             }
         }
 
