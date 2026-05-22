@@ -100,7 +100,6 @@ class PlayerScale5(Base):
     habilidad_arquero = Column(Integer)
     fuerza_cuerpo = Column(Integer)
     vision = Column(Integer)
-    photo_data = Column(Text, nullable=True)  # Base64 encoded image data
     user_id = Column(Integer, ForeignKey("users.id"))
     club_id = Column(Integer, ForeignKey("clubs.id"))
     updated_at = Column(DateTime, default=get_argentina_now, onupdate=get_argentina_now)
@@ -126,7 +125,6 @@ class PlayerScale10(Base):
     habilidad_arquero = Column(Integer)
     fuerza_cuerpo = Column(Integer)
     vision = Column(Integer)
-    photo_data = Column(Text, nullable=True)  # Base64 encoded image data
     user_id = Column(Integer, ForeignKey("users.id"))
     club_id = Column(Integer, ForeignKey("clubs.id"))
     updated_at = Column(DateTime, default=get_argentina_now, onupdate=get_argentina_now)

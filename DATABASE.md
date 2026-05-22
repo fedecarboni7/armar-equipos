@@ -64,7 +64,6 @@ Jugadores del sistema (puntuación de habilidades del 1 al 5).
 | habilidad_arquero | Integer | | Habilidad: arquero |
 | fuerza_cuerpo | Integer | | Habilidad: fuerza corporal |
 | vision | Integer | | Habilidad: visión de juego |
-| photo_data | Text | NULLABLE | Foto del jugador en Base64 |
 | user_id | Integer | FK → users.id | Usuario propietario del jugador |
 | club_id | Integer | FK → clubs.id | Club al que pertenece el jugador |
 | updated_at | DateTime | DEFAULT/UPDATE now() | Última actualización del perfil |
@@ -98,7 +97,6 @@ Jugadores del sistema (puntuación de habilidades del 1 al 10). Misma estructura
 | habilidad_arquero | Integer | | Habilidad: arquero |
 | fuerza_cuerpo | Integer | | Habilidad: fuerza corporal |
 | vision | Integer | | Habilidad: visión de juego |
-| photo_data | Text | NULLABLE | Foto del jugador en Base64 |
 | user_id | Integer | FK → users.id | Usuario propietario del jugador |
 | club_id | Integer | FK → clubs.id | Club al que pertenece el jugador |
 | updated_at | DateTime | DEFAULT/UPDATE now() | Última actualización del perfil |
@@ -286,4 +284,3 @@ match_players.player_s10_id  → players_s10.id
 
 - **players_s5 vs players_s10:** Existen dos tablas de jugadores activas. La diferencia es la escala de puntuación de habilidades: `players_s5` usa escala **1–5** y `players_s10` usa escala **1–10**.
 - **email_confirmed:** Usa enteros en lugar de un enum/boolean: `0` (nuevo), `-1` (legacy), `1` (confirmado). Los usuarios legacy pueden hacer login sin confirmar email.
-- **photo_data:** Las fotos de jugadores se almacenan como Base64 en Text directamente en la base de datos, no en storage externo.
