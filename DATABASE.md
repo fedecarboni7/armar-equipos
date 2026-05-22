@@ -1,5 +1,7 @@
 # DATABASE.md — Armar Equipos
 
+Última actualización: 2026-05-22
+
 Schema de la base de datos generado a partir de `app/db/models.py`.
 
 > Todos los timestamps usan timezone de Argentina (America/Buenos_Aires).

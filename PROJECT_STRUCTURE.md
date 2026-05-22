@@ -1,5 +1,7 @@
 # Estructura del Proyecto
 
+Última actualización: 2026-05-22
+
 ```
 /
 ├── app/                        # Código principal de la aplicación FastAPI
