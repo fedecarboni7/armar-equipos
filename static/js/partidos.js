@@ -147,6 +147,7 @@ async function loadPlayersForContext() {
 
 async function loadMatches() {
     const params = new URLSearchParams();
+    params.set('version', getCurrentVersion());
     const clubId = getClubIdParam();
     if (clubId) {
         params.set('club_id', clubId);

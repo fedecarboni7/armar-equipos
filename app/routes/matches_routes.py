@@ -2,7 +2,7 @@ from typing import List, Optional
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import or_, case, func
+from sqlalchemy import or_, case, func, exists, select
 from sqlalchemy.orm import Session, joinedload
 
 from app.db import models, schemas
@@ -202,6 +202,7 @@ def list_matches(
     player_id: Optional[int] = Query(None),
     start_date: Optional[str] = Query(None),
     end_date: Optional[str] = Query(None),
+    version: Optional[str] = Query(None, pattern="^(s5|s10)$"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -233,6 +234,25 @@ def list_matches(
                 )
             )
             .distinct()
+        )
+
+    if version == "s5":
+        query = query.filter(
+            exists(
+                select(models.MatchPlayer.id).where(
+                    models.MatchPlayer.match_id == models.Match.id,
+                    models.MatchPlayer.player_s5_id.isnot(None),
+                )
+            )
+        )
+    elif version == "s10":
+        query = query.filter(
+            exists(
+                select(models.MatchPlayer.id).where(
+                    models.MatchPlayer.match_id == models.Match.id,
+                    models.MatchPlayer.player_s10_id.isnot(None),
+                )
+            )
         )
 
     if start_dt is not None:
