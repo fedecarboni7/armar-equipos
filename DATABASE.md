@@ -30,7 +30,8 @@ Usuarios registrados en la aplicación.
 |---|---|---|---|
 | id | Integer | PK, indexed | Identificador único del usuario |
 | username | String | UNIQUE, indexed, NOT NULL | Nombre de usuario para login |
-| password | String | NOT NULL | Hash de la contraseña (pbkdf2_sha256) |
+| password | String | NULLABLE | Hash de la contraseña (pbkdf2_sha256). Nullable para usuarios OAuth |
+| google_id | String | UNIQUE, indexed, NULLABLE | ID de Google para autenticación OAuth |
 | email | String | UNIQUE, indexed, NULLABLE | Email del usuario. Nullable para usuarios legacy |
 | email_confirmed | Integer | NOT NULL, DEFAULT 0 | Estado de confirmación: `0`=nuevo sin confirmar, `-1`=legacy sin confirmar, `1`=confirmado |
 | email_confirmation_token | String | NULLABLE | Token para confirmar el email |
@@ -44,6 +45,7 @@ Usuarios registrados en la aplicación.
 | `players_s5` | one-to-many → `players_s5` | Jugadores creados por este usuario |
 | `players_s10` | one-to-many → `players_s10` | Jugadores creados por este usuario |
 | `club_users` | one-to-many → `club_users` | Membresías a clubes |
+| `matches_created` | one-to-many → `matches` | Partidos registrados por este usuario |
 
 ---
 
@@ -130,6 +132,7 @@ Clubes o grupos de jugadores.
 | `members` | one-to-many → `club_users` | Miembros del club |
 | `players_s5` | one-to-many → `players_s5` | Jugadores del club (1-5) |
 | `players_s10` | one-to-many → `players_s10` | Jugadores del club (1-10) |
+| `matches` | one-to-many → `matches` | Partidos jugados en este club |
 | `invitations` | one-to-many → `club_invitations` | Invitaciones emitidas por este club |
 
 ---
@@ -208,9 +211,10 @@ Partidos jugados entre dos equipos.
 | id | Integer | PK, indexed | Identificador único del partido |
 | club_id | Integer | FK → clubs.id, NULLABLE | Club en el que se jugó el partido |
 | created_by | Integer | FK → users.id, NOT NULL | Usuario que creó el registro |
-| played_at | DateTime | NOT NULL | Fecha y hora en que se jugó |
+| played_at | Date | NOT NULL | Fecha en que se jugó |
 | team_a_score | Integer | NOT NULL | Goles del equipo A |
 | team_b_score | Integer | NOT NULL | Goles del equipo B |
+| notes | Text | NULLABLE | Notas adicionales sobre el partido |
 | created_at | DateTime | DEFAULT now() | Fecha de creación del registro |
 
 ### Relationships
@@ -235,6 +239,8 @@ Asociación de jugadores a partidos y equipos, con resultado individual.
 | player_s10_id | Integer | FK → players_s10.id, NULLABLE | Jugador (tabla players_s10) que participó |
 | team | String | NOT NULL | Equipo al que pertenece: `A` o `B` |
 | result | String | NOT NULL | Resultado individual del jugador: `win`, `loss`, `draw` |
+| goals | Integer | NOT NULL, DEFAULT 0 | Goles anotados por el jugador |
+| assists | Integer | NOT NULL, DEFAULT 0 | Asistencias del jugador |
 
 ### Constraints
 
