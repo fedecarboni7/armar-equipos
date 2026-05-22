@@ -13,7 +13,7 @@ def create_club_with_players(db, user, n=4, scale=2):
 
     players = []
     for index in range(n):
-        player = models.PlayerV2(
+        player = models.PlayerScale10(
             name=f"Player {scale}-{index + 1}",
             velocidad=5,
             resistencia=5,

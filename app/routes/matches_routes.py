@@ -152,14 +152,14 @@ async def create_match(
 
         if has_v1:
             player = (
-                db.query(models.Player)
-                .filter(models.Player.id == player_entry.player_v1_id)
+                db.query(models.PlayerScale5)
+                .filter(models.PlayerScale5.id == player_entry.player_v1_id)
                 .first()
             )
         else:
             player = (
-                db.query(models.PlayerV2)
-                .filter(models.PlayerV2.id == player_entry.player_v2_id)
+                db.query(models.PlayerScale10)
+                .filter(models.PlayerScale10.id == player_entry.player_v2_id)
                 .first()
             )
 
@@ -272,26 +272,8 @@ async def get_match_standings(
     if version == "v1":
         query = (
             db.query(
-                models.Player.id.label("player_id"),
-                models.Player.name.label("player_name"),
-                func.count(models.MatchPlayer.id).label("played"),
-                win_count.label("wins"),
-                draw_count.label("draws"),
-                loss_count.label("losses"),
-                goals_sum.label("goals"),
-                assists_sum.label("assists"),
-                func.max(models.Match.played_at).label("last_match"),
-            )
-            .join(
-                models.MatchPlayer, models.MatchPlayer.player_v1_id == models.Player.id
-            )
-            .join(models.Match, models.Match.id == models.MatchPlayer.match_id)
-        )
-    else:
-        query = (
-            db.query(
-                models.PlayerV2.id.label("player_id"),
-                models.PlayerV2.name.label("player_name"),
+                models.PlayerScale5.id.label("player_id"),
+                models.PlayerScale5.name.label("player_name"),
                 func.count(models.MatchPlayer.id).label("played"),
                 win_count.label("wins"),
                 draw_count.label("draws"),
@@ -302,7 +284,26 @@ async def get_match_standings(
             )
             .join(
                 models.MatchPlayer,
-                models.MatchPlayer.player_v2_id == models.PlayerV2.id,
+                models.MatchPlayer.player_v1_id == models.PlayerScale5.id,
+            )
+            .join(models.Match, models.Match.id == models.MatchPlayer.match_id)
+        )
+    else:
+        query = (
+            db.query(
+                models.PlayerScale10.id.label("player_id"),
+                models.PlayerScale10.name.label("player_name"),
+                func.count(models.MatchPlayer.id).label("played"),
+                win_count.label("wins"),
+                draw_count.label("draws"),
+                loss_count.label("losses"),
+                goals_sum.label("goals"),
+                assists_sum.label("assists"),
+                func.max(models.Match.played_at).label("last_match"),
+            )
+            .join(
+                models.MatchPlayer,
+                models.MatchPlayer.player_v2_id == models.PlayerScale10.id,
             )
             .join(models.Match, models.Match.id == models.MatchPlayer.match_id)
         )
@@ -442,14 +443,14 @@ async def update_match(
 
             if has_v1:
                 player = (
-                    db.query(models.Player)
-                    .filter(models.Player.id == player_entry.player_v1_id)
+                    db.query(models.PlayerScale5)
+                    .filter(models.PlayerScale5.id == player_entry.player_v1_id)
                     .first()
                 )
             else:
                 player = (
-                    db.query(models.PlayerV2)
-                    .filter(models.PlayerV2.id == player_entry.player_v2_id)
+                    db.query(models.PlayerScale10)
+                    .filter(models.PlayerScale10.id == player_entry.player_v2_id)
                     .first()
                 )
 

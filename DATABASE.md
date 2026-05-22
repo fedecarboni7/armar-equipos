@@ -9,10 +9,8 @@ Schema de la base de datos generado a partir de `app/db/models.py`.
 ## Tablas
 
 - [users](#users)
-- [players](#players)
-- [players_v2](#players_v2)
-- [skill_votes](#skill_votes)
-- [skill_votes_v2](#skill_votes_v2)
+- [players_s5](#players_s5)
+- [players_s10](#players_s10)
 - [clubs](#clubs)
 - [club_users](#club_users)
 - [club_invitations](#club_invitations)
@@ -41,15 +39,13 @@ Usuarios registrados en la aplicación.
 
 | Relación | Tipo | Descripción |
 |---|---|---|
-| `players` | one-to-many → `players` | Jugadores creados por este usuario |
-| `players_v2` | one-to-many → `players_v2` | Jugadores creados por este usuario |
-| `skill_votes` | one-to-many → `skill_votes` | Votos de habilidades emitidos por este usuario |
-| `skill_votes_v2` | one-to-many → `skill_votes_v2` | Votos de habilidades emitidos por este usuario |
+| `players_s5` | one-to-many → `players_s5` | Jugadores creados por este usuario |
+| `players_s10` | one-to-many → `players_s10` | Jugadores creados por este usuario |
 | `club_users` | one-to-many → `club_users` | Membresías a clubes |
 
 ---
 
-## players
+## players_s5
 
 Jugadores del sistema (puntuación de habilidades del 1 al 5).
 
@@ -79,13 +75,13 @@ Jugadores del sistema (puntuación de habilidades del 1 al 5).
 | `user` | many-to-one → `users` | Propietario del jugador |
 | `last_modifier` | many-to-one → `users` | Último usuario que modificó el jugador |
 | `club` | many-to-one → `clubs` | Club del jugador |
-| `skill_votes` | one-to-many → `skill_votes` | Votos recibidos sobre las habilidades de este jugador |
+| `match_players` | one-to-many → `match_players` | Participaciones del jugador en partidos |
 
 ---
 
-## players_v2
+## players_s10
 
-Jugadores del sistema (puntuación de habilidades del 1 al 10). Misma estructura que `players`.
+Jugadores del sistema (puntuación de habilidades del 1 al 10). Misma estructura que `players_s5`.
 
 | Columna | Tipo | Constraints | Descripción |
 |---|---|---|---|
@@ -113,65 +109,7 @@ Jugadores del sistema (puntuación de habilidades del 1 al 10). Misma estructura
 | `user` | many-to-one → `users` | Propietario del jugador |
 | `last_modifier` | many-to-one → `users` | Último usuario que modificó el jugador |
 | `club` | many-to-one → `clubs` | Club del jugador |
-| `skill_votes_v2` | one-to-many → `skill_votes_v2` | Votos recibidos sobre las habilidades de este jugador |
-
----
-
-## skill_votes
-
-Votos de habilidades sobre jugadores de tabla `players` (por ahora sin uso).
-
-| Columna | Tipo | Constraints | Descripción |
-|---|---|---|---|
-| id | Integer | PK, indexed | Identificador único del voto |
-| player_id | Integer | FK → players.id | Jugador evaluado |
-| voter_id | Integer | FK → users.id | Usuario que emitió el voto |
-| velocidad | Integer | | Puntuación: velocidad |
-| resistencia | Integer | | Puntuación: resistencia |
-| control | Integer | | Puntuación: control de balón |
-| pases | Integer | | Puntuación: pases |
-| tiro | Integer | | Puntuación: tiro |
-| defensa | Integer | | Puntuación: defensa |
-| habilidad_arquero | Integer | | Puntuación: arquero |
-| fuerza_cuerpo | Integer | | Puntuación: fuerza corporal |
-| vision | Integer | | Puntuación: visión de juego |
-| vote_date | DateTime | DEFAULT now() | Fecha en que se emitió el voto |
-
-### Relationships
-
-| Relación | Tipo | Descripción |
-|---|---|---|
-| `player` | many-to-one → `players` | Jugador evaluado |
-| `voter` | many-to-one → `users` | Usuario que votó |
-
----
-
-## skill_votes_v2
-
-Votos de habilidades sobre jugadores de tabla `players_v2` (por ahora sin uso).
-
-| Columna | Tipo | Constraints | Descripción |
-|---|---|---|---|
-| id | Integer | PK, indexed | Identificador único del voto |
-| player_id | Integer | FK → players_v2.id | Jugador evaluado |
-| voter_id | Integer | FK → users.id | Usuario que emitió el voto |
-| velocidad | Integer | | Puntuación: velocidad |
-| resistencia | Integer | | Puntuación: resistencia |
-| control | Integer | | Puntuación: control de balón |
-| pases | Integer | | Puntuación: pases |
-| tiro | Integer | | Puntuación: tiro |
-| defensa | Integer | | Puntuación: defensa |
-| habilidad_arquero | Integer | | Puntuación: arquero |
-| fuerza_cuerpo | Integer | | Puntuación: fuerza corporal |
-| vision | Integer | | Puntuación: visión de juego |
-| vote_date | DateTime | DEFAULT now() | Fecha en que se emitió el voto |
-
-### Relationships
-
-| Relación | Tipo | Descripción |
-|---|---|---|
-| `player` | many-to-one → `players_v2` | Jugador evaluado |
-| `voter` | many-to-one → `users` | Usuario que votó |
+| `match_players_v2` | one-to-many → `match_players` | Participaciones del jugador en partidos |
 
 ---
 
@@ -190,8 +128,8 @@ Clubes o grupos de jugadores.
 | Relación | Tipo | Descripción |
 |---|---|---|
 | `members` | one-to-many → `club_users` | Miembros del club |
-| `players` | one-to-many → `players` | Jugadores del club (1-5) |
-| `players_v2` | one-to-many → `players_v2` | Jugadores del club (1-10) |
+| `players_s5` | one-to-many → `players_s5` | Jugadores del club (1-5) |
+| `players_s10` | one-to-many → `players_s10` | Jugadores del club (1-10) |
 | `invitations` | one-to-many → `club_invitations` | Invitaciones emitidas por este club |
 
 ---
@@ -293,8 +231,8 @@ Asociación de jugadores a partidos y equipos, con resultado individual.
 |---|---|---|---|
 | id | Integer | PK, indexed | Identificador único |
 | match_id | Integer | FK → matches.id, NOT NULL | Partido al que pertenece |
-| player_v1_id | Integer | FK → players.id, NULLABLE | Jugador (tabla players) que participó |
-| player_v2_id | Integer | FK → players_v2.id, NULLABLE | Jugador (tabla players_v2) que participó |
+| player_v1_id | Integer | FK → players_s5.id, NULLABLE | Jugador (tabla players_s5) que participó |
+| player_v2_id | Integer | FK → players_s10.id, NULLABLE | Jugador (tabla players_s10) que participó |
 | team | String | NOT NULL | Equipo al que pertenece: `A` o `B` |
 | result | String | NOT NULL | Resultado individual del jugador: `win`, `loss`, `draw` |
 
@@ -307,27 +245,21 @@ Asociación de jugadores a partidos y equipos, con resultado individual.
 | Relación | Tipo | Descripción |
 |---|---|---|
 | `match` | many-to-one → `matches` | Partido |
-| `player_v1` | many-to-one → `players` | Jugador (v1) |
-| `player_v2` | many-to-one → `players_v2` | Jugador (v2) |
+| `player_v1` | many-to-one → `players_s5` | Jugador (v1) |
+| `player_v2` | many-to-one → `players_s10` | Jugador (v2) |
 
 ---
 
 ## Entity Relationships
 
 ```
-players.user_id              → users.id
-players.club_id              → clubs.id
-players.last_modified_by     → users.id
+players_s5.user_id           → users.id
+players_s5.club_id           → clubs.id
+players_s5.last_modified_by  → users.id
 
-players_v2.user_id           → users.id
-players_v2.club_id           → clubs.id
-players_v2.last_modified_by  → users.id
-
-skill_votes.player_id        → players.id
-skill_votes.voter_id         → users.id
-
-skill_votes_v2.player_id     → players_v2.id
-skill_votes_v2.voter_id      → users.id
+players_s10.user_id          → users.id
+players_s10.club_id          → clubs.id
+players_s10.last_modified_by → users.id
 
 club_users.club_id           → clubs.id
 club_users.user_id           → users.id
@@ -342,14 +274,14 @@ matches.club_id             → clubs.id
 matches.created_by          → users.id
 
 match_players.match_id      → matches.id
-match_players.player_v1_id  → players.id
-match_players.player_v2_id  → players_v2.id
+match_players.player_v1_id  → players_s5.id
+match_players.player_v2_id  → players_s10.id
 ```
 
 ---
 
 ## Notas
 
-- **players vs players_v2 / skill_votes vs skill_votes_v2:** Existen dos versiones paralelas de jugadores y sus votos, ambas activas. La diferencia es la escala de puntuación de habilidades: `players` usa escala **1–5** y `players_v2` usa escala **1–10**. El usuario puede crear jugadores en cualquiera de las dos tablas.
+- **players_s5 vs players_s10:** Existen dos tablas de jugadores activas. La diferencia es la escala de puntuación de habilidades: `players_s5` usa escala **1–5** y `players_s10` usa escala **1–10**.
 - **email_confirmed:** Usa enteros en lugar de un enum/boolean: `0` (nuevo), `-1` (legacy), `1` (confirmado). Los usuarios legacy pueden hacer login sin confirmar email.
 - **photo_data:** Las fotos de jugadores se almacenan como Base64 en Text directamente en la base de datos, no en storage externo.

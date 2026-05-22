@@ -1,4 +1,4 @@
-from app.db.models import Player
+from app.db.models import PlayerScale5
 
 # Test create player endpoint
 
@@ -47,7 +47,7 @@ def test_create_player(authenticated_client, db):
     assert player_data["name"] == "Test Player"
     assert player_data["velocidad"] == 4
 
-    db_player = db.query(Player).filter(Player.name == "Test Player").first()
+    db_player = db.query(PlayerScale5).filter(PlayerScale5.name == "Test Player").first()
     assert db_player is not None
     assert db_player.name == "Test Player"
     assert db_player.velocidad == 4
@@ -183,7 +183,7 @@ def test_delete_player(authenticated_client, db):
     assert delete_response.status_code == 200
 
     # Verify it's deleted from database
-    db_player = db.query(Player).filter(Player.id == player_id).first()
+    db_player = db.query(PlayerScale5).filter(PlayerScale5.id == player_id).first()
     assert db_player is None
 
 
@@ -221,7 +221,9 @@ def test_create_player_with_photo_data(authenticated_client, db):
     assert player_data["name"] == "Player with Photo"
     assert player_data["photo_data"] == photo_data
 
-    db_player = db.query(Player).filter(Player.name == "Player with Photo").first()
+    db_player = (
+        db.query(PlayerScale5).filter(PlayerScale5.name == "Player with Photo").first()
+    )
     assert db_player is not None
     assert db_player.photo_data == photo_data
 

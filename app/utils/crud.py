@@ -161,60 +161,6 @@ def remove_user_from_club(
     return user_to_remove
 
 
-def create_skill_vote(
-    player_id: int,
-    skill_vote: schemas.PlayerSkillsVote,
-    db: Session,
-    current_user: models.User = Depends(get_current_user),
-):
-    # Verificar que el jugador existe
-    player = db.query(models.Player).filter(models.Player.id == player_id).first()
-    if not player:
-        raise HTTPException(status_code=404, detail="Player not found")
-
-    # Verificar que el jugador y el usuario actual pertenecen al mismo club
-    club_user = (
-        db.query(models.ClubUser)
-        .filter(
-            models.ClubUser.user_id == current_user.id,
-            models.ClubUser.club_id == player.club_id,
-        )
-        .first()
-    )
-    if not club_user:
-        raise HTTPException(
-            status_code=403, detail="You are not in the same club as this player"
-        )
-
-    # Verificar si el usuario ya votó
-    old_vote = (
-        db.query(models.SkillVote)
-        .filter(
-            models.SkillVote.player_id == player_id,
-            models.SkillVote.voter_id == current_user.id,
-        )
-        .first()
-    )
-    if old_vote:
-        # Actualizar el voto existente
-        for attr, value in skill_vote.model_dump().items():
-            setattr(old_vote, attr, value)
-        old_vote.vote_date = get_argentina_now()
-        db.commit()
-        db.refresh(old_vote)
-        return old_vote
-
-    # Crear un nuevo voto
-    vote = models.SkillVote(
-        player_id=player_id, voter_id=current_user.id, **skill_vote.model_dump()
-    )
-
-    db.add(vote)
-    db.commit()
-    db.refresh(vote)
-    return vote
-
-
 def create_club(db: Session, club: schemas.ClubCreate, user_id: int):
     # Crear el nuevo club
     new_club = models.Club(name=club.name)
@@ -256,18 +202,8 @@ def delete_club(
     # Eliminar los miembros
     db.query(models.ClubUser).filter(models.ClubUser.club_id == club_id).delete()
 
-    # Eliminar los votos
-    skill_votes = (
-        db.query(models.SkillVote)
-        .join(models.Player)
-        .filter(models.Player.club_id == club_id)
-        .all()
-    )
-    for vote in skill_votes:
-        db.delete(vote)
-
     # Eliminar los jugadores
-    db.query(models.Player).filter(models.Player.club_id == club_id).delete()
+    db.query(models.PlayerScale5).filter(models.PlayerScale5.club_id == club_id).delete()
 
     # Delete pending invitations associated with the club
     db.query(models.ClubInvitation).filter(
@@ -301,7 +237,9 @@ def get_club_players(
         raise HTTPException(status_code=403, detail="You are not a member of this club")
 
     # Obtener los jugadores del club
-    players = db.query(models.Player).filter(models.Player.club_id == club_id).all()
+    players = (
+        db.query(models.PlayerScale5).filter(models.PlayerScale5.club_id == club_id).all()
+    )
     return players
 
 
@@ -332,7 +270,9 @@ def remove_player_from_club(
         )
 
     # Verificar que el jugador existe
-    player = db.query(models.Player).filter(models.Player.id == player_id).first()
+    player = (
+        db.query(models.PlayerScale5).filter(models.PlayerScale5.id == player_id).first()
+    )
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
 
@@ -369,7 +309,9 @@ def remove_player_v2_from_club(
         )
 
     # Verificar que el jugador existe
-    player = db.query(models.PlayerV2).filter(models.PlayerV2.id == player_id).first()
+    player = (
+        db.query(models.PlayerScale10).filter(models.PlayerScale10.id == player_id).first()
+    )
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
 

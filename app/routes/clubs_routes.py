@@ -71,19 +71,6 @@ def remove_user_from_club(
     )
 
 
-# Vote player skills
-@router.post("/players/{player_id}/vote", response_model=schemas.SkillVoteResponse)
-def create_skill_vote(
-    player_id: int,
-    skill_vote: schemas.PlayerSkillsVote,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user),
-):
-    return crud.create_skill_vote(
-        player_id=player_id, skill_vote=skill_vote, db=db, current_user=current_user
-    )
-
-
 # Invite user to a club
 @router.post("/clubs/{club_id}/invite")
 def invite_to_club(

@@ -102,37 +102,6 @@ class ClubUsersResponse(BaseModel):
     username: str
 
 
-# Schemas para SkillVote
-class PlayerSkillsVote(BaseModel):
-    velocidad: int
-    resistencia: int
-    control: int
-    pases: int
-    tiro: int
-    defensa: int
-    habilidad_arquero: int
-    fuerza_cuerpo: int
-    vision: int
-
-
-class SkillVoteResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    player_id: int
-    voter_id: int
-    velocidad: int
-    resistencia: int
-    control: int
-    pases: int
-    tiro: int
-    defensa: int
-    habilidad_arquero: int
-    fuerza_cuerpo: int
-    vision: int
-    vote_date: datetime
-
-
 class InviteRequest(BaseModel):
     invited_username: str
 
