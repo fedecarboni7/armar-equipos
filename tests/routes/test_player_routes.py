@@ -47,7 +47,9 @@ def test_create_player(authenticated_client, db):
     assert player_data["name"] == "Test Player"
     assert player_data["velocidad"] == 4
 
-    db_player = db.query(PlayerScale5).filter(PlayerScale5.name == "Test Player").first()
+    db_player = (
+        db.query(PlayerScale5).filter(PlayerScale5.name == "Test Player").first()
+    )
     assert db_player is not None
     assert db_player.name == "Test Player"
     assert db_player.velocidad == 4

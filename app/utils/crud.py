@@ -203,7 +203,9 @@ def delete_club(
     db.query(models.ClubUser).filter(models.ClubUser.club_id == club_id).delete()
 
     # Eliminar los jugadores
-    db.query(models.PlayerScale5).filter(models.PlayerScale5.club_id == club_id).delete()
+    db.query(models.PlayerScale5).filter(
+        models.PlayerScale5.club_id == club_id
+    ).delete()
 
     # Delete pending invitations associated with the club
     db.query(models.ClubInvitation).filter(
@@ -238,7 +240,9 @@ def get_club_players(
 
     # Obtener los jugadores del club
     players = (
-        db.query(models.PlayerScale5).filter(models.PlayerScale5.club_id == club_id).all()
+        db.query(models.PlayerScale5)
+        .filter(models.PlayerScale5.club_id == club_id)
+        .all()
     )
     return players
 
@@ -271,7 +275,9 @@ def remove_player_from_club(
 
     # Verificar que el jugador existe
     player = (
-        db.query(models.PlayerScale5).filter(models.PlayerScale5.id == player_id).first()
+        db.query(models.PlayerScale5)
+        .filter(models.PlayerScale5.id == player_id)
+        .first()
     )
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")
@@ -310,7 +316,9 @@ def remove_player_v2_from_club(
 
     # Verificar que el jugador existe
     player = (
-        db.query(models.PlayerScale10).filter(models.PlayerScale10.id == player_id).first()
+        db.query(models.PlayerScale10)
+        .filter(models.PlayerScale10.id == player_id)
+        .first()
     )
     if not player:
         raise HTTPException(status_code=404, detail="Player not found")

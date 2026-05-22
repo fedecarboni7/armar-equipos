@@ -62,9 +62,13 @@ def save_player(
     try:
         # Crear nuevo jugador
         if scale == "1-10":
-            new_player = PlayerScale10(**player_data.model_dump(), user_id=current_user.id)
+            new_player = PlayerScale10(
+                **player_data.model_dump(), user_id=current_user.id
+            )
         else:
-            new_player = PlayerScale5(**player_data.model_dump(), user_id=current_user.id)
+            new_player = PlayerScale5(
+                **player_data.model_dump(), user_id=current_user.id
+            )
         db.add(new_player)
         db.commit()
         return new_player

@@ -666,9 +666,9 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
         db.query(PlayerScale5).filter(PlayerScale5.last_modified_by == user_id).update(
             {"last_modified_by": None}
         )
-        db.query(PlayerScale10).filter(PlayerScale10.last_modified_by == user_id).update(
-            {"last_modified_by": None}
-        )
+        db.query(PlayerScale10).filter(
+            PlayerScale10.last_modified_by == user_id
+        ).update({"last_modified_by": None})
 
         # 1. Delete all players created by this user (scale 1-5)
         user_players = (
@@ -717,9 +717,9 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
                     ).delete()
 
                     # Delete all club players (set club_id to None, they become personal players)
-                    db.query(PlayerScale5).filter(PlayerScale5.club_id == club_id).update(
-                        {"club_id": None}
-                    )
+                    db.query(PlayerScale5).filter(
+                        PlayerScale5.club_id == club_id
+                    ).update({"club_id": None})
                     db.query(PlayerScale10).filter(
                         PlayerScale10.club_id == club_id
                     ).update({"club_id": None})

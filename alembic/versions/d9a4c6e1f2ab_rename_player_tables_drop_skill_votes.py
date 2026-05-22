@@ -19,60 +19,64 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.drop_constraint(
-        "match_players_player_v1_id_fkey", "match_players", type_="foreignkey"
-    )
-    op.drop_constraint(
-        "match_players_player_v2_id_fkey", "match_players", type_="foreignkey"
-    )
+    with op.batch_alter_table(
+        "match_players",
+        naming_convention={"fk": "%(table_name)s_%(column_0_name)s_fkey"},
+    ) as batch_op:
+        batch_op.drop_constraint("match_players_player_v1_id_fkey", type_="foreignkey")
+        batch_op.drop_constraint("match_players_player_v2_id_fkey", type_="foreignkey")
 
     op.rename_table("players", "players_s5")
     op.rename_table("players_v2", "players_s10")
 
-    op.create_foreign_key(
-        "match_players_player_v1_id_fkey",
+    with op.batch_alter_table(
         "match_players",
-        "players_s5",
-        ["player_v1_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
-        "match_players_player_v2_id_fkey",
-        "match_players",
-        "players_s10",
-        ["player_v2_id"],
-        ["id"],
-    )
+        naming_convention={"fk": "%(table_name)s_%(column_0_name)s_fkey"},
+    ) as batch_op:
+        batch_op.create_foreign_key(
+            "match_players_player_v1_id_fkey",
+            "players_s5",
+            ["player_v1_id"],
+            ["id"],
+        )
+        batch_op.create_foreign_key(
+            "match_players_player_v2_id_fkey",
+            "players_s10",
+            ["player_v2_id"],
+            ["id"],
+        )
 
     op.drop_table("skill_votes")
     op.drop_table("skill_votes_v2")
 
 
 def downgrade() -> None:
-    op.drop_constraint(
-        "match_players_player_v1_id_fkey", "match_players", type_="foreignkey"
-    )
-    op.drop_constraint(
-        "match_players_player_v2_id_fkey", "match_players", type_="foreignkey"
-    )
+    with op.batch_alter_table(
+        "match_players",
+        naming_convention={"fk": "%(table_name)s_%(column_0_name)s_fkey"},
+    ) as batch_op:
+        batch_op.drop_constraint("match_players_player_v1_id_fkey", type_="foreignkey")
+        batch_op.drop_constraint("match_players_player_v2_id_fkey", type_="foreignkey")
 
     op.rename_table("players_s5", "players")
     op.rename_table("players_s10", "players_v2")
 
-    op.create_foreign_key(
-        "match_players_player_v1_id_fkey",
+    with op.batch_alter_table(
         "match_players",
-        "players",
-        ["player_v1_id"],
-        ["id"],
-    )
-    op.create_foreign_key(
-        "match_players_player_v2_id_fkey",
-        "match_players",
-        "players_v2",
-        ["player_v2_id"],
-        ["id"],
-    )
+        naming_convention={"fk": "%(table_name)s_%(column_0_name)s_fkey"},
+    ) as batch_op:
+        batch_op.create_foreign_key(
+            "match_players_player_v1_id_fkey",
+            "players",
+            ["player_v1_id"],
+            ["id"],
+        )
+        batch_op.create_foreign_key(
+            "match_players_player_v2_id_fkey",
+            "players_v2",
+            ["player_v2_id"],
+            ["id"],
+        )
 
     op.create_table(
         "skill_votes",

@@ -59,7 +59,9 @@ def query_players(
                 .all()
             )
         else:
-            return db.query(PlayerScale10).filter(PlayerScale10.club_id == club_id).all()
+            return (
+                db.query(PlayerScale10).filter(PlayerScale10.club_id == club_id).all()
+            )
     else:
         if club_id is None:
             return (

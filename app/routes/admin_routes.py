@@ -35,7 +35,9 @@ async def admin_dashboard(
                 text("SELECT COUNT(DISTINCT user_id) FROM club_users")
             ).scalar()
             total_clubs = conn.execute(text("SELECT COUNT(*) FROM clubs")).scalar()
-            total_players = conn.execute(text("SELECT COUNT(*) FROM players_s5")).scalar()
+            total_players = conn.execute(
+                text("SELECT COUNT(*) FROM players_s5")
+            ).scalar()
 
             # Promedio de jugadores por usuario (solo usuarios activos)
             avg_players_per_user = (
