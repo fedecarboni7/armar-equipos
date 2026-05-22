@@ -112,7 +112,7 @@ async def admin_dashboard(
                 """)
             ).scalar()
 
-            # Calcular usuarios activos (que han creado jugadores en v1 o v2, O están en clubes)
+            # Calcular usuarios activos (que han creado jugadores en s5 o s10, O están en clubes)
             active_users = conn.execute(
                 text("""
                     SELECT COUNT(DISTINCT user_id) FROM (
@@ -193,33 +193,33 @@ async def admin_dashboard(
                 text("SELECT COUNT(DISTINCT user_id) FROM password_reset_tokens")
             ).scalar()
 
-            # Usuarios en V1 vs V2 (usando NOT EXISTS para evitar problemas con NULL)
-            users_v1_only = conn.execute(
+            # Usuarios en S5 vs S10 (usando NOT EXISTS para evitar problemas con NULL)
+            users_s5_only = conn.execute(
                 text("""
                     SELECT COUNT(DISTINCT p.user_id) FROM players_s5 p
                     WHERE NOT EXISTS (SELECT 1 FROM players_s10 p2 WHERE p2.user_id = p.user_id)
                 """)
             ).scalar()
 
-            users_v2_only = conn.execute(
+            users_s10_only = conn.execute(
                 text("""
                     SELECT COUNT(DISTINCT p2.user_id) FROM players_s10 p2
                     WHERE NOT EXISTS (SELECT 1 FROM players_s5 p WHERE p.user_id = p2.user_id)
                 """)
             ).scalar()
 
-            users_both_versions = conn.execute(
+            users_both_scales = conn.execute(
                 text("""
                     SELECT COUNT(DISTINCT p.user_id) FROM players_s5 p
                     WHERE EXISTS (SELECT 1 FROM players_s10 p2 WHERE p2.user_id = p.user_id)
                 """)
             ).scalar()
 
-            total_players_v1 = conn.execute(
+            total_players_s5 = conn.execute(
                 text("SELECT COUNT(*) FROM players_s5")
             ).scalar()
 
-            total_players_v2 = conn.execute(
+            total_players_s10 = conn.execute(
                 text("SELECT COUNT(*) FROM players_s10")
             ).scalar()
 
@@ -286,11 +286,11 @@ async def admin_dashboard(
             "email_confirmation_rate": email_confirmation_rate,
             "total_password_resets": total_password_resets,
             "users_with_reset": users_with_reset,
-            "users_v1_only": users_v1_only,
-            "users_v2_only": users_v2_only,
-            "users_both_versions": users_both_versions,
-            "total_players_v1": total_players_v1,
-            "total_players_v2": total_players_v2,
+            "users_s5_only": users_s5_only,
+            "users_s10_only": users_s10_only,
+            "users_both_scales": users_both_scales,
+            "total_players_s5": total_players_s5,
+            "total_players_s10": total_players_s10,
             "players_in_clubs": players_in_clubs,
             "players_without_club": players_without_club,
         }

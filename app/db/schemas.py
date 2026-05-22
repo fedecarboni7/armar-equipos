@@ -107,8 +107,8 @@ class InviteRequest(BaseModel):
 
 
 class MatchPlayerCreate(BaseModel):
-    player_v1_id: Optional[int] = None
-    player_v2_id: Optional[int] = None
+    player_s5_id: Optional[int] = None
+    player_s10_id: Optional[int] = None
     team: Literal["A", "B"]
     goals: int = 0
     assists: int = 0
@@ -136,8 +136,8 @@ class MatchPlayerResponse(BaseModel):
 
     id: int
     match_id: int
-    player_v1_id: Optional[int] = None
-    player_v2_id: Optional[int] = None
+    player_s5_id: Optional[int] = None
+    player_s10_id: Optional[int] = None
     team: str
     result: str
     goals: int

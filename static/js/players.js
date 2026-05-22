@@ -1,5 +1,5 @@
 // Configuración de escala
-let currentScale = 5;
+let currentScale = getCurrentScale();
 
 // ==================== HELP MODAL (Players) ====================
 const HELP_MODAL_PLAYERS_KEY = 'players_helpModalShown';
@@ -246,19 +246,10 @@ function updateSortIndicators() {
     }
 }
 
-// Función para cambiar escala
-function setScale(scale) {
-    currentScale = scale;
-    
-    // Actualizar botones activos
-    document.querySelectorAll('.scale-option').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    event.target.classList.add('active');
-    
-    // Recargar jugadores de la tabla correspondiente
+document.addEventListener('scaleChanged', function (e) {
+    currentScale = e.detail.scale;
     loadPlayers();
-}
+});
 
 // Función para crear el radar chart
 function createRadarChart(canvasId, playerData) {

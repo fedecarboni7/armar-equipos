@@ -1,10 +1,10 @@
-let currentScale = 5;
+let currentScale = getCurrentScale();
 let matches = [];
 let standings = [];
-let playersV1 = [];
-let playersV2 = [];
-let playerMapV1 = new Map();
-let playerMapV2 = new Map();
+let playersS5 = [];
+let playersS10 = [];
+let playerMapS5 = new Map();
+let playerMapS10 = new Map();
 let currentUser = null;
 let activeMatchId = null;
 let isEditMode = false;
@@ -21,7 +21,7 @@ const standingsDateFormatter = new Intl.DateTimeFormat('es-AR', {
 });
 
 function getCurrentVersion() {
-    return currentScale === 5 ? 'v1' : 'v2';
+    return currentScale === 5 ? 's5' : 's10';
 }
 
 function getClubIdParam() {
@@ -132,16 +132,16 @@ function getDateRangeParams() {
 
 async function loadPlayersForContext() {
     const clubId = getClubIdParam();
-    const [v1Players, v2Players] = await Promise.all([
+    const [s5Players, s10Players] = await Promise.all([
         TeamsAPI.getPlayers(clubId, '1-5'),
         TeamsAPI.getPlayers(clubId, '1-10')
     ]);
-    playersV1 = v1Players || [];
-    playersV2 = v2Players || [];
-    playerMapV1 = new Map(playersV1.map((player) => [player.id, player.name]));
-    playerMapV2 = new Map(playersV2.map((player) => [player.id, player.name]));
+    playersS5 = s5Players || [];
+    playersS10 = s10Players || [];
+    playerMapS5 = new Map(playersS5.map((player) => [player.id, player.name]));
+    playerMapS10 = new Map(playersS10.map((player) => [player.id, player.name]));
     if (modalAssignment) {
-        modalAssignment.setPlayers(currentScale === 5 ? playersV1 : playersV2);
+        modalAssignment.setPlayers(currentScale === 5 ? playersS5 : playersS10);
     }
 }
 
@@ -174,11 +174,11 @@ async function loadStandings() {
 }
 
 function getPlayerName(matchPlayer) {
-    if (matchPlayer.player_v1_id) {
-        return playerMapV1.get(matchPlayer.player_v1_id) || `Jugador ${matchPlayer.player_v1_id}`;
+    if (matchPlayer.player_s5_id) {
+        return playerMapS5.get(matchPlayer.player_s5_id) || `Jugador ${matchPlayer.player_s5_id}`;
     }
-    if (matchPlayer.player_v2_id) {
-        return playerMapV2.get(matchPlayer.player_v2_id) || `Jugador ${matchPlayer.player_v2_id}`;
+    if (matchPlayer.player_s10_id) {
+        return playerMapS10.get(matchPlayer.player_s10_id) || `Jugador ${matchPlayer.player_s10_id}`;
     }
     return 'Jugador';
 }
@@ -468,7 +468,7 @@ function showMatchDetail(matchId, card) {
 }
 
 function getMatchVersion(match) {
-    return match.players.some((player) => player.player_v2_id) ? 10 : 5;
+    return match.players.some((player) => player.player_s10_id) ? 10 : 5;
 }
 
 async function openMatchModal(mode, match = null) {
@@ -505,14 +505,14 @@ async function openMatchModal(mode, match = null) {
             const teamAEntries = match.players
                 .filter((player) => player.team === 'A')
                 .map((player) => ({
-                    id: player.player_v1_id || player.player_v2_id,
+                    id: player.player_s5_id || player.player_s10_id,
                     goals: player.goals ?? 0,
                     assists: player.assists ?? 0,
                 }));
             const teamBEntries = match.players
                 .filter((player) => player.team === 'B')
                 .map((player) => ({
-                    id: player.player_v1_id || player.player_v2_id,
+                    id: player.player_s5_id || player.player_s10_id,
                     goals: player.goals ?? 0,
                     assists: player.assists ?? 0,
                 }));
@@ -558,8 +558,8 @@ async function saveMatch() {
 
     const buildPlayerEntry = (playerEntry, team) => {
         const base = currentScale === 5
-            ? { player_v1_id: playerEntry.id, team }
-            : { player_v2_id: playerEntry.id, team };
+            ? { player_s5_id: playerEntry.id, team }
+            : { player_s10_id: playerEntry.id, team };
         return {
             ...base,
             goals: playerEntry.goals,
@@ -666,25 +666,11 @@ async function refreshData() {
     }
 }
 
-async function setScale(scale) {
-    currentScale = scale;
-
-    document.querySelectorAll('.scale-option').forEach((button) => {
-        button.classList.remove('active');
-    });
-
-    if (typeof event !== 'undefined' && event.target) {
-        event.target.classList.add('active');
-    } else {
-        const index = currentScale === 5 ? 0 : 1;
-        const buttons = document.querySelectorAll('.scale-option');
-        if (buttons[index]) {
-            buttons[index].classList.add('active');
-        }
-    }
+document.addEventListener('scaleChanged', async function (e) {
+    currentScale = e.detail.scale;
 
     if (modalAssignment) {
-        modalAssignment.setPlayers(currentScale === 5 ? playersV1 : playersV2);
+        modalAssignment.setPlayers(currentScale === 5 ? playersS5 : playersS10);
     }
 
     await refreshData();
@@ -694,7 +680,7 @@ async function setScale(scale) {
         pendingEditMatch = null;
         openMatchModal('edit', matchToEdit);
     }
-}
+});
 
 function initDateFilters() {
     const rangeSelect = document.getElementById('date-range-select');

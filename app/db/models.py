@@ -109,7 +109,7 @@ class PlayerScale5(Base):
     user = relationship("User", foreign_keys=[user_id], back_populates="players_s5")
     last_modifier = relationship("User", foreign_keys=[last_modified_by])
     club = relationship("Club", back_populates="players_s5")
-    match_players = relationship("MatchPlayer", back_populates="player_v1")
+    match_players = relationship("MatchPlayer", back_populates="player_s5")
 
 
 class PlayerScale10(Base):
@@ -135,7 +135,7 @@ class PlayerScale10(Base):
     user = relationship("User", foreign_keys=[user_id], back_populates="players_s10")
     last_modifier = relationship("User", foreign_keys=[last_modified_by])
     club = relationship("Club", back_populates="players_s10")
-    match_players_v2 = relationship("MatchPlayer", back_populates="player_v2")
+    match_players_s10 = relationship("MatchPlayer", back_populates="player_s10")
 
 
 class Club(Base):
@@ -224,8 +224,8 @@ class MatchPlayer(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     match_id = Column(Integer, ForeignKey("matches.id"), nullable=False)
-    player_v1_id = Column(Integer, ForeignKey("players_s5.id"), nullable=True)
-    player_v2_id = Column(Integer, ForeignKey("players_s10.id"), nullable=True)
+    player_s5_id = Column(Integer, ForeignKey("players_s5.id"), nullable=True)
+    player_s10_id = Column(Integer, ForeignKey("players_s10.id"), nullable=True)
     team = Column(String, nullable=False)
     result = Column(String, nullable=False)
     goals = Column(Integer, nullable=False, default=0)
@@ -233,12 +233,12 @@ class MatchPlayer(Base):
 
     __table_args__ = (
         CheckConstraint(
-            "(player_v1_id IS NOT NULL AND player_v2_id IS NULL) OR "
-            "(player_v1_id IS NULL AND player_v2_id IS NOT NULL)",
+            "(player_s5_id IS NOT NULL AND player_s10_id IS NULL) OR "
+            "(player_s5_id IS NULL AND player_s10_id IS NOT NULL)",
             name="ck_match_players_one_player",
         ),
     )
 
     match = relationship("Match", back_populates="match_players")
-    player_v1 = relationship("PlayerScale5", back_populates="match_players")
-    player_v2 = relationship("PlayerScale10", back_populates="match_players_v2")
+    player_s5 = relationship("PlayerScale5", back_populates="match_players")
+    player_s10 = relationship("PlayerScale10", back_populates="match_players_s10")

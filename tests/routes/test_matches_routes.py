@@ -52,10 +52,10 @@ def test_create_match_basic(authenticated_client, db):
             "team_b_score": 1,
             "notes": "Test note",
             "players": [
-                {"player_v2_id": players[0].id, "team": "A", "goals": 0, "assists": 0},
-                {"player_v2_id": players[1].id, "team": "A", "goals": 0, "assists": 0},
-                {"player_v2_id": players[2].id, "team": "B", "goals": 0, "assists": 0},
-                {"player_v2_id": players[3].id, "team": "B", "goals": 0, "assists": 0},
+                {"player_s10_id": players[0].id, "team": "A", "goals": 0, "assists": 0},
+                {"player_s10_id": players[1].id, "team": "A", "goals": 0, "assists": 0},
+                {"player_s10_id": players[2].id, "team": "B", "goals": 0, "assists": 0},
+                {"player_s10_id": players[3].id, "team": "B", "goals": 0, "assists": 0},
             ],
         },
     )
@@ -81,10 +81,10 @@ def test_create_match_goals_assists_persisted(authenticated_client, db):
             "team_a_score": 3,
             "team_b_score": 1,
             "players": [
-                {"player_v2_id": players[0].id, "team": "A", "goals": 2, "assists": 1},
-                {"player_v2_id": players[1].id, "team": "A", "goals": 1, "assists": 0},
-                {"player_v2_id": players[2].id, "team": "B", "goals": 1, "assists": 0},
-                {"player_v2_id": players[3].id, "team": "B", "goals": 0, "assists": 1},
+                {"player_s10_id": players[0].id, "team": "A", "goals": 2, "assists": 1},
+                {"player_s10_id": players[1].id, "team": "A", "goals": 1, "assists": 0},
+                {"player_s10_id": players[2].id, "team": "B", "goals": 1, "assists": 0},
+                {"player_s10_id": players[3].id, "team": "B", "goals": 0, "assists": 1},
             ],
         },
     )
@@ -95,7 +95,7 @@ def test_create_match_goals_assists_persisted(authenticated_client, db):
     detail_response = authenticated_client.get(f"/matches/{match_id}")
     assert detail_response.status_code == 200
     detail = detail_response.json()
-    players_by_id = {player["player_v2_id"]: player for player in detail["players"]}
+    players_by_id = {player["player_s10_id"]: player for player in detail["players"]}
 
     assert players_by_id[players[0].id]["goals"] == 2
     assert players_by_id[players[0].id]["assists"] == 1
@@ -120,8 +120,8 @@ def test_create_match_goals_exceed_score(authenticated_client, db):
             "team_a_score": 1,
             "team_b_score": 0,
             "players": [
-                {"player_v2_id": players[0].id, "team": "A", "goals": 2, "assists": 0},
-                {"player_v2_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
+                {"player_s10_id": players[0].id, "team": "A", "goals": 2, "assists": 0},
+                {"player_s10_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
             ],
         },
     )
@@ -142,8 +142,8 @@ def test_create_match_assists_exceed_score(authenticated_client, db):
             "team_a_score": 0,
             "team_b_score": 1,
             "players": [
-                {"player_v2_id": players[0].id, "team": "A", "goals": 0, "assists": 0},
-                {"player_v2_id": players[1].id, "team": "B", "goals": 0, "assists": 2},
+                {"player_s10_id": players[0].id, "team": "A", "goals": 0, "assists": 0},
+                {"player_s10_id": players[1].id, "team": "B", "goals": 0, "assists": 2},
             ],
         },
     )
@@ -165,8 +165,8 @@ def test_edit_match_updates_notes_goals_assists(authenticated_client, db):
             "team_b_score": 0,
             "notes": "original",
             "players": [
-                {"player_v2_id": players[0].id, "team": "A", "goals": 0, "assists": 0},
-                {"player_v2_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
+                {"player_s10_id": players[0].id, "team": "A", "goals": 0, "assists": 0},
+                {"player_s10_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
             ],
         },
     )
@@ -180,8 +180,8 @@ def test_edit_match_updates_notes_goals_assists(authenticated_client, db):
             "team_b_score": 0,
             "notes": "updated",
             "players": [
-                {"player_v2_id": players[0].id, "team": "A", "goals": 1, "assists": 0},
-                {"player_v2_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
+                {"player_s10_id": players[0].id, "team": "A", "goals": 1, "assists": 0},
+                {"player_s10_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
             ],
         },
     )
@@ -190,7 +190,7 @@ def test_edit_match_updates_notes_goals_assists(authenticated_client, db):
     detail_response = authenticated_client.get(f"/matches/{match_id}")
     assert detail_response.status_code == 200
     detail = detail_response.json()
-    players_by_id = {player["player_v2_id"]: player for player in detail["players"]}
+    players_by_id = {player["player_s10_id"]: player for player in detail["players"]}
 
     assert detail["notes"] == "updated"
     assert players_by_id[players[0].id]["goals"] == 1
@@ -209,15 +209,15 @@ def test_leaderboard_returns_goals_assists(authenticated_client, db):
             "team_a_score": 2,
             "team_b_score": 0,
             "players": [
-                {"player_v2_id": players[0].id, "team": "A", "goals": 2, "assists": 1},
-                {"player_v2_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
+                {"player_s10_id": players[0].id, "team": "A", "goals": 2, "assists": 1},
+                {"player_s10_id": players[1].id, "team": "B", "goals": 0, "assists": 0},
             ],
         },
     )
     assert response.status_code in (200, 201)
 
     standings_response = authenticated_client.get(
-        f"/matches/standings?version=v2&club_id={club.id}"
+        f"/matches/standings?version=s10&club_id={club.id}"
     )
     assert standings_response.status_code == 200
     standings = standings_response.json()
@@ -242,8 +242,8 @@ def test_leaderboard_orders_by_goals_tiebreaker(authenticated_client, db):
             "team_a_score": 2,
             "team_b_score": 1,
             "players": [
-                {"player_v2_id": players[0].id, "team": "A", "goals": 2, "assists": 0},
-                {"player_v2_id": players[1].id, "team": "B", "goals": 1, "assists": 0},
+                {"player_s10_id": players[0].id, "team": "A", "goals": 2, "assists": 0},
+                {"player_s10_id": players[1].id, "team": "B", "goals": 1, "assists": 0},
             ],
         },
     )
@@ -256,14 +256,14 @@ def test_leaderboard_orders_by_goals_tiebreaker(authenticated_client, db):
             "team_a_score": 1,
             "team_b_score": 2,
             "players": [
-                {"player_v2_id": players[0].id, "team": "A", "goals": 1, "assists": 0},
-                {"player_v2_id": players[1].id, "team": "B", "goals": 1, "assists": 0},
+                {"player_s10_id": players[0].id, "team": "A", "goals": 1, "assists": 0},
+                {"player_s10_id": players[1].id, "team": "B", "goals": 1, "assists": 0},
             ],
         },
     )
 
     standings_response = authenticated_client.get(
-        f"/matches/standings?version=v2&club_id={club.id}"
+        f"/matches/standings?version=s10&club_id={club.id}"
     )
     assert standings_response.status_code == 200
     standings = standings_response.json()

@@ -678,10 +678,10 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
             db.delete(player)
 
         # 1b. Delete all players created by this user (scale 1-10)
-        user_players_v2 = (
+        user_players_s10 = (
             db.query(PlayerScale10).filter(PlayerScale10.user_id == user_id).all()
         )
-        for player in user_players_v2:
+        for player in user_players_s10:
             db.delete(player)
 
         # 2. Handle club memberships

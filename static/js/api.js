@@ -2,103 +2,39 @@
 window.playerDataDict = {};
 window.teams = {};
 
-// API utilities for players backend communication
-class PlayersAPI {
-    constructor() {
-        this.baseUrl = '';
-    }
-
-    // Helper method to handle API responses
-    async handleResponse(response) {
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Error ${response.status}: ${errorText}`);
-        }
-        
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-            return await response.json();
-        }
-        return await response.text();
-    }
-
-    // Get all players
-    async getPlayers() {
-        try {
-            const response = await fetch('/players-v2', {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error fetching players:', error);
-            throw error;
-        }
-    }
-
-    // Save players (create or update multiple)
-    async savePlayers(players) {
-        try {
-            const response = await fetch('/players-v2', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(players)
-            });
-            
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error saving players:', error);
-            throw error;
-        }
-    }
-
-    // Save single player (create or update)
-    async savePlayer(player) {
-        try {
-            const response = await fetch('/player-v2', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(player)
-            });
-            
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error saving player:', error);
-            throw error;
-        }
-    }
-
-    // Delete a single player
-    async deletePlayer(playerId) {
-        try {
-            const response = await fetch(`/player-v2/${playerId}`, {
-                method: 'DELETE',
-                credentials: 'include',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            return await this.handleResponse(response);
-        } catch (error) {
-            console.error('Error deleting player:', error);
-            throw error;
-        }
-    }
+// Global scale utilities — shared across all pages
+function getCurrentScale() {
+    return parseInt(localStorage.getItem('selectedScale') || '5', 10);
 }
 
-// Create a global instance
-const playersAPI = new PlayersAPI();
+function setCurrentScale(scale) {
+    localStorage.setItem('selectedScale', String(scale));
+}
+
+// Single global setScale — used by _scale_selector.html onclick on every page
+window.setScale = function (scale) {
+    setCurrentScale(scale);
+
+    const buttons = document.querySelectorAll('.scale-option');
+    buttons.forEach((btn) => btn.classList.remove('active'));
+    const index = scale === 5 ? 0 : 1;
+    if (buttons[index]) {
+        buttons[index].classList.add('active');
+    }
+
+    document.dispatchEvent(new CustomEvent('scaleChanged', { detail: { scale } }));
+};
+
+// Restore active button on load
+document.addEventListener('DOMContentLoaded', function () {
+    const stored = getCurrentScale();
+    const index = stored === 5 ? 0 : 1;
+    const buttons = document.querySelectorAll('.scale-option');
+    buttons.forEach((btn) => btn.classList.remove('active'));
+    if (buttons[index]) {
+        buttons[index].classList.add('active');
+    }
+});
 
 // API utilities for teams builder
 class TeamsAPI {

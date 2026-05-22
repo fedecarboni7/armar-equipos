@@ -109,7 +109,7 @@ Jugadores del sistema (puntuación de habilidades del 1 al 10). Misma estructura
 | `user` | many-to-one → `users` | Propietario del jugador |
 | `last_modifier` | many-to-one → `users` | Último usuario que modificó el jugador |
 | `club` | many-to-one → `clubs` | Club del jugador |
-| `match_players_v2` | one-to-many → `match_players` | Participaciones del jugador en partidos |
+| `match_players_s10` | one-to-many → `match_players` | Participaciones del jugador en partidos |
 
 ---
 
@@ -231,22 +231,22 @@ Asociación de jugadores a partidos y equipos, con resultado individual.
 |---|---|---|---|
 | id | Integer | PK, indexed | Identificador único |
 | match_id | Integer | FK → matches.id, NOT NULL | Partido al que pertenece |
-| player_v1_id | Integer | FK → players_s5.id, NULLABLE | Jugador (tabla players_s5) que participó |
-| player_v2_id | Integer | FK → players_s10.id, NULLABLE | Jugador (tabla players_s10) que participó |
+| player_s5_id | Integer | FK → players_s5.id, NULLABLE | Jugador (tabla players_s5) que participó |
+| player_s10_id | Integer | FK → players_s10.id, NULLABLE | Jugador (tabla players_s10) que participó |
 | team | String | NOT NULL | Equipo al que pertenece: `A` o `B` |
 | result | String | NOT NULL | Resultado individual del jugador: `win`, `loss`, `draw` |
 
 ### Constraints
 
-- `ck_match_players_one_player`: Exige que exactamente uno de `player_v1_id` o `player_v2_id` sea NOT NULL.
+- `ck_match_players_one_player`: Exige que exactamente uno de `player_s5_id` o `player_s10_id` sea NOT NULL.
 
 ### Relationships
 
 | Relación | Tipo | Descripción |
 |---|---|---|
 | `match` | many-to-one → `matches` | Partido |
-| `player_v1` | many-to-one → `players_s5` | Jugador (v1) |
-| `player_v2` | many-to-one → `players_s10` | Jugador (v2) |
+| `player_s5` | many-to-one → `players_s5` | Jugador (s5) |
+| `player_s10` | many-to-one → `players_s10` | Jugador (s10) |
 
 ---
 
@@ -274,8 +274,8 @@ matches.club_id             → clubs.id
 matches.created_by          → users.id
 
 match_players.match_id      → matches.id
-match_players.player_v1_id  → players_s5.id
-match_players.player_v2_id  → players_s10.id
+match_players.player_s5_id  → players_s5.id
+match_players.player_s10_id  → players_s10.id
 ```
 
 ---
