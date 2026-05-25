@@ -1,10 +1,45 @@
 from datetime import timedelta
+from typing import Iterable, Tuple, Dict
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.db import models, schemas
 from app.db.models import get_argentina_now
 from app.utils.auth import get_current_user
+
+
+SKILL_FIELDS = (
+    "velocidad",
+    "resistencia",
+    "control",
+    "pases",
+    "tiro",
+    "defensa",
+    "habilidad_arquero",
+    "fuerza_cuerpo",
+    "vision",
+)
+
+
+def compute_effective_skills(
+    player: models.PlayerScale5 | models.PlayerScale10,
+    votes: Iterable[models.SkillVote],
+) -> Tuple[Dict[str, float], Dict[str, float | None]]:
+    votes_list = list(votes)
+    if not votes_list:
+        base_values = {field: getattr(player, field) for field in SKILL_FIELDS}
+        return base_values, {field: None for field in SKILL_FIELDS}
+
+    totals = {field: 0 for field in SKILL_FIELDS}
+    for vote in votes_list:
+        for field in SKILL_FIELDS:
+            totals[field] += getattr(vote, field)
+
+    count = len(votes_list)
+    averages = {
+        field: round(totals[field] / count, 1) for field in SKILL_FIELDS
+    }
+    return averages, averages
 
 
 def get_club_members(

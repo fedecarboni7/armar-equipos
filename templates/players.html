@@ -147,6 +147,67 @@
             <button class="btn" onclick="closeCreateClubModal()">Cancelar</button>
         </div>
     </div>
+
+    <!-- Modal para votar habilidades -->
+    <div id="voteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Votar habilidades</h2>
+                <button class="close-btn" onclick="closeVoteModal()">&times;</button>
+            </div>
+            <div class="player-details" id="vote-form">
+                <div class="form-group">
+                    <label>Habilidades (1-<span id="vote-scale"></span>)</label>
+                    <div class="skills-edit-grid">
+                        <div class="skill-input">
+                            <label for="vote-velocidad">Velocidad</label>
+                            <input type="number" id="vote-velocidad" min="1" />
+                        </div>
+                        <div class="skill-input">
+                            <label for="vote-resistencia">Resistencia</label>
+                            <input type="number" id="vote-resistencia" min="1" />
+                        </div>
+                        <div class="skill-input">
+                            <label for="vote-pases">Pases</label>
+                            <input type="number" id="vote-pases" min="1" />
+                        </div>
+                        <div class="skill-input">
+                            <label for="vote-tiro">Tiro</label>
+                            <input type="number" id="vote-tiro" min="1" />
+                        </div>
+                        <div class="skill-input">
+                            <label for="vote-defensa">Defensa</label>
+                            <input type="number" id="vote-defensa" min="1" />
+                        </div>
+                        <div class="skill-input">
+                            <label for="vote-fuerza_cuerpo">Fuerza Cuerpo</label>
+                            <input type="number" id="vote-fuerza_cuerpo" min="1" />
+                        </div>
+                        <div class="skill-input">
+                            <label for="vote-control">Control</label>
+                            <input type="number" id="vote-control" min="1" />
+                        </div>
+                        <div class="skill-input">
+                            <label for="vote-habilidad_arquero">Habilidad Arquero</label>
+                            <input type="number" id="vote-habilidad_arquero" min="1" />
+                        </div>
+                        <div class="skill-input">
+                            <label for="vote-vision">Vision</label>
+                            <input type="number" id="vote-vision" min="1" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="submitVote()">Enviar votacion</button>
+                    <button class="btn btn-secondary" onclick="closeVoteModal()">Cancelar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if currentUser %}
+    <script id="user-data" type="application/json">{{ currentUser | tojson | safe }}</script>
+    {% endif %}
     <script src="/static/js/pwa-install.js?v={{ static_version }}"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from typing import Optional, List, Literal
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 # User schemas
@@ -62,6 +62,45 @@ class PlayerResponse(BaseModel):
     club_id: Optional[int] = None
 
 
+class SkillVoteCreate(BaseModel):
+    player_s5_id: Optional[int] = None
+    player_s10_id: Optional[int] = None
+    velocidad: int
+    resistencia: int
+    control: int
+    pases: int
+    tiro: int
+    defensa: int
+    habilidad_arquero: int
+    fuerza_cuerpo: int
+    vision: int
+
+    @model_validator(mode="after")
+    def validate_player_reference(self):
+        if (self.player_s5_id is None) == (self.player_s10_id is None):
+            raise ValueError("Debe incluirse player_s5_id o player_s10_id, pero no ambos")
+        return self
+
+
+class SkillVoteResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    club_id: int
+    player_s5_id: Optional[int] = None
+    player_s10_id: Optional[int] = None
+    velocidad: int
+    resistencia: int
+    control: int
+    pases: int
+    tiro: int
+    defensa: int
+    habilidad_arquero: int
+    fuerza_cuerpo: int
+    vision: int
+    updated_at: datetime
+
+
 # Schemas para Club
 class ClubCreate(BaseModel):
     name: str
@@ -73,6 +112,38 @@ class ClubResponse(BaseModel):
     id: int
     name: str
     creation_date: datetime
+    voting_open_s5: bool = False
+    voting_open_s10: bool = False
+
+
+class SkillVoteAverage(BaseModel):
+    velocidad: Optional[float] = None
+    resistencia: Optional[float] = None
+    control: Optional[float] = None
+    pases: Optional[float] = None
+    tiro: Optional[float] = None
+    defensa: Optional[float] = None
+    habilidad_arquero: Optional[float] = None
+    fuerza_cuerpo: Optional[float] = None
+    vision: Optional[float] = None
+
+
+class PlayerSkillsWithVotes(BaseModel):
+    id: int
+    name: str
+    velocidad: int
+    resistencia: int
+    control: int
+    pases: int
+    tiro: int
+    defensa: int
+    habilidad_arquero: int
+    fuerza_cuerpo: int
+    vision: int
+    updated_at: datetime
+    user_id: Optional[int] = None
+    club_id: Optional[int] = None
+    vote_average: SkillVoteAverage
 
 
 # Schemas para ClubUser

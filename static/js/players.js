@@ -1,6 +1,10 @@
 // Configuración de escala
 let currentScale = getCurrentScale();
 
+let currentUser = null;
+let clubVoting = { s5: false, s10: false };
+let currentVotingPlayer = null;
+
 // ==================== HELP MODAL (Players) ====================
 const HELP_MODAL_PLAYERS_KEY = 'players_helpModalShown';
 
@@ -43,6 +47,75 @@ function initPlayersHelpModal() {
 }
 // ==================== END HELP MODAL ====================
 
+document.addEventListener('DOMContentLoaded', () => {
+    initPlayersHelpModal();
+
+    const currentUserData = document.getElementById('user-data');
+    if (currentUserData) {
+        try {
+            currentUser = JSON.parse(currentUserData.textContent);
+        } catch (error) {
+            console.error('Error parsing user data:', error);
+        }
+    }
+});
+
+function getScaleParam() {
+    return currentScale === 10 ? 's10' : 's5';
+}
+
+function updateClubVotingState() {
+    const clubId = getCurrentClubId();
+    if (!clubId || clubId === 'my-players') {
+        clubVoting = { s5: false, s10: false };
+        return;
+    }
+
+    if (typeof getUserClubs !== 'function') {
+        clubVoting = { s5: false, s10: false };
+        return;
+    }
+
+    const clubs = getUserClubs();
+    const clubData = clubs.find(club => club.id == clubId);
+    clubVoting = {
+        s5: clubData ? !!clubData.voting_open_s5 : false,
+        s10: clubData ? !!clubData.voting_open_s10 : false,
+    };
+}
+
+async function loadClubRole(clubId) {
+    if (!currentUser || !clubId || clubId === 'my-players') {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/clubs/${clubId}/members`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const members = await response.json();
+        const member = members.find(item => item.user_id === currentUser.id || item.user_id === currentUser.userId);
+        currentUser.clubRole = member ? member.role : null;
+    } catch (error) {
+        console.error('Error al cargar rol del club:', error);
+    }
+}
+
+function canEditInContext() {
+    if (getCurrentClubId() === 'my-players') {
+        return true;
+    }
+
+    return currentUser && (currentUser.clubRole === 'admin' || currentUser.clubRole === 'owner');
+}
+
 // Variables globales
 let players = [];
 let filteredPlayers = []; // Nueva variable para jugadores filtrados
@@ -59,7 +132,7 @@ function formatDate(date) {
     }
     return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
-
+        if (!response.ok) throw new Error(`Error ${response.status}`);
 // Función para calcular promedio de habilidades
 function calculateAverage(player) {
     const skillKeys = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
@@ -71,6 +144,15 @@ function calculateAverage(player) {
     
     // No hacer conversión - cada tabla maneja su propia escala
     return Math.round(average * 10) / 10; // Redondear a 1 decimal
+
+        if (contextId !== 'my-players') {
+            await loadClubRole(contextId);
+        } else if (currentUser) {
+            currentUser.clubRole = null;
+        }
+
+        updateClubVotingState();
+
 }
 
 // Función para ordenar jugadores
@@ -339,6 +421,10 @@ function renderPlayerModal(player) {
     const average = calculateAverage(player);
     const lastModified = player.updated_at;
     const initial = player.name.charAt(0).toUpperCase();
+    const isClubContext = getCurrentClubId() !== 'my-players';
+    const votingOpen = currentScale === 10 ? clubVoting.s10 : clubVoting.s5;
+    const showVoteButton = isClubContext && votingOpen;
+    const canEdit = canEditInContext();
     
     const avatarContent = `<div class="avatar-initials">${initial}</div>`;
 
@@ -449,16 +535,19 @@ function renderPlayerModal(player) {
         </div>
         
         <div class="modal-actions">
-            <button class="btn btn-primary" id="edit-btn" onclick="toggleEditMode()" style="display: ${isEditMode ? 'none' : 'flex'}">
+            <button class="btn btn-primary" id="edit-btn" onclick="toggleEditMode()" style="display: ${isEditMode || !canEdit ? 'none' : 'flex'}">
                 ✏️ Editar
             </button>
-            <button class="btn btn-primary" id="save-btn" onclick="savePlayerEdits()" style="display: ${isEditMode ? 'flex' : 'none'}">
+            <button class="btn btn-primary" id="save-btn" onclick="savePlayerEdits()" style="display: ${isEditMode && canEdit ? 'flex' : 'none'}">
                 💾 Guardar
             </button>
-            <button class="btn btn-secondary" id="cancel-btn" onclick="cancelEdit()" style="display: ${isEditMode ? 'flex' : 'none'}">
+            <button class="btn btn-secondary" id="cancel-btn" onclick="cancelEdit()" style="display: ${isEditMode && canEdit ? 'flex' : 'none'}">
                 ❌ Cancelar
             </button>
-            <button class="btn btn-danger" onclick="deletePlayerFromModal(${player.id})">
+            <button class="btn btn-secondary" onclick="openVoteModal()" style="display: ${showVoteButton ? 'flex' : 'none'}">
+                🗳️ Votar
+            </button>
+            <button class="btn btn-danger" onclick="deletePlayerFromModal(${player.id})" style="display: ${canEdit ? 'flex' : 'none'}">
                 🗑️ Eliminar
             </button>
         </div>
@@ -607,6 +696,134 @@ function closeModal() {
     currentEditingPlayer = null;
     
     document.getElementById('playerModal').style.display = 'none';
+}
+
+function openVoteModal() {
+    if (!currentEditingPlayer) {
+        return;
+    }
+
+    currentVotingPlayer = currentEditingPlayer;
+    const modal = document.getElementById('voteModal');
+    const scaleLabel = document.getElementById('vote-scale');
+
+    if (scaleLabel) {
+        scaleLabel.textContent = currentScale;
+    }
+
+    setVoteInputLimits();
+    resetVoteInputs();
+    loadExistingVote();
+    modal.style.display = 'block';
+}
+
+function closeVoteModal() {
+    const modal = document.getElementById('voteModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    currentVotingPlayer = null;
+}
+
+function setVoteInputLimits() {
+    const inputs = document.querySelectorAll('#voteModal input[type="number"]');
+    inputs.forEach(input => {
+        input.min = 1;
+        input.max = currentScale;
+    });
+}
+
+function resetVoteInputs() {
+    const defaultValue = currentScale === 5 ? 3 : 5;
+    const fields = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
+    fields.forEach(field => {
+        const input = document.getElementById(`vote-${field}`);
+        if (input) {
+            input.value = defaultValue;
+        }
+    });
+}
+
+async function loadExistingVote() {
+    if (!currentVotingPlayer) return;
+
+    const clubId = getCurrentClubId();
+    if (!clubId || clubId === 'my-players') return;
+
+    const scaleParam = getScaleParam();
+    try {
+        const response = await fetch(`/api/clubs/${clubId}/players/${currentVotingPlayer.id}/vote?scale=${scaleParam}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const vote = await response.json();
+        const fields = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
+        fields.forEach(field => {
+            const input = document.getElementById(`vote-${field}`);
+            if (input && typeof vote[field] === 'number') {
+                input.value = vote[field];
+            }
+        });
+    } catch (error) {
+        console.error('Error al cargar voto:', error);
+    }
+}
+
+async function submitVote() {
+    if (!currentVotingPlayer) return;
+
+    const clubId = getCurrentClubId();
+    if (!clubId || clubId === 'my-players') return;
+
+    const fields = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
+    const payload = {};
+    for (const field of fields) {
+        const input = document.getElementById(`vote-${field}`);
+        const value = input ? parseInt(input.value, 10) : NaN;
+        if (isNaN(value) || value < 1 || value > currentScale) {
+            alert(`El valor de ${field.replace('_', ' ')} debe estar entre 1 y ${currentScale}`);
+            return;
+        }
+        payload[field] = value;
+    }
+
+    const scaleParam = getScaleParam();
+    if (scaleParam === 's10') {
+        payload.player_s10_id = currentVotingPlayer.id;
+    } else {
+        payload.player_s5_id = currentVotingPlayer.id;
+    }
+
+    try {
+        const response = await fetch(`/api/clubs/${clubId}/players/${currentVotingPlayer.id}/vote?scale=${scaleParam}`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Error ${response.status}`);
+        }
+
+        closeVoteModal();
+        await loadPlayersForContext(getCurrentClubId());
+
+        const refreshed = players.find(p => p.id === currentEditingPlayer.id);
+        if (refreshed) {
+            currentEditingPlayer = refreshed;
+            renderPlayerModal(currentEditingPlayer);
+        }
+    } catch (error) {
+        alert('Error al enviar la votacion: ' + error.message);
+    }
 }
 
 // Función para agregar un jugador
@@ -844,6 +1061,7 @@ async function savePlayer(playerData) {
 window.onclick = function(event) {
     const modal = document.getElementById('playerModal');
     const createModal = document.getElementById('createPlayerModal');
+    const voteModal = document.getElementById('voteModal');
     
     if (event.target === modal) {
         closeModal();
@@ -851,6 +1069,10 @@ window.onclick = function(event) {
     
     if (event.target === createModal) {
         closeCreateModal();
+    }
+
+    if (event.target === voteModal) {
+        closeVoteModal();
     }
 }
 

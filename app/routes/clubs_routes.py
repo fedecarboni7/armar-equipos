@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
@@ -174,7 +174,15 @@ async def get_user_clubs(
         clubs = execute_with_retries(query_clubs, db, current_user.id)
 
         # Convertir a formato JSON
-        clubs_data = [{"id": club.id, "name": club.name} for club in clubs]
+        clubs_data = [
+            {
+                "id": club.id,
+                "name": club.name,
+                "voting_open_s5": club.voting_open_s5,
+                "voting_open_s10": club.voting_open_s10,
+            }
+            for club in clubs
+        ]
 
         return clubs_data
 
@@ -182,3 +190,45 @@ async def get_user_clubs(
         raise HTTPException(
             status_code=500, detail="Error al obtener los clubes del usuario"
         )
+
+
+@router.post("/api/clubs/{club_id}/voting")
+def toggle_club_voting(
+    club_id: int,
+    scale: str = Query("s5", pattern="^(s5|s10)$"),
+    action: str = Query("open", pattern="^(open|close)$"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="No hay un usuario autenticado")
+
+    club = db.query(models.Club).filter(models.Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club no encontrado")
+
+    club_user = (
+        db.query(models.ClubUser)
+        .filter(
+            models.ClubUser.club_id == club_id,
+            models.ClubUser.user_id == current_user.id,
+            models.ClubUser.role == "owner",
+        )
+        .first()
+    )
+    if not club_user:
+        raise HTTPException(status_code=403, detail="No tenes permisos para esto")
+
+    is_open = action == "open"
+    if scale == "s10":
+        club.voting_open_s10 = is_open
+    else:
+        club.voting_open_s5 = is_open
+
+    db.commit()
+    db.refresh(club)
+    return {
+        "id": club.id,
+        "voting_open_s5": club.voting_open_s5,
+        "voting_open_s10": club.voting_open_s10,
+    }
