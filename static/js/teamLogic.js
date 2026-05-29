@@ -139,11 +139,11 @@ function validateAndPrepareTeamsForFormations(indice) {
 
     // Validar que la cantidad de jugadores por equipo sea de 5, 9 o 11 (para futsal, fútbol 9 o fútbol 11)
     if (teamsList[0][0].length !== 11 && teamsList[0][0].length !== 9 && teamsList[0][0].length !== 5) {
-        alert('La cantidad de jugadores por equipo debe ser de 5, 9 o 11.');
+        alert('La cantidad de jugadores por equipo debe ser de 5, 9 u 11.');
         return null;
     }
     if (teamsList[1][0].length !== 11 && teamsList[1][0].length !== 9 && teamsList[1][0].length !== 5) {
-        alert('La cantidad de jugadores por equipo debe ser de 5, 9 o 11.');
+        alert('La cantidad de jugadores por equipo debe ser de 5, 9 u 11.');
         return null;
     }
 

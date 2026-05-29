@@ -175,9 +175,9 @@ async def build_teams_api(
         data = await request.json()
         selected_player_ids = data.get("selected_player_ids", [])
 
-        if len(selected_player_ids) < 4:
+        if len(selected_player_ids) < 3:
             return JSONResponse(
-                content={"error": "Necesitas al menos 4 jugadores para armar equipos"},
+                content={"error": "Necesitas al menos 3 jugadores para armar equipos"},
                 status_code=400,
             )
 
