@@ -58,6 +58,11 @@ async def landing_page(request: Request):
     return templates.TemplateResponse(request=request, name="landing-page.html")
 
 
+@router.get("/video", response_class=HTMLResponse, include_in_schema=False)
+async def video_page(request: Request):
+    return templates.TemplateResponse(request=request, name="video.html")
+
+
 @router.get("/jugadores", response_class=HTMLResponse, include_in_schema=False)
 async def players_page(
     request: Request, current_user: User = Depends(get_current_user)
