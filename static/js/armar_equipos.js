@@ -508,6 +508,26 @@ function renderManualComparison() {
     };
 }
 
+function checkReviewPrompt() {
+    const STORAGE_KEY = 'ae_review_prompted';
+    const COUNT_KEY = 'ae_teams_generated_count';
+
+    if (localStorage.getItem(STORAGE_KEY)) return;
+
+    const count = parseInt(localStorage.getItem(COUNT_KEY) || '0') + 1;
+    localStorage.setItem(COUNT_KEY, count);
+
+    if (count >= 3) {
+        localStorage.setItem(STORAGE_KEY, '1');
+        showReviewModal();
+    }
+}
+
+function showReviewModal() {
+    const modal = document.getElementById('review-modal');
+    if (modal) modal.style.display = 'flex';
+}
+
 // Generate optimized teams function
 async function generateTeams() {
     const generateBtn = document.querySelector('.generate-btn');
@@ -565,6 +585,8 @@ async function generateTeams() {
         
         // Render the results
         displayTeamsResults(transformedData);
+
+        checkReviewPrompt();
         
     } catch (error) {
         console.error('Error generating teams:', error);
