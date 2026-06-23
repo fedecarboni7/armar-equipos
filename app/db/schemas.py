@@ -167,3 +167,16 @@ class MatchStandingResponse(BaseModel):
     goals: int
     assists: int
     last_match: date
+
+
+class AIAssignPlayersRequest(BaseModel):
+    club_id: int
+    scale: Literal["s5", "s10"]
+    raw_list: str
+    available_player_ids: list[int]
+
+
+class AIAssignPlayersResponse(BaseModel):
+    team_a: list[int]
+    team_b: list[int]
+    not_found: list[str]

@@ -715,6 +715,106 @@ function initDateFilters() {
     }
 }
 
+function initAIAssignPanel() {
+    const section = document.querySelector('.available-section');
+    if (!section) return;
+    const header = section.querySelector('.team-header');
+    if (!header) return;
+
+    const btn = document.createElement('button');
+    btn.className = 'secondary-btn ai-assign-btn';
+    btn.textContent = 'Asignar con IA';
+    btn.type = 'button';
+    btn.style.cssText = 'display:block;width:100%;margin:8px 0;';
+    header.after(btn);
+
+    const panel = document.createElement('div');
+    panel.className = 'ai-assign-panel';
+    panel.style.cssText = 'display:none;margin-bottom:10px;padding:12px;background:#262626;border:1px solid #444;border-radius:8px;';
+    panel.innerHTML = `
+        <textarea id="ai-raw-list" placeholder="Pegá la lista con los dos equipos..." class="modal-search" style="margin-bottom:0;min-height:100px;resize:vertical;"></textarea>
+        <div id="ai-assign-status" style="margin:6px 0;font-size:14px;display:none;"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;">
+            <button id="ai-confirm-btn" class="primary-btn" style="flex:1;">Confirmar</button>
+            <button id="ai-cancel-btn" class="secondary-btn" style="flex:1;">Cancelar</button>
+        </div>
+    `;
+    btn.after(panel);
+
+    const textarea = document.getElementById('ai-raw-list');
+    const confirmBtn = document.getElementById('ai-confirm-btn');
+    const cancelBtn = document.getElementById('ai-cancel-btn');
+    const statusEl = document.getElementById('ai-assign-status');
+
+    const hidePanel = () => {
+        panel.style.display = 'none';
+        btn.style.display = 'block';
+        textarea.value = '';
+        statusEl.style.display = 'none';
+        statusEl.textContent = '';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirmar';
+    };
+
+    btn.addEventListener('click', () => {
+        panel.style.display = 'block';
+        btn.style.display = 'none';
+        textarea.focus();
+    });
+
+    cancelBtn.addEventListener('click', hidePanel);
+
+    confirmBtn.addEventListener('click', async () => {
+        const rawList = textarea.value.trim();
+        if (!rawList) return;
+
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Procesando...';
+        statusEl.style.display = 'none';
+
+        try {
+            const allPlayers = currentScale === 5 ? playersS5 : playersS10;
+            const allIds = allPlayers.map((p) => p.id);
+            const teamAIds = modalAssignment.getTeamIds('A');
+            const teamBIds = modalAssignment.getTeamIds('B');
+            const assignedIds = new Set([...teamAIds, ...teamBIds]);
+            const availableIds = allIds.filter((id) => !assignedIds.has(id));
+            const clubId = getClubIdParam();
+
+            const result = await fetchJson('/matches/ai-assign-players', {
+                method: 'POST',
+                body: JSON.stringify({
+                    club_id: clubId,
+                    scale: getCurrentVersion(),
+                    raw_list: rawList,
+                    available_player_ids: availableIds,
+                }),
+            });
+            const currentA = modalAssignment.getTeamIds('A');
+            const currentB = modalAssignment.getTeamIds('B');
+            const newTeamA = [...new Set([...currentA, ...result.team_a])];
+            const newTeamB = [...new Set([...currentB, ...result.team_b])];
+            modalAssignment.setTeams(newTeamA, newTeamB);
+
+            if (result.not_found && result.not_found.length > 0) {
+                statusEl.textContent = 'No encontré: ' + result.not_found.join(', ');
+                statusEl.style.cssText = 'margin:6px 0;font-size:14px;color:#d32f2f;';
+                statusEl.style.display = 'block';
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirmar';
+            } else {
+                hidePanel();
+            }
+        } catch (error) {
+            statusEl.textContent = 'Error al procesar la lista. Intentá de nuevo.';
+            statusEl.style.cssText = 'margin:6px 0;font-size:14px;color:#d32f2f;';
+            statusEl.style.display = 'block';
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Confirmar';
+        }
+    });
+}
+
 function initModalAssignment() {
     if (!window.TeamAssignment) return;
     modalAssignment = window.TeamAssignment.create({
@@ -743,6 +843,8 @@ function initModalAssignment() {
             }
         });
     }
+
+    initAIAssignPanel();
 }
 
 async function initPartidos() {
