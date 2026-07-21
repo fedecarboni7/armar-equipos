@@ -224,3 +224,6 @@ __marimo__/
 
 # Others
 opencode.json
+
+# Node
+node_modules/
