@@ -24,9 +24,8 @@ const statusPhrases = [
   'acomodando los arcos',
   'marcando la cancha',
   'repartiendo pecheras',
-  'sorteando capitanes',
-  'afinando el equilibrio de equipos',
-  'inflando la pelota'
+  'inflando la pelota',
+  'abriendo clubes'
 ];
 
 async function checkBackendAwake() {
@@ -64,10 +63,7 @@ function fireAndForgetWakeRequest() {
 }
 
 function buildWakingPageHtml() {
-  const hasBallImage = false;
-  const ballMarkup = hasBallImage
-    ? '<img class="ball ball-image" src="/ball.png" alt="Pelota" />'
-    : '<span class="ball ball-emoji" aria-hidden="true">⚽</span>';
+  const ballMarkup = '<span class="ball ball-emoji" aria-hidden="true">⚽</span>';
 
   return `<!doctype html>
 <html lang="es">
@@ -77,16 +73,16 @@ function buildWakingPageHtml() {
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, proxy-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Armando el equipo</title>
+  <title>Preparando todo</title>
   <style>
     :root {
-      color-scheme: light;
-      --bg: #f7f4ef;
-      --panel: rgba(255, 255, 255, 0.78);
-      --text: #17212f;
-      --muted: #516075;
+      color-scheme: dark;
+      --bg: #1a1a1a;
+      --panel: #2d2d2d;
+      --text: #e0e0e0;
+      --muted: #9ca3af;
       --accent: #0f766e;
-      --shadow: rgba(15, 23, 42, 0.18);
+      --shadow: rgba(0, 0, 0, 0.4);
     }
 
     html, body {
@@ -94,8 +90,8 @@ function buildWakingPageHtml() {
       min-height: 100%;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.65) 28%, transparent 60%),
-        linear-gradient(180deg, #fffaf1 0%, var(--bg) 100%);
+        radial-gradient(circle at top, rgba(45, 45, 45, 0.95), rgba(45, 45, 45, 0.65) 28%, transparent 60%),
+        linear-gradient(180deg, #252525 0%, var(--bg) 100%);
       color: var(--text);
     }
 
@@ -111,25 +107,6 @@ function buildWakingPageHtml() {
       width: min(560px, 100%);
       text-align: center;
       padding: 36px 28px 32px;
-      background: var(--panel);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(23, 33, 47, 0.08);
-      border-radius: 28px;
-      box-shadow: 0 24px 80px rgba(15, 23, 42, 0.10);
-    }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 7px 12px;
-      border-radius: 999px;
-      background: rgba(15, 118, 110, 0.10);
-      color: var(--accent);
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
     }
 
     h1 {
@@ -161,14 +138,10 @@ function buildWakingPageHtml() {
       z-index: 2;
       width: 112px;
       height: 112px;
-      animation: bounce 1.15s ease-in-out infinite, spin 5s linear infinite;
+      animation: bounce 1.2s cubic-bezier(0.33, 0, 0.67, 1) infinite;
       transform-origin: center bottom;
       will-change: transform;
-      filter: drop-shadow(0 18px 18px rgba(15, 23, 42, 0.16));
-    }
-
-    .ball-image {
-      object-fit: contain;
+      filter: drop-shadow(0 18px 18px rgba(0, 0, 0, 0.30));
     }
 
     .ball-emoji {
@@ -187,9 +160,9 @@ function buildWakingPageHtml() {
       width: 96px;
       height: 20px;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(15, 23, 42, 0.30) 0%, rgba(15, 23, 42, 0.13) 45%, rgba(15, 23, 42, 0) 74%);
+      background: radial-gradient(circle, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.20) 45%, rgba(0, 0, 0, 0) 74%);
       transform: translateX(-50%);
-      animation: shadowPulse 1.15s ease-in-out infinite;
+      animation: shadowPulse 1.2s cubic-bezier(0.33, 0, 0.67, 1) infinite;
       filter: blur(1px);
     }
 
@@ -203,7 +176,7 @@ function buildWakingPageHtml() {
       width: 8px;
       height: 8px;
       border-radius: 50%;
-      background: rgba(23, 33, 47, 0.42);
+      background: rgba(255, 255, 255, 0.30);
       animation: dotPulse 1.1s infinite ease-in-out;
     }
 
@@ -211,22 +184,23 @@ function buildWakingPageHtml() {
     .dots span:nth-child(3) { animation-delay: 0.36s; }
 
     @keyframes bounce {
-      0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
-      35% { transform: translateY(-16px) rotate(-6deg) scale(1.03); }
-      55% { transform: translateY(-34px) rotate(5deg) scale(1.04); }
-      75% { transform: translateY(-8px) rotate(-3deg) scale(0.98); }
-    }
-
-    @keyframes spin {
-      from { }
-      to { }
+      0%, 100% {
+        transform: translateY(0) scaleX(1.05) scaleY(0.95);
+      }
+      50% {
+        transform: translateY(-40px) scaleX(1) scaleY(1);
+      }
     }
 
     @keyframes shadowPulse {
-      0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.78; }
-      35% { transform: translateX(-50%) scale(0.72); opacity: 0.52; }
-      55% { transform: translateX(-50%) scale(0.58); opacity: 0.38; }
-      75% { transform: translateX(-50%) scale(0.88); opacity: 0.65; }
+      0%, 100% {
+        transform: translateX(-50%) scale(1);
+        opacity: 0.5;
+      }
+      50% {
+        transform: translateX(-50%) scale(0.55);
+        opacity: 0.2;
+      }
     }
 
     @keyframes dotPulse {
@@ -237,15 +211,15 @@ function buildWakingPageHtml() {
 </head>
 <body>
   <main class="card">
-    <div class="badge">Gateway activo</div>
-    <h1>Armando el equipo</h1>
-    <p class="subtitle" id="subtitle">calentando jugadores</p>
-
+    <h1>Preparando todo</h1>
+    
     <div class="scene" aria-hidden="true">
-      <div class="shadow"></div>
-      ${ballMarkup}
+    <div class="shadow"></div>
+    ${ballMarkup}
     </div>
-
+    
+    <p class="subtitle" id="subtitle">calentando jugadores</p>
+    
     <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
   </main>
 
