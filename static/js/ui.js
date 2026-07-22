@@ -1,3 +1,18 @@
+// Render a player avatar circle: photo if available, else initial-letter fallback
+function renderPlayerAvatar(player, size) {
+    const name = player.name || '';
+    const initial = name.charAt(0).toUpperCase();
+    const escapedName = escapeHTML(name);
+    const escapedInitial = escapeHTML(initial);
+
+    if (player.photo_url) {
+        return `<img class="player-avatar-img" src="${escapeHTML(player.photo_url)}" alt="${escapedName}" width="${size}" height="${size}" />`;
+    }
+
+    const fontSize = Math.round(size * 0.4);
+    return `<div class="player-initial" style="width:${size}px;height:${size}px;font-size:${fontSize}px;">${escapedInitial}</div>`;
+}
+
 // Compartir resultados de los equipos
 function compartirEquipos(button) {
     const indice = button.id.replace('shareButton', ''); // Obtiene el índice del botón

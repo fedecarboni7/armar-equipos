@@ -1,6 +1,101 @@
 // Configuración de escala
 let currentScale = getCurrentScale();
 
+// Photo upload state
+let pendingPhotoFile = null;
+
+function getPlayerType() {
+    return currentScale === 5 ? 's5' : 's10';
+}
+
+function validatePhotoFile(file) {
+    const maxSize = 5 * 1024 * 1024;
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+
+    if (file.size > maxSize) {
+        alert('La imagen no puede superar 5MB.');
+        return false;
+    }
+    if (!allowedTypes.includes(file.type)) {
+        alert('Formato no soportado. Usá JPEG, PNG o WEBP.');
+        return false;
+    }
+    return true;
+}
+
+function setupPhotoInput(inputId, previewId) {
+    const input = document.getElementById(inputId);
+    const preview = document.getElementById(previewId);
+    if (!input || !preview) return;
+
+    input.addEventListener('change', function () {
+        const file = this.files[0];
+        if (!file) return;
+
+        if (!validatePhotoFile(file)) {
+            this.value = '';
+            return;
+        }
+
+        pendingPhotoFile = file;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            preview.innerHTML = `<img class="player-avatar-img" src="${e.target.result}" width="80" height="80" />`;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+async function uploadPlayerPhotoIfPending(playerId) {
+    if (!pendingPhotoFile) return;
+
+    const playerType = getPlayerType();
+    const formData = new FormData();
+    formData.append('file', pendingPhotoFile);
+
+    try {
+        const response = await fetch(
+            `/api/players/${playerType}/${playerId}/photo`,
+            { method: 'POST', credentials: 'include', body: formData }
+        );
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.detail || `Error ${response.status}`);
+        }
+    } catch (error) {
+        console.error('Photo upload failed:', error);
+        alert('Jugador creado, pero no se pudo subir la foto: ' + error.message);
+    }
+}
+
+async function removePlayerPhoto(player) {
+    const playerType = getPlayerType();
+    try {
+        const response = await fetch(
+            `/api/players/${playerType}/${player.id}/photo`,
+            { method: 'DELETE', credentials: 'include' }
+        );
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.detail || `Error ${response.status}`);
+        }
+        const updated = await response.json();
+        player.photo_url = updated.photo_url;
+
+        const preview = document.getElementById('edit-photo-preview');
+        if (preview) {
+            preview.innerHTML = renderPlayerAvatar({ name: player.name, photo_url: null }, 80);
+        }
+        const removeBtn = document.getElementById('remove-photo-btn');
+        if (removeBtn) removeBtn.style.display = 'none';
+
+        showSuccessMessage('Foto eliminada');
+    } catch (error) {
+        console.error('Photo delete failed:', error);
+        alert('Error al quitar la foto: ' + error.message);
+    }
+}
+
 // ==================== HELP MODAL (Players) ====================
 const HELP_MODAL_PLAYERS_KEY = 'players_helpModalShown';
 
@@ -197,14 +292,13 @@ function renderPlayers() {
         playerRow.className = 'player-row';
         playerRow.onclick = () => viewPlayer(player.id);
         
-        const initial = player.name.charAt(0).toUpperCase();
         const score = calculateAverage(player);
         const lastModified = player.updated_at;
         
         playerRow.innerHTML = `
             <div class="player-name">
-                <div class="player-initial">${initial}</div>
-                <div class="player-full-name">${player.name}</div>
+                ${renderPlayerAvatar(player, 40)}
+                <div class="player-full-name">${escapeHTML(player.name)}</div>
             </div>
             <div class="score">${score}/${currentScale}</div>
             <div class="last-modified">${formatDate(lastModified)}</div>
@@ -338,14 +432,11 @@ function renderPlayerModal(player) {
     const details = document.getElementById('player-details');
     const average = calculateAverage(player);
     const lastModified = player.updated_at;
-    const initial = player.name.charAt(0).toUpperCase();
-    
-    const avatarContent = `<div class="avatar-initials">${initial}</div>`;
 
     details.innerHTML = `
         <div class="player-detail-header">
             <div class="player-detail-avatar">
-                ${avatarContent}
+                ${renderPlayerAvatar(player, 80)}
             </div>
             <div class="player-detail-info">
                 <h3>${escapeHTML(player.name)}</h3>
@@ -403,6 +494,23 @@ function renderPlayerModal(player) {
             <div class="form-group">
                 <label for="edit-player-name">Nombre del Jugador</label>
                 <input type="text" id="edit-player-name" value="${escapeHTML(player.name)}" />
+            </div>
+
+            <div class="form-group">
+                <label>Foto del Jugador</label>
+                <div class="photo-upload-container">
+                    <div class="photo-preview" id="edit-photo-preview">
+                        ${renderPlayerAvatar(player, 80)}
+                    </div>
+                    <div class="photo-upload-controls">
+                        <input type="file" id="edit-photo-input" accept="image/jpeg,image/png,image/webp" hidden />
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('edit-photo-input').click()">
+                            📷 Cambiar foto
+                        </button>
+                        ${player.photo_url ? '<button type="button" class="btn btn-danger" id="remove-photo-btn" onclick="removePlayerPhoto(currentEditingPlayer)">🗑️ Quitar foto</button>' : ''}
+                        <span class="photo-upload-hint">JPEG, PNG o WEBP. Máximo 5MB.</span>
+                    </div>
+                </div>
             </div>
             
             <div class="form-group">
@@ -499,6 +607,9 @@ function renderPlayerModal(player) {
                     });
                 }
             });
+
+            pendingPhotoFile = null;
+            setupPhotoInput('edit-photo-input', 'edit-photo-preview');
         }
     }, 100);
 }
@@ -549,15 +660,23 @@ async function savePlayerEdits() {
         };
 
         await savePlayer(playerData);
-        
-        // Actualizar el jugador actual con los nuevos datos
-        Object.assign(currentEditingPlayer, playerData);
+
+        // Upload photo if one was selected
+        await uploadPlayerPhotoIfPending(currentEditingPlayer.id);
+
+        // Reload to get fresh data including photo_url
+        await loadPlayers();
+
+        // Actualizar el jugador actual con los nuevos datos del servidor
+        const refreshed = players.find(p => p.id === currentEditingPlayer.id);
+        if (refreshed) Object.assign(currentEditingPlayer, refreshed);
         
         // Mostrar mensaje de éxito
         showSuccessMessage('✓ Jugador guardado exitosamente');
         
         // Cambiar a modo vista sin cerrar el modal
         isEditMode = false;
+        pendingPhotoFile = null;
         renderPlayerModal(currentEditingPlayer);
         
     } catch (error) {
@@ -602,9 +721,10 @@ function closeModal() {
         }
     });
     
-    // Resetear modo de edición
+    // Resetear modo de edición y photo state
     isEditMode = false;
     currentEditingPlayer = null;
+    pendingPhotoFile = null;
     
     document.getElementById('playerModal').style.display = 'none';
 }
@@ -626,6 +746,22 @@ function openCreatePlayerModal() {
         <div class="form-group">
             <label for="create-player-name">Nombre del Jugador</label>
             <input type="text" id="create-player-name" placeholder="Ingresa el nombre del jugador" required />
+        </div>
+
+        <div class="form-group">
+            <label>Foto del Jugador (opcional)</label>
+            <div class="photo-upload-container">
+                <div class="photo-preview" id="create-photo-preview">
+                    <div class="player-initial" style="width:80px;height:80px;font-size:32px;">?</div>
+                </div>
+                <div class="photo-upload-controls">
+                    <input type="file" id="create-photo-input" accept="image/jpeg,image/png,image/webp" hidden />
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('create-photo-input').click()">
+                        📷 Elegir foto
+                    </button>
+                    <span class="photo-upload-hint">JPEG, PNG o WEBP. Máximo 5MB.</span>
+                </div>
+            </div>
         </div>
         
         <div class="form-group">
@@ -682,6 +818,9 @@ function openCreatePlayerModal() {
     
     // Mostrar el modal
     modal.style.display = 'block';
+    
+    pendingPhotoFile = null;
+    setupPhotoInput('create-photo-input', 'create-photo-preview');
     
     // Agregar validación en tiempo real a los inputs
     addRealTimeValidation();
@@ -798,6 +937,14 @@ async function saveNewPlayer() {
             const errorData = await response.json();
             throw new Error(errorData.detail || `Error ${response.status}`);
         }
+
+        const newPlayer = await response.json();
+        
+        // Upload photo if one was selected
+        if (pendingPhotoFile && newPlayer.id) {
+            await uploadPlayerPhotoIfPending(newPlayer.id);
+        }
+        pendingPhotoFile = null;
         
         // Cerrar modal y recargar lista
         closeCreateModal();
@@ -813,6 +960,7 @@ async function saveNewPlayer() {
 
 // Función para cerrar modal de creación
 function closeCreateModal() {
+    pendingPhotoFile = null;
     const modal = document.getElementById('createPlayerModal');
     modal.style.display = 'none';
 }

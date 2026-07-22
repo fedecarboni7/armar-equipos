@@ -41,3 +41,21 @@ body {
     margin: 0 auto;
     padding: 20px;
 }
+
+/* Player avatar — shared across Jugadores and Armar Equipos pages */
+.player-initial {
+    background-color: #666;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    flex-shrink: 0;
+}
+
+.player-avatar-img {
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}

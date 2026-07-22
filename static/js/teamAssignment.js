@@ -148,6 +148,7 @@
                 row.className = 'available-player';
                 row.innerHTML = `
                     <div class="player-info">
+                        ${renderPlayerAvatar(player, 40)}
                         <span class="player-name">${player.name}</span>
                         ${settings.showRating && player.rating !== undefined ? `<span class="player-rating">${player.rating}</span>` : ''}
                     </div>
@@ -193,6 +194,7 @@
                     : '';
                 row.innerHTML = `
                     <div class="player-info">
+                        ${renderPlayerAvatar(player, 40)}
                         <span class="player-name">${player.name}</span>
                         ${settings.showRating && player.rating !== undefined ? `<span class="player-rating">${player.rating}</span>` : ''}
                     </div>
