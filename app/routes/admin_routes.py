@@ -8,6 +8,13 @@ from app.config.config import templates
 from app.config.settings import Settings
 from app.db.database import get_db
 from app.db.models import User
+from app.utils.analytics import (
+    get_daily_new_clubs,
+    get_daily_new_users,
+    get_match_creator_stats,
+    get_weekly_cohort_retention,
+    get_weekly_matches_created,
+)
 from app.utils.auth import get_current_user
 from app.utils.security import verify_admin_user
 from app.config.logging_config import logger
@@ -35,16 +42,6 @@ async def admin_dashboard(
                 text("SELECT COUNT(DISTINCT user_id) FROM club_users")
             ).scalar()
             total_clubs = conn.execute(text("SELECT COUNT(*) FROM clubs")).scalar()
-            total_players = conn.execute(
-                text("SELECT COUNT(*) FROM players_s5")
-            ).scalar()
-
-            # Promedio de jugadores por usuario (solo usuarios activos)
-            avg_players_per_user = (
-                round(total_players / users_with_players, 1)
-                if users_with_players > 0
-                else 0
-            )
 
             # Promedio de usuarios por club
             avg_users_per_club = (
@@ -183,38 +180,6 @@ async def admin_dashboard(
                 else 0
             )
 
-            # Resets de contraseña
-            total_password_resets = conn.execute(
-                text("SELECT COUNT(*) FROM password_reset_tokens")
-            ).scalar()
-
-            # Usuarios que han usado reset
-            users_with_reset = conn.execute(
-                text("SELECT COUNT(DISTINCT user_id) FROM password_reset_tokens")
-            ).scalar()
-
-            # Usuarios en S5 vs S10 (usando NOT EXISTS para evitar problemas con NULL)
-            users_s5_only = conn.execute(
-                text("""
-                    SELECT COUNT(DISTINCT p.user_id) FROM players_s5 p
-                    WHERE NOT EXISTS (SELECT 1 FROM players_s10 p2 WHERE p2.user_id = p.user_id)
-                """)
-            ).scalar()
-
-            users_s10_only = conn.execute(
-                text("""
-                    SELECT COUNT(DISTINCT p2.user_id) FROM players_s10 p2
-                    WHERE NOT EXISTS (SELECT 1 FROM players_s5 p WHERE p.user_id = p2.user_id)
-                """)
-            ).scalar()
-
-            users_both_scales = conn.execute(
-                text("""
-                    SELECT COUNT(DISTINCT p.user_id) FROM players_s5 p
-                    WHERE EXISTS (SELECT 1 FROM players_s10 p2 WHERE p2.user_id = p.user_id)
-                """)
-            ).scalar()
-
             total_players_s5 = conn.execute(
                 text("SELECT COUNT(*) FROM players_s5")
             ).scalar()
@@ -223,26 +188,35 @@ async def admin_dashboard(
                 text("SELECT COUNT(*) FROM players_s10")
             ).scalar()
 
-            # Jugadores en clubs vs sin club (ambas versiones)
-            players_in_clubs = conn.execute(
-                text("""
-                    SELECT COUNT(*) FROM (
-                        SELECT id FROM players_s5 WHERE club_id IS NOT NULL
-                        UNION ALL
-                        SELECT id FROM players_s10 WHERE club_id IS NOT NULL
-                    ) AS combined_players
-                """)
-            ).scalar()
+            try:
+                daily_new_users = get_daily_new_users(conn, days=90)
+            except Exception as e:
+                logger.error(f"Error loading daily new users analytics: {e}")
+                daily_new_users = []
 
-            players_without_club = conn.execute(
-                text("""
-                    SELECT COUNT(*) FROM (
-                        SELECT id FROM players_s5 WHERE club_id IS NULL
-                        UNION ALL
-                        SELECT id FROM players_s10 WHERE club_id IS NULL
-                    ) AS combined_players
-                """)
-            ).scalar()
+            try:
+                daily_new_clubs = get_daily_new_clubs(conn, days=90)
+            except Exception as e:
+                logger.error(f"Error loading daily new clubs analytics: {e}")
+                daily_new_clubs = []
+
+            try:
+                cohort_retention = get_weekly_cohort_retention(conn, num_cohorts=4)
+            except Exception as e:
+                logger.error(f"Error loading cohort retention analytics: {e}")
+                cohort_retention = []
+
+            try:
+                weekly_matches = get_weekly_matches_created(conn, weeks=8)
+            except Exception as e:
+                logger.error(f"Error loading weekly matches analytics: {e}")
+                weekly_matches = []
+
+            try:
+                match_creator_stats = get_match_creator_stats(conn)
+            except Exception as e:
+                logger.error(f"Error loading match creator analytics: {e}")
+                match_creator_stats = {}
 
         # Tasas de engagement
         engagement_rate = (
@@ -268,7 +242,6 @@ async def admin_dashboard(
             "new_clubs_24h": new_clubs_24h,
             "new_clubs_week": new_clubs_week,
             "new_clubs_month": new_clubs_month,
-            "avg_players_per_user": avg_players_per_user,
             "avg_users_per_club": avg_users_per_club,
             "new_users_24h": new_users_24h,
             "new_users_week": new_users_week,
@@ -284,15 +257,13 @@ async def admin_dashboard(
             "invitation_acceptance_rate": invitation_acceptance_rate,
             "users_email_confirmed": users_email_confirmed,
             "email_confirmation_rate": email_confirmation_rate,
-            "total_password_resets": total_password_resets,
-            "users_with_reset": users_with_reset,
-            "users_s5_only": users_s5_only,
-            "users_s10_only": users_s10_only,
-            "users_both_scales": users_both_scales,
             "total_players_s5": total_players_s5,
             "total_players_s10": total_players_s10,
-            "players_in_clubs": players_in_clubs,
-            "players_without_club": players_without_club,
+            "daily_new_users": daily_new_users,
+            "daily_new_clubs": daily_new_clubs,
+            "cohort_retention": cohort_retention,
+            "weekly_matches": weekly_matches,
+            "match_creator_stats": match_creator_stats,
         }
 
         return templates.TemplateResponse(
