@@ -2,9 +2,12 @@ from typing import List, Optional
 from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import PromptTemplate
 from sqlalchemy import or_, case, func, exists, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.config.llm import get_llm
 from app.db import models, schemas
 from app.db.database import get_db
 from app.utils.auth import get_current_user
@@ -527,3 +530,103 @@ def delete_match(
     db.delete(match)
     db.commit()
     return {"status": "deleted"}
+
+
+ai_assign_prompt = PromptTemplate(
+    input_variables=["raw_list", "available_players"],
+    template="""
+Eres un asistente experto en armar equipos de fútbol.
+
+El usuario pegó la siguiente lista cruda con nombres de jugadores separados en dos equipos:
+{raw_list}
+
+Jugadores disponibles del club (ID|Nombre):
+{available_players}
+
+Instrucciones:
+- Identificá los dos grupos en la lista cruda. Pueden estar separados por "vs", "vs.", "-",
+  "Claro/Oscuro", "Blancos/Negros", números (1. / 2.), líneas en blanco, o cualquier otro separador.
+- Hacé fuzzy matching de cada nombre de la lista contra los jugadores disponibles.
+  Considerá mayúsculas/minúsculas, nombres parciales, apodos, abreviaciones, tildes.
+- Cada jugador disponible puede aparecer como máximo una vez (en team_a o team_b).
+- Si un nombre no se puede emparejar con confianza, incluí el nombre original en "not_found".
+- Respondé SOLO con un objeto JSON válido, sin markdown, sin explicaciones, sin etiquetas de código.
+
+Formato exacto:
+{{"team_a": [id1, id2, ...], "team_b": [id3, id4, ...], "not_found": ["nombre1", "nombre2"]}}
+""",
+)
+
+
+def _get_ai_assign_chain():
+    return ai_assign_prompt | get_llm() | JsonOutputParser()
+
+
+@router.post(
+    "/matches/ai-assign-players", response_model=schemas.AIAssignPlayersResponse
+)
+async def ai_assign_players(
+    req: schemas.AIAssignPlayersRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    current_user = _require_auth(current_user)
+
+    if req.club_id is not None:
+        _ensure_club_member(db, req.club_id, current_user.id)
+
+    model_cls = models.PlayerScale5 if req.scale == "s5" else models.PlayerScale10
+
+    players = (
+        db.query(model_cls.id, model_cls.name)
+        .filter(model_cls.id.in_(req.available_player_ids))
+        .all()
+    )
+
+    if not players:
+        raise HTTPException(
+            status_code=400,
+            detail="No hay jugadores disponibles con los IDs proporcionados",
+        )
+
+    available_formatted = "\n".join([f"{p.id}|{p.name}" for p in players])
+
+    chain = _get_ai_assign_chain()
+
+    try:
+        result = await chain.ainvoke(
+            {"raw_list": req.raw_list, "available_players": available_formatted}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error al procesar la lista con IA: {str(e)}"
+        )
+
+    team_a = result.get("team_a", [])
+    team_b = result.get("team_b", [])
+    not_found = result.get("not_found", [])
+
+    if (
+        not isinstance(team_a, list)
+        or not isinstance(team_b, list)
+        or not isinstance(not_found, list)
+    ):
+        raise HTTPException(
+            status_code=500, detail="Respuesta de IA con formato inválido"
+        )
+
+    valid_ids = set(req.available_player_ids)
+    team_a = [int(pid) for pid in team_a if pid in valid_ids]
+    team_b = [int(pid) for pid in team_b if pid in valid_ids]
+
+    used = set(team_a) & set(team_b)
+    if used:
+        for pid in used:
+            if pid in team_b:
+                team_b.remove(pid)
+
+    return schemas.AIAssignPlayersResponse(
+        team_a=team_a,
+        team_b=team_b,
+        not_found=[str(n) for n in not_found],
+    )

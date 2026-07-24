@@ -810,6 +810,11 @@ h1 {
     gap: 12px;
 }
 
+.player-info .player-initial,
+.player-info .player-avatar-img {
+    flex-shrink: 0;
+}
+
 .player-name {
     font-size: 16px;
     font-weight: 500;

@@ -37,6 +37,7 @@ Usuarios registrados en la aplicación.
 | email_confirmation_token | String | NULLABLE | Token para confirmar el email |
 | email_confirmation_expires | DateTime | NULLABLE | Expiración del token de confirmación |
 | created_at | DateTime | DEFAULT now() | Fecha de registro |
+| last_seen_at | DateTime | NULLABLE | Última vez que el usuario tuvo una sesión válida (actualizado como máximo una vez por día calendario) |
 
 ### Relationships
 

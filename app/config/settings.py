@@ -21,3 +21,8 @@ class Settings:
         self.google_client_id = os.getenv("GOOGLE_CLIENT_ID")
         self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET")
         self.google_redirect_uri = os.getenv("GOOGLE_REDIRECT_URI")
+        self.r2_account_id = os.getenv("R2_ACCOUNT_ID")
+        self.r2_access_key_id = os.getenv("R2_ACCESS_KEY_ID")
+        self.r2_secret_access_key = os.getenv("R2_SECRET_ACCESS_KEY")
+        self.r2_bucket_name = os.getenv("R2_BUCKET_NAME")
+        self.r2_public_url = os.getenv("R2_PUBLIC_URL", "").rstrip("/")

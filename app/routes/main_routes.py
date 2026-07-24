@@ -1,10 +1,9 @@
-import logging
-
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from requests import Session
 
 from app.config.config import templates
+from app.config.logging_config import logger
 from app.db.database import get_db
 from app.db.database_utils import execute_with_retries, query_clubs, query_players
 from app.db.models import User
@@ -266,7 +265,7 @@ async def build_teams_api(
         )
 
     except Exception as e:
-        logging.exception("Error building teams: %s", str(e))
+        logger.exception("Error building teams: %s", str(e))
         return JSONResponse(
             content={"error": "Error interno al armar equipos"}, status_code=500
         )
@@ -342,13 +341,13 @@ async def match_players_api(
         return JSONResponse(content=result)
 
     except ValueError as e:
-        logging.warning("Validation error in match_players: %s", str(e))
+        logger.warning("Validation error in match_players: %s", str(e))
         return JSONResponse(
             content={"error": "Error de validación en los datos enviados"},
             status_code=400,
         )
     except Exception as e:
-        logging.exception("Error matching players: %s", str(e))
+        logger.exception("Error matching players: %s", str(e))
         return JSONResponse(
             content={"error": "Error al buscar coincidencias de jugadores"},
             status_code=500,

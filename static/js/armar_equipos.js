@@ -356,6 +356,7 @@ function renderPlayers() {
         playerItem.innerHTML = `
             <div class="player-info">
                 <div class="checkbox ${isSelected ? 'checked' : ''}" data-player="${player.name}"></div>
+                ${renderPlayerAvatar(player, 40)}
                 <span class="player-name">${player.name}</span>
             </div>
             <span class="player-rating">${player.rating}/${currentScale}</span>
