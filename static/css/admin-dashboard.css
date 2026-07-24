@@ -67,38 +67,6 @@ body {
     margin-top: 0.25rem;
 }
 
-.status-badge {
-    background: rgba(34, 197, 94, 0.2);
-    color: #86efac;
-    padding: 0.5rem 1rem;
-    border-radius: 9999px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.pulse-dot {
-    width: 0.5rem;
-    height: 0.5rem;
-    background: #4ade80;
-    border-radius: 50%;
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-
-    0%,
-    100% {
-        opacity: 1;
-    }
-
-    50% {
-        opacity: 0.5;
-    }
-}
-
 .back-button {
     background: rgba(147, 51, 234, 0.8);
     color: white;
@@ -148,20 +116,9 @@ body {
     margin-bottom: 1rem;
 }
 
-/* Estilos para selectores de período (compartidos) */
-.period-selector,
-.period-selector-clubs {
-    display: flex;
-    gap: 0.25rem;
-    margin-bottom: 0.5rem;
-    margin-top: 0.5rem;
-    flex-wrap: wrap;
-}
-
-.period-btn,
-.period-btn-users,
-.period-btn-clubs,
-.period-btn-active {
+.period-btn-active,
+.period-btn-users-chart,
+.period-btn-clubs-chart {
     background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 0.375rem;
@@ -174,27 +131,24 @@ body {
     backdrop-filter: blur(8px);
 }
 
-.period-btn:hover,
-.period-btn-users:hover,
-.period-btn-clubs:hover,
-.period-btn-active:hover {
+.period-btn-active:hover,
+.period-btn-users-chart:hover,
+.period-btn-clubs-chart:hover {
     background: rgba(255, 255, 255, 0.15);
     color: rgba(255, 255, 255, 0.9);
 }
 
-.period-btn.active,
-.period-btn-users.active,
-.period-btn-clubs.active,
-.period-btn-active.active {
+.period-btn-active.active,
+.period-btn-users-chart.active,
+.period-btn-clubs-chart.active {
     background: rgba(168, 85, 247, 0.3);
     border-color: rgba(168, 85, 247, 0.5);
     color: #d8b4fe;
 }
 
-.period-btn.active:hover,
-.period-btn-users.active:hover,
-.period-btn-clubs.active:hover,
-.period-btn-active.active:hover {
+.period-btn-active.active:hover,
+.period-btn-users-chart.active:hover,
+.period-btn-clubs-chart.active:hover {
     background: rgba(168, 85, 247, 0.4);
 }
 
@@ -224,10 +178,6 @@ body {
     color: #fb923c;
 }
 
-.metric-emoji {
-    font-size: 2rem;
-}
-
 .metric-title {
     font-size: 1.125rem;
     font-weight: 600;
@@ -250,6 +200,18 @@ body {
 
 .charts-grid .chart-card {
     min-height: 280px;
+}
+
+.full-width-chart {
+    grid-column: 1 / -1;
+}
+
+.no-stretch-grid {
+    align-items: start;
+}
+
+.active-users-card {
+    min-height: 188px;
 }
 
 .compact-card .metric-value {
@@ -276,12 +238,51 @@ body {
     font-size: 11px;
 }
 
+.chart-gridline {
+    stroke: rgba(255, 255, 255, 0.1);
+    stroke-width: 1;
+}
+
+.chart-tick-label {
+    fill: rgba(255, 255, 255, 0.5);
+    font-size: 10px;
+}
+
+.chart-range-selector {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.chart-tooltip {
+    position: fixed;
+    background: rgba(15, 23, 42, 0.95);
+    color: #e2e8f0;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    display: none;
+}
+
 .chart-empty {
     display: flex;
     align-items: center;
     justify-content: center;
     color: rgba(255, 255, 255, 0.6);
     font-size: 0.875rem;
+    min-height: 220px;
+}
+
+.chart-single-value {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     min-height: 220px;
 }
 
@@ -349,47 +350,6 @@ body {
     font-weight: 600;
 }
 
-.insights {
-    text-align: center;
-}
-
-.insights-card {
-    background: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(16px);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.insights-title {
-    font-size: 1.125rem;
-    font-weight: bold;
-    margin-bottom: 0.75rem;
-}
-
-.insights-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-    font-size: 0.875rem;
-}
-
-.insight-purple {
-    color: #d8b4fe;
-}
-
-.insight-green {
-    color: #86efac;
-}
-
-.insight-yellow {
-    color: #fde047;
-}
-
-.insight-blue {
-    color: #60a5fa;
-}
-
 /* Estilos para títulos de sección */
 .section-header {
     margin: 2rem 0 1rem 0;
@@ -423,20 +383,4 @@ body {
         gap: 1rem;
         text-align: center;
     }
-}
-
-/* Estilos para tooltip */
-.tooltip-icon {
-    font-size: 1rem;
-    cursor: help;
-    opacity: 0.7;
-    transition: opacity 0.2s;
-    margin-left: 0.5rem;
-    border: none;
-    background: none;
-    padding: 0;
-}
-
-.tooltip-icon:hover {
-    opacity: 1;
 }

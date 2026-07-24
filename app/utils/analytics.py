@@ -24,7 +24,10 @@ def _build_daily_series(raw_counts: dict[date, int], days: int) -> list[dict]:
     for offset in range(days):
         current_day = start_date + timedelta(days=offset)
         result.append(
-            {"date": current_day.isoformat(), "count": int(raw_counts.get(current_day, 0))}
+            {
+                "date": current_day.isoformat(),
+                "count": int(raw_counts.get(current_day, 0)),
+            }
         )
 
     return result
@@ -80,22 +83,11 @@ def get_weekly_cohort_retention(conn: Connection, num_cohorts: int = 4) -> list[
     rows = conn.execute(
         text(
             """
-            WITH current_week_activity AS (
-                SELECT DISTINCT user_id
-                FROM (
-                    SELECT user_id FROM players_s5 WHERE updated_at >= :current_week_start
-                    UNION
-                    SELECT user_id FROM players_s10 WHERE updated_at >= :current_week_start
-                    UNION
-                    SELECT created_by AS user_id FROM matches WHERE created_at >= :current_week_start
-                ) activity
-            )
             SELECT
                 DATE_TRUNC('week', u.created_at)::date AS cohort_week_start,
                 COUNT(*) AS cohort_size,
-                COUNT(a.user_id) AS retained_count
+                COUNT(u.id) FILTER (WHERE u.last_seen_at >= :current_week_start) AS retained_count
             FROM users u
-            LEFT JOIN current_week_activity a ON a.user_id = u.id
             WHERE u.created_at >= :oldest_cohort_start
               AND u.created_at < :next_week_start
             GROUP BY DATE_TRUNC('week', u.created_at)::date

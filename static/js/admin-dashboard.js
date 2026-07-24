@@ -15,23 +15,17 @@ function createIcon(name, className = '') {
 }
 
 let dashboardStats = null;
+let fullDailyNewUsers = [];
+let fullDailyNewClubs = [];
 
 function initializeDashboard(stats) {
     dashboardStats = stats;
+    fullDailyNewUsers = stats.daily_new_users || [];
+    fullDailyNewClubs = stats.daily_new_clubs || [];
 }
 
 function getPeriodData(type, period) {
     const dataMap = {
-        users: {
-            '24h': { value: dashboardStats.new_users_24h, label: 'Últimas 24 horas', color: '#fb923c' },
-            '7d': { value: dashboardStats.new_users_week, label: 'Últimos 7 días', color: '#818cf8' },
-            '30d': { value: dashboardStats.new_users_month, label: 'Últimos 30 días', color: '#f472b6' },
-        },
-        clubs: {
-            '24h': { value: dashboardStats.new_clubs_24h, label: 'Últimas 24 horas', color: '#fb923c' },
-            '7d': { value: dashboardStats.new_clubs_week, label: 'Últimos 7 días', color: '#818cf8' },
-            '30d': { value: dashboardStats.new_clubs_month, label: 'Últimos 30 días', color: '#f472b6' },
-        },
         active: {
             '24h': { value: dashboardStats.active_users_24h, label: 'Últimas 24 horas', color: '#fb923c' },
             '7d': { value: dashboardStats.active_users_7d, label: 'Últimos 7 días', color: '#818cf8' },
@@ -70,30 +64,72 @@ function updatePeriodCard(type, period, valueId, subtitleId, buttonClass) {
     }
 }
 
-function changeNewUsersPeriod(period) {
-    updatePeriodCard('users', period, 'new-users-value', 'new-users-subtitle', 'period-btn-users');
-}
-
-function changeNewClubsPeriod(period) {
-    updatePeriodCard('clubs', period, 'new-clubs-value', 'new-clubs-subtitle', 'period-btn-clubs');
-}
-
 function changeActiveUsersPeriod(period) {
     updatePeriodCard('active', period, 'active-users-value', 'active-users-subtitle', 'period-btn-active');
+}
+
+function changeUsersChartRange(days, btn) {
+    const container = document.getElementById('users-chart-content');
+    if (days === 1) {
+        const last = fullDailyNewUsers[fullDailyNewUsers.length - 1];
+        const value = last ? Number(last.count) || 0 : 0;
+        container.innerHTML = `<div class="chart-single-value"><p class="metric-value">${value}</p><p class="metric-subtitle">Usuarios nuevos hoy</p></div>`;
+    } else {
+        container.innerHTML = createLineChart(fullDailyNewUsers.slice(-days), '#fb923c', 'usuarios nuevos');
+    }
+    document.querySelectorAll('.period-btn-users-chart').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
+}
+
+function changeClubsChartRange(days, btn) {
+    const container = document.getElementById('clubs-chart-content');
+    if (days === 1) {
+        const last = fullDailyNewClubs[fullDailyNewClubs.length - 1];
+        const value = last ? Number(last.count) || 0 : 0;
+        container.innerHTML = `<div class="chart-single-value"><p class="metric-value">${value}</p><p class="metric-subtitle">Clubes nuevos hoy</p></div>`;
+    } else {
+        container.innerHTML = createLineChart(fullDailyNewClubs.slice(-days), '#818cf8', 'clubes nuevos');
+    }
+    document.querySelectorAll('.period-btn-clubs-chart').forEach((b) => b.classList.remove('active'));
+    btn.classList.add('active');
 }
 
 function formatShortDate(dateString) {
     return dateString.slice(5);
 }
 
-function createLineChart(data, color) {
+let chartTooltip = null;
+
+function showChartTooltip(event, text) {
+    if (!chartTooltip) {
+        chartTooltip = document.createElement('div');
+        chartTooltip.className = 'chart-tooltip';
+        document.body.appendChild(chartTooltip);
+    }
+    chartTooltip.textContent = text;
+    chartTooltip.style.display = 'block';
+    const rect = chartTooltip.getBoundingClientRect();
+    let left = event.clientX - rect.width / 2;
+    let top = event.clientY - rect.height - 12;
+    if (left < 4) left = 4;
+    if (left + rect.width > window.innerWidth - 4) left = window.innerWidth - rect.width - 4;
+    if (top < 4) top = event.clientY + 16;
+    chartTooltip.style.left = left + 'px';
+    chartTooltip.style.top = top + 'px';
+}
+
+function hideChartTooltip() {
+    if (chartTooltip) chartTooltip.style.display = 'none';
+}
+
+function createLineChart(data, color, tooltipLabel = '') {
     if (!Array.isArray(data) || data.length === 0) {
         return '<div class="chart-empty">Sin datos disponibles</div>';
     }
 
     const width = 760;
     const height = 220;
-    const paddingX = 28;
+    const paddingX = 50;
     const paddingTop = 16;
     const paddingBottom = 30;
     const chartWidth = width - paddingX * 2;
@@ -101,6 +137,15 @@ function createLineChart(data, color) {
 
     const maxValue = Math.max(1, ...data.map((item) => Number(item.count) || 0));
     const stepX = data.length > 1 ? chartWidth / (data.length - 1) : 0;
+
+    const tickCount = 5;
+    const gridlines = [];
+    for (let i = 0; i <= tickCount; i++) {
+        const tickValue = Math.round((maxValue * i) / tickCount);
+        const y = paddingTop + chartHeight - (tickValue / maxValue) * chartHeight;
+        gridlines.push(`<line x1="${paddingX}" y1="${y}" x2="${width - paddingX}" y2="${y}" class="chart-gridline" />`);
+        gridlines.push(`<text x="${paddingX - 6}" y="${y + 3.5}" class="chart-tick-label" text-anchor="end">${tickValue}</text>`);
+    }
 
     const points = data.map((item, index) => {
         const value = Number(item.count) || 0;
@@ -120,6 +165,7 @@ function createLineChart(data, color) {
 
     return `
         <svg class="svg-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Gráfico de línea">
+            ${gridlines.join('')}
             <line x1="${paddingX}" y1="${paddingTop + chartHeight}" x2="${width - paddingX}" y2="${paddingTop + chartHeight}" class="chart-axis" />
             <polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
             ${data
@@ -127,7 +173,9 @@ function createLineChart(data, color) {
                     const value = Number(item.count) || 0;
                     const x = paddingX + index * stepX;
                     const y = paddingTop + chartHeight - (value / maxValue) * chartHeight;
-                    return `<circle cx="${x}" cy="${y}" r="2.2" fill="${color}"><title>${item.date}: ${value}</title></circle>`;
+                    if (value === 0) return '';
+                    const labelText = `${formatShortDate(item.date)}: ${value} ${tooltipLabel}`;
+                    return `<circle cx="${x}" cy="${y}" r="12" fill="transparent" style="cursor:pointer" onmouseenter="showChartTooltip(event,'${labelText}')" onmouseleave="hideChartTooltip()" /><circle cx="${x}" cy="${y}" r="4" fill="${color}" pointer-events="none" />`;
                 })
                 .join('')}
             ${labels}
@@ -140,9 +188,9 @@ function createStackedBarChart(data) {
         return '<div class="chart-empty">Sin datos disponibles</div>';
     }
 
-    const width = 760;
+    const width = 1100;
     const height = 220;
-    const paddingX = 24;
+    const paddingX = 50;
     const paddingTop = 16;
     const paddingBottom = 34;
     const chartWidth = width - paddingX * 2;
@@ -151,6 +199,15 @@ function createStackedBarChart(data) {
 
     const totals = data.map((item) => (Number(item.club_matches) || 0) + (Number(item.individual_matches) || 0));
     const maxTotal = Math.max(1, ...totals);
+
+    const tickCount = 5;
+    const gridlines = [];
+    for (let i = 0; i <= tickCount; i++) {
+        const tickValue = Math.round((maxTotal * i) / tickCount);
+        const y = paddingTop + chartHeight - (tickValue / maxTotal) * chartHeight;
+        gridlines.push(`<line x1="${paddingX}" y1="${y}" x2="${width - paddingX}" y2="${y}" class="chart-gridline" />`);
+        gridlines.push(`<text x="${paddingX - 6}" y="${y + 3.5}" class="chart-tick-label" text-anchor="end">${tickValue}</text>`);
+    }
 
     const bars = data.map((item, index) => {
         const clubMatches = Number(item.club_matches) || 0;
@@ -161,9 +218,10 @@ function createStackedBarChart(data) {
         const clubHeight = total > 0 ? (clubMatches / total) * totalHeight : 0;
         const individualHeight = totalHeight - clubHeight;
         const baseY = paddingTop + chartHeight;
+        const tooltipText = `${formatShortDate(item.week_start)}: ${total} total (${clubMatches} club + ${individualMatches} individual)`;
 
         return `
-            <g>
+            <g onmouseenter="showChartTooltip(event,'${tooltipText}')" onmouseleave="hideChartTooltip()" onclick="showChartTooltip(event,'${tooltipText}')" style="cursor:pointer">
                 <rect x="${x}" y="${baseY - individualHeight}" width="${barWidth}" height="${individualHeight}" fill="#60a5fa" rx="2">
                     <title>${item.week_start}: ${individualMatches} partidos individuales</title>
                 </rect>
@@ -183,6 +241,7 @@ function createStackedBarChart(data) {
 
     return `
         <svg class="svg-chart" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Partidos semanales por tipo">
+            ${gridlines.join('')}
             <line x1="${paddingX}" y1="${paddingTop + chartHeight}" x2="${width - paddingX}" y2="${paddingTop + chartHeight}" class="chart-axis" />
             ${bars}
             ${labels}
@@ -223,6 +282,10 @@ function renderDashboard(stats) {
     const app = document.getElementById('app');
     const totalPlayers = (stats.total_players_s5 || 0) + (stats.total_players_s10 || 0);
     const creatorStats = stats.match_creator_stats || {};
+    const lastUsersDay = (stats.daily_new_users || []).slice(-1)[0];
+    const users24h = lastUsersDay ? Number(lastUsersDay.count) || 0 : 0;
+    const lastClubsDay = (stats.daily_new_clubs || []).slice(-1)[0];
+    const clubs24h = lastClubsDay ? Number(lastClubsDay.count) || 0 : 0;
 
     app.innerHTML = `
         <div class="header">
@@ -234,13 +297,7 @@ function renderDashboard(stats) {
                     </h1>
                     <p class="header-subtitle">Análisis de comportamiento y engagement de usuarios</p>
                 </div>
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <div class="status-badge">
-                        <div class="pulse-dot"></div>
-                        ${stats.active_users} usuarios activos
-                    </div>
-                    <a href="/home" class="back-button">Volver a la aplicación</a>
-                </div>
+                <a href="/home" class="back-button">Volver a la aplicación</a>
             </div>
         </div>
 
@@ -250,12 +307,32 @@ function renderDashboard(stats) {
             </div>
             <div class="metrics-grid charts-grid">
                 <div class="metric-card chart-card">
-                    <div class="metric-header"><h3 class="metric-title">Usuarios nuevos por día (90 días)</h3></div>
-                    ${createLineChart(stats.daily_new_users || [], '#fb923c')}
+                    <div class="metric-header">
+                        <h3 class="metric-title" id="users-chart-title">Usuarios nuevos por día</h3>
+                        <div class="chart-range-selector">
+                            <button class="period-btn-users-chart active" data-days="1" onclick="changeUsersChartRange(1, this)">24h</button>
+                            <button class="period-btn-users-chart" data-days="7" onclick="changeUsersChartRange(7, this)">7d</button>
+                            <button class="period-btn-users-chart" data-days="30" onclick="changeUsersChartRange(30, this)">30d</button>
+                            <button class="period-btn-users-chart" data-days="90" onclick="changeUsersChartRange(90, this)">90d</button>
+                        </div>
+                    </div>
+                    <div id="users-chart-content">
+                        <div class="chart-single-value"><p class="metric-value">${users24h}</p><p class="metric-subtitle">Usuarios nuevos hoy</p></div>
+                    </div>
                 </div>
                 <div class="metric-card chart-card">
-                    <div class="metric-header"><h3 class="metric-title">Clubes nuevos por día (90 días)</h3></div>
-                    ${createLineChart(stats.daily_new_clubs || [], '#818cf8')}
+                    <div class="metric-header">
+                        <h3 class="metric-title" id="clubs-chart-title">Clubes nuevos por día</h3>
+                        <div class="chart-range-selector">
+                            <button class="period-btn-clubs-chart active" data-days="1" onclick="changeClubsChartRange(1, this)">24h</button>
+                            <button class="period-btn-clubs-chart" data-days="7" onclick="changeClubsChartRange(7, this)">7d</button>
+                            <button class="period-btn-clubs-chart" data-days="30" onclick="changeClubsChartRange(30, this)">30d</button>
+                            <button class="period-btn-clubs-chart" data-days="90" onclick="changeClubsChartRange(90, this)">90d</button>
+                        </div>
+                    </div>
+                    <div id="clubs-chart-content">
+                        <div class="chart-single-value"><p class="metric-value">${clubs24h}</p><p class="metric-subtitle">Clubes nuevos hoy</p></div>
+                    </div>
                 </div>
             </div>
             <div class="metrics-grid growth-cards-grid">
@@ -269,60 +346,27 @@ function renderDashboard(stats) {
                     <h3 class="metric-title">Total Clubes</h3>
                     <p class="metric-value">${stats.total_clubs}</p>
                 </div>
-                <div class="metric-card compact-card">
-                    <div class="metric-header">${createIcon('clock', 'metric-icon orange')}</div>
-                    <div class="period-selector">
-                        <button class="period-btn-users active" data-period="24h" onclick="changeNewUsersPeriod('24h')">24h</button>
-                        <button class="period-btn-users" data-period="7d" onclick="changeNewUsersPeriod('7d')">7d</button>
-                        <button class="period-btn-users" data-period="30d" onclick="changeNewUsersPeriod('30d')">30d</button>
-                    </div>
-                    <h3 class="metric-title">Usuarios nuevos</h3>
-                    <p class="metric-value" id="new-users-value">${stats.new_users_24h}</p>
-                    <p class="metric-subtitle" id="new-users-subtitle" style="color: #fb923c;">Últimas 24 horas</p>
-                </div>
-                <div class="metric-card compact-card">
-                    <div class="metric-header">${createIcon('clock', 'metric-icon blue')}</div>
-                    <div class="period-selector-clubs">
-                        <button class="period-btn-clubs active" data-period="24h" onclick="changeNewClubsPeriod('24h')">24h</button>
-                        <button class="period-btn-clubs" data-period="7d" onclick="changeNewClubsPeriod('7d')">7d</button>
-                        <button class="period-btn-clubs" data-period="30d" onclick="changeNewClubsPeriod('30d')">30d</button>
-                    </div>
-                    <h3 class="metric-title">Clubes nuevos</h3>
-                    <p class="metric-value" id="new-clubs-value">${stats.new_clubs_24h}</p>
-                    <p class="metric-subtitle" id="new-clubs-subtitle" style="color: #fb923c;">Últimas 24 horas</p>
-                </div>
             </div>
 
             <div class="section-header">
-                <h2 class="section-title">🔁 Engagement y retención</h2>
+                <h2 class="section-title">🔁 Retención y actividad reciente</h2>
             </div>
-            <div class="metrics-grid">
+            <div class="metrics-grid no-stretch-grid">
                 <div class="metric-card">
-                    <div class="metric-header">${createIcon('trending-up', 'metric-icon green')}</div>
-                    <h3 class="metric-title">Engagement</h3>
-                    <p class="metric-value">${stats.engagement_rate}%</p>
-                    <p class="metric-subtitle" style="color: #86efac;">${stats.active_users} usuarios activos</p>
-                </div>
-                <div class="metric-card chart-card">
-                    <div class="metric-header"><h3 class="metric-title">Retención por cohorte semanal</h3></div>
+                    <div class="metric-header"><h3 class="metric-title">Usuarios activos por semana de registro</h3></div>
                     ${createRetentionChart(stats.cohort_retention || [])}
                 </div>
-                <div class="metric-card">
-                    <div class="metric-header">${createIcon('alert', 'metric-icon orange')}</div>
-                    <h3 class="metric-title">Abandono</h3>
-                    <p class="metric-value">${stats.abandonment_rate}%</p>
-                    <p class="metric-subtitle" style="color: #fb923c;">${stats.abandoned_users} usuarios sin actividad</p>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-header">${createIcon('zap', 'metric-icon purple')}</div>
-                    <div class="period-selector">
-                        <button class="period-btn-active" data-period="24h" onclick="changeActiveUsersPeriod('24h')">24h</button>
-                        <button class="period-btn-active active" data-period="7d" onclick="changeActiveUsersPeriod('7d')">7d</button>
-                        <button class="period-btn-active" data-period="30d" onclick="changeActiveUsersPeriod('30d')">30d</button>
+                <div class="metric-card active-users-card">
+                    <div class="metric-header">
+                        <h3 class="metric-title">Usuarios activos recientes</h3>
+                        <div class="chart-range-selector">
+                            <button class="period-btn-active active" data-period="24h" onclick="changeActiveUsersPeriod('24h')">24h</button>
+                            <button class="period-btn-active" data-period="7d" onclick="changeActiveUsersPeriod('7d')">7d</button>
+                            <button class="period-btn-active" data-period="30d" onclick="changeActiveUsersPeriod('30d')">30d</button>
+                        </div>
                     </div>
-                    <h3 class="metric-title">Usuarios activos recientes</h3>
-                    <p class="metric-value" id="active-users-value">${stats.active_users_7d}</p>
-                    <p class="metric-subtitle" id="active-users-subtitle" style="color: #818cf8;">Últimos 7 días</p>
+                    <p class="metric-value" id="active-users-value">${stats.active_users_24h}</p>
+                    <p class="metric-subtitle" id="active-users-subtitle" style="color: #fb923c;">Últimas 24 horas</p>
                 </div>
             </div>
 
@@ -330,7 +374,7 @@ function renderDashboard(stats) {
                 <h2 class="section-title">⚙️ Uso de features</h2>
             </div>
             <div class="metrics-grid">
-                <div class="metric-card chart-card">
+                <div class="metric-card chart-card full-width-chart">
                     <div class="metric-header"><h3 class="metric-title">Partidos creados por semana</h3></div>
                     ${createStackedBarChart(stats.weekly_matches || [])}
                     <div class="chart-legend">
@@ -340,9 +384,9 @@ function renderDashboard(stats) {
                 </div>
                 <div class="metric-card">
                     <div class="metric-header">${createIcon('trophy', 'metric-icon yellow')}</div>
-                    <h3 class="metric-title">Creadores de partidos</h3>
+                    <h3 class="metric-title">Partidos creados</h3>
                     <p class="metric-value">${creatorStats.total_matches || 0}</p>
-                    <p class="metric-subtitle" style="color: #fbbf24;">partidos registrados por ${creatorStats.distinct_creators || 0} usuarios distintos</p>
+                    <p class="metric-subtitle" style="color: #fbbf24;">registrados por ${creatorStats.distinct_creators || 0} usuarios distintos</p>
                 </div>
                 <div class="metric-card">
                     <div class="metric-header">${createIcon('user-check', 'metric-icon green')}</div>
@@ -353,44 +397,14 @@ function renderDashboard(stats) {
                 <div class="metric-card">
                     <div class="metric-header">${createIcon('zap', 'metric-icon blue')}</div>
                     <h3 class="metric-title">Comparación de escalas</h3>
-                    <p class="metric-value">S5: ${stats.total_players_s5} · S10: ${stats.total_players_s10}</p>
+                    <p class="metric-value">S5: ${stats.total_players_s5} / S10: ${stats.total_players_s10}</p>
                     <p class="metric-subtitle" style="color: #60a5fa;">${totalPlayers} jugadores en total</p>
-                </div>
-            </div>
-
-            <div class="section-header">
-                <h2 class="section-title">🏟️ Clubes e invitaciones</h2>
-            </div>
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-header">${createIcon('map-pin', 'metric-icon purple')}</div>
-                    <h3 class="metric-title">Clubes</h3>
-                    <p class="metric-value">${stats.total_clubs}</p>
-                    <p class="metric-subtitle" style="color: #d8b4fe;">${stats.avg_users_per_club} usuarios promedio por club</p>
                 </div>
                 <div class="metric-card">
                     <div class="metric-header">${createIcon('users', 'metric-icon blue')}</div>
                     <h3 class="metric-title">Participación en clubes</h3>
                     <p class="metric-value">${stats.club_participation_rate}%</p>
                     <p class="metric-subtitle" style="color: #60a5fa;">${stats.users_in_clubs} usuarios en clubes</p>
-                </div>
-                <div class="metric-card">
-                    <div class="metric-header">${createIcon('mail', 'metric-icon green')}</div>
-                    <h3 class="metric-title">Aceptación de invitaciones</h3>
-                    <p class="metric-value">${stats.invitation_acceptance_rate}%</p>
-                    <p class="metric-subtitle" style="color: #86efac;">${stats.pending_invitations} invitaciones pendientes</p>
-                </div>
-            </div>
-
-            <div class="section-header">
-                <h2 class="section-title">📧 Confirmación de email</h2>
-            </div>
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-header">${createIcon('mail', 'metric-icon')}</div>
-                    <h3 class="metric-title">Tasa de confirmación</h3>
-                    <p class="metric-value">${stats.email_confirmation_rate}%</p>
-                    <p class="metric-subtitle" style="color: #34d399;">${stats.users_email_confirmed} confirmados / ${stats.total_users - stats.users_email_confirmed} sin confirmar</p>
                 </div>
             </div>
         </div>
