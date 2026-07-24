@@ -28,9 +28,3 @@ except AttributeError:
     logger.setLevel(logging.INFO)
 
 logger.addHandler(handler)
-
-
-def configure_logging():
-    logging.getLogger("libsql_client.dbapi2._async_executor").setLevel(logging.WARNING)
-    logging.getLogger("libsql_client.dbapi2._sync_executor").setLevel(logging.WARNING)
-    logging.getLogger("libsql_client.dbapi2.types").setLevel(logging.WARNING)

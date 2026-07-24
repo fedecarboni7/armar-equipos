@@ -19,6 +19,8 @@ from app.utils.auth import get_current_user
 from app.utils.validators import validate_password, validate_username, validate_email
 from app.utils.email_service import EmailService, PasswordResetService
 
+from app.config.logging_config import logger
+
 
 router = APIRouter()
 
@@ -760,9 +762,8 @@ async def delete_account(request: Request, db: Session = Depends(get_db)):
 
     except Exception as e:
         db.rollback()
-        import logging
 
-        logging.error(f"Error deleting account for user_id {user_id}: {str(e)}")
+        logger.error(f"Error deleting account for user_id {user_id}: {str(e)}")
         return templates.TemplateResponse(
             request=request,
             name="profile.html",

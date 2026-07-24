@@ -1,5 +1,4 @@
 import io
-import logging
 from uuid import uuid4
 
 import boto3
@@ -8,7 +7,8 @@ from PIL import Image
 
 from app.config.settings import Settings
 
-logger = logging.getLogger(__name__)
+from app.config.logging_config import logger
+
 
 _settings = Settings()
 
