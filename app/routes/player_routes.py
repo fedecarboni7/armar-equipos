@@ -1,5 +1,3 @@
-import logging
-
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
@@ -18,7 +16,7 @@ from app.db.schemas import PlayerCreate, PlayerResponse
 from app.utils.auth import get_current_user
 from app.utils.r2 import process_player_photo, upload_player_photo, delete_player_photo
 
-logger = logging.getLogger(__name__)
+from app.config.logging_config import logger
 
 router = APIRouter()
 
