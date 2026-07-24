@@ -10,7 +10,6 @@ from fastapi.templating import Jinja2Templates
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
-from app.config.logging_config import configure_logging
 from app.config.settings import Settings
 from app.db.models import User
 from app.utils.auth import get_current_user
@@ -32,8 +31,6 @@ templates.env.globals["static_version"] = STATIC_VERSION
 
 
 def create_app() -> FastAPI:
-    # Configuración de logging
-    configure_logging()
 
     settings = Settings()
     secret_key = settings.secret_key
