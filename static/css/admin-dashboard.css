@@ -109,6 +109,18 @@ body {
     background: rgba(255, 255, 255, 0.15);
 }
 
+.metric-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.period-total {
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
 .metric-header {
     display: flex;
     justify-content: space-between;

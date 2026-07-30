@@ -70,12 +70,21 @@ function changeActiveUsersPeriod(period) {
 
 function changeUsersChartRange(days, btn) {
     const container = document.getElementById('users-chart-content');
+    const sliced = fullDailyNewUsers.slice(-days);
+    const total = sliced.reduce((sum, d) => sum + (Number(d.count) || 0), 0);
+
+    const totalEl = document.getElementById('users-chart-total');
+    if (totalEl) {
+        const label = days <= 1 ? 'hoy' : ``;
+        totalEl.textContent = `${total} usuario${total !== 1 ? 's' : ''} nuevo${total !== 1 ? 's' : ''} ${label}`;
+    }
+
     if (days === 1) {
-        const last = fullDailyNewUsers[fullDailyNewUsers.length - 1];
+        const last = sliced[sliced.length - 1];
         const value = last ? Number(last.count) || 0 : 0;
         container.innerHTML = `<div class="chart-single-value"><p class="metric-value">${value}</p><p class="metric-subtitle">Usuarios nuevos hoy</p></div>`;
     } else {
-        container.innerHTML = createLineChart(fullDailyNewUsers.slice(-days), '#fb923c', 'usuarios nuevos');
+        container.innerHTML = createLineChart(sliced, '#fb923c', 'usuarios nuevos');
     }
     document.querySelectorAll('.period-btn-users-chart').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
@@ -83,12 +92,21 @@ function changeUsersChartRange(days, btn) {
 
 function changeClubsChartRange(days, btn) {
     const container = document.getElementById('clubs-chart-content');
+    const sliced = fullDailyNewClubs.slice(-days);
+    const total = sliced.reduce((sum, d) => sum + (Number(d.count) || 0), 0);
+
+    const totalEl = document.getElementById('clubs-chart-total');
+    if (totalEl) {
+        const label = days <= 1 ? 'hoy' : ``;
+        totalEl.textContent = `${total} club${total !== 1 ? 'es' : ''} nuevo${total !== 1 ? 's' : ''} ${label}`;
+    }
+
     if (days === 1) {
-        const last = fullDailyNewClubs[fullDailyNewClubs.length - 1];
+        const last = sliced[sliced.length - 1];
         const value = last ? Number(last.count) || 0 : 0;
         container.innerHTML = `<div class="chart-single-value"><p class="metric-value">${value}</p><p class="metric-subtitle">Clubes nuevos hoy</p></div>`;
     } else {
-        container.innerHTML = createLineChart(fullDailyNewClubs.slice(-days), '#818cf8', 'clubes nuevos');
+        container.innerHTML = createLineChart(sliced, '#818cf8', 'clubes nuevos');
     }
     document.querySelectorAll('.period-btn-clubs-chart').forEach((b) => b.classList.remove('active'));
     btn.classList.add('active');
@@ -308,7 +326,10 @@ function renderDashboard(stats) {
             <div class="metrics-grid charts-grid">
                 <div class="metric-card chart-card">
                     <div class="metric-header">
-                        <h3 class="metric-title" id="users-chart-title">Usuarios nuevos por día</h3>
+                        <div class="metric-header-left">
+                            <h3 class="metric-title" id="users-chart-title">Usuarios nuevos por día</h3>
+                            <span class="period-total" id="users-chart-total" style="color: #fb923c;">${users24h} usuario${users24h !== 1 ? 's' : ''} nuevo${users24h !== 1 ? 's' : ''} hoy</span>
+                        </div>
                         <div class="chart-range-selector">
                             <button class="period-btn-users-chart active" data-days="1" onclick="changeUsersChartRange(1, this)">24h</button>
                             <button class="period-btn-users-chart" data-days="7" onclick="changeUsersChartRange(7, this)">7d</button>
@@ -322,7 +343,10 @@ function renderDashboard(stats) {
                 </div>
                 <div class="metric-card chart-card">
                     <div class="metric-header">
-                        <h3 class="metric-title" id="clubs-chart-title">Clubes nuevos por día</h3>
+                        <div class="metric-header-left">
+                            <h3 class="metric-title" id="clubs-chart-title">Clubes nuevos por día</h3>
+                            <span class="period-total" id="clubs-chart-total" style="color: #818cf8;">${clubs24h} club${clubs24h !== 1 ? 'es' : ''} nuevo${clubs24h !== 1 ? 's' : ''} hoy</span>
+                        </div>
                         <div class="chart-range-selector">
                             <button class="period-btn-clubs-chart active" data-days="1" onclick="changeClubsChartRange(1, this)">24h</button>
                             <button class="period-btn-clubs-chart" data-days="7" onclick="changeClubsChartRange(7, this)">7d</button>
