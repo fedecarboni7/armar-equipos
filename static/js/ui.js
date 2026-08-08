@@ -34,7 +34,7 @@ function compartirEquipos(button) {
         }
         textoCompartir += '\n'; // Agrega una línea en blanco entre equipos
     }
-    textoCompartir += 'Generado con: https://armarequipos.up.railway.app'; // Agrega el enlace al sitio web
+    textoCompartir += 'Generado con: https://armarequipos.com'; // Agrega el enlace al sitio web
     const shareData = {
         title: 'Resultados de los Equipos - Opción ' + (parseInt(indice)),
         text: textoCompartir
