@@ -8,6 +8,13 @@ const port = Number.parseInt(process.env.PORT || '3000', 10);
 const proxyConnectTimeoutMs = Number.parseInt(process.env.PROXY_CONNECT_TIMEOUT_MS || '2000', 10);
 const healthCheckTimeoutMs = Number.parseInt(process.env.HEALTH_CHECK_TIMEOUT_MS || '1500', 10);
 
+const CANONICAL_HOST = 'armarequipos.com';
+// REDIRECT_HOSTS must never include the backend's internal domain or Railway-internal healthcheck hosts
+const REDIRECT_HOSTS = new Set([
+  'armarequipos.up.railway.app',
+  'www.armarequipos.com'
+]);
+
 if (!backendUrl) {
   console.error('BACKEND_URL is required. Refusing to start gateway.');
   process.exit(1);
@@ -27,6 +34,30 @@ const statusPhrases = [
   'inflando la pelota',
   'abriendo clubes'
 ];
+
+/**
+ * Determines if a redirect to the canonical host is needed.
+ * @param {object} req - Express request object
+ * @returns {string|null} - Redirect URL if redirect is needed, null otherwise
+ */
+function getCanonicalRedirectTarget(req) {
+  const host = req.headers.host;
+
+  if (!host) {
+    return null;
+  }
+
+  // Strip port suffix from host header (e.g., "example.com:3000" -> "example.com")
+  const normalizedHost = host.split(':')[0];
+
+  if (REDIRECT_HOSTS.has(normalizedHost)) {
+    // Preserve the original path and query string in the redirect target
+    const path = req.originalUrl || req.url || '/';
+    return `https://${CANONICAL_HOST}${path}`;
+  }
+
+  return null;
+}
 
 async function checkBackendAwake() {
   const controller = new AbortController();
@@ -363,6 +394,11 @@ app.use('/__gateway/health', async (req, res) => {
 app.use(express.static(publicDir));
 
 app.use((req, res) => {
+  const redirectTarget = getCanonicalRedirectTarget(req);
+  if (redirectTarget) {
+    res.redirect(301, redirectTarget);
+    return;
+  }
   proxyRequest(req, res);
 });
 
