@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from app.db import models
+from app.utils.time_utils import get_calendar_week_bounds
 
 
 SKILL_PAYLOAD = {
@@ -12,23 +15,6 @@ SKILL_PAYLOAD = {
     "fuerza_cuerpo": 4,
     "vision": 5,
 }
-
-
-def _login(client, username, password):
-    response = client.post(
-        "/login",
-        data={"username": username, "password": password},
-        follow_redirects=False,
-    )
-    assert response.status_code == 302
-
-
-def _create_user(db, username):
-    user = models.User(username=username, email=f"{username}@example.com", email_confirmed=1)
-    user.set_password("password123")
-    db.add(user)
-    db.commit()
-    return user
 
 
 def _create_club_with_owner(db, user):
@@ -60,52 +46,115 @@ def _create_player_s5(db, club_id, user_id):
     return player
 
 
-def test_vote_requires_open_voting(authenticated_client, db):
-    user = db.query(models.User).filter(models.User.username == "testuser").first()
-    club = _create_club_with_owner(db, user)
-    player = _create_player_s5(db, club.id, user.id)
-
-    response = authenticated_client.post(
-        f"/api/clubs/{club.id}/players/{player.id}/vote?scale=s5",
-        json={**SKILL_PAYLOAD, "player_s5_id": player.id},
+def _get_vote(db, user_id, player_id):
+    return (
+        db.query(models.SkillVote)
+        .filter(
+            models.SkillVote.voter_id == user_id,
+            models.SkillVote.player_s5_id == player_id,
+        )
+        .first()
     )
 
-    assert response.status_code == 403
+
+def _post_vote(client, club, player, **overrides):
+    return client.post(
+        f"/api/clubs/{club.id}/players/{player.id}/vote?scale=s5",
+        json={**SKILL_PAYLOAD, "player_s5_id": player.id, **overrides},
+    )
 
 
-def test_vote_open_and_upsert(authenticated_client, db):
-    user = db.query(models.User).filter(models.User.username == "testuser").first()
-    club = _create_club_with_owner(db, user)
-    player = _create_player_s5(db, club.id, user.id)
-
-    club.voting_open_s5 = True
+def _backdate_vote(db, vote, when):
+    vote.updated_at = when.replace(tzinfo=None)
     db.commit()
 
-    response = authenticated_client.post(
-        f"/api/clubs/{club.id}/players/{player.id}/vote?scale=s5",
-        json={**SKILL_PAYLOAD, "player_s5_id": player.id},
-    )
+
+def test_vote_create_and_update(authenticated_client, db):
+    user = db.query(models.User).filter(models.User.username == "testuser").first()
+    club = _create_club_with_owner(db, user)
+    player = _create_player_s5(db, club.id, user.id)
+
+    response = _post_vote(authenticated_client, club, player)
     assert response.status_code == 200
     payload = response.json()
     assert payload["velocidad"] == 4
     assert "voter_id" not in payload
 
-    response = authenticated_client.post(
-        f"/api/clubs/{club.id}/players/{player.id}/vote?scale=s5",
-        json={**SKILL_PAYLOAD, "player_s5_id": player.id, "velocidad": 5},
-    )
+    week_start, _ = get_calendar_week_bounds()
+    vote = _get_vote(db, user.id, player.id)
+    _backdate_vote(db, vote, week_start - timedelta(days=7))
+
+    response = _post_vote(authenticated_client, club, player, velocidad=5)
     assert response.status_code == 200
     payload = response.json()
     assert payload["velocidad"] == 5
+
+
+def test_second_vote_same_week_rejected(authenticated_client, db):
+    user = db.query(models.User).filter(models.User.username == "testuser").first()
+    club = _create_club_with_owner(db, user)
+    player = _create_player_s5(db, club.id, user.id)
+
+    response = _post_vote(authenticated_client, club, player)
+    assert response.status_code == 200
+
+    response = _post_vote(authenticated_client, club, player, velocidad=5)
+    assert response.status_code == 400
+    assert "lunes" in response.json()["detail"]
+
+    db.expire_all()
+    vote = _get_vote(db, user.id, player.id)
+    assert vote.velocidad == 4
+
+
+def test_vote_week_boundary_monday_blocks_and_previous_sunday_allows(
+    authenticated_client, db
+):
+    user = db.query(models.User).filter(models.User.username == "testuser").first()
+    club = _create_club_with_owner(db, user)
+    week_start, _ = get_calendar_week_bounds()
+
+    player_this_week = _create_player_s5(db, club.id, user.id)
+    response = _post_vote(authenticated_client, club, player_this_week)
+    assert response.status_code == 200
+
+    vote = _get_vote(db, user.id, player_this_week.id)
+    _backdate_vote(db, vote, week_start)
+
+    response = _post_vote(authenticated_client, club, player_this_week, velocidad=5)
+    assert response.status_code == 400
+    assert "lunes" in response.json()["detail"]
+
+    player_last_week = _create_player_s5(db, club.id, user.id)
+    response = _post_vote(authenticated_client, club, player_last_week)
+    assert response.status_code == 200
+
+    vote = _get_vote(db, user.id, player_last_week.id)
+    _backdate_vote(db, vote, week_start - timedelta(hours=4))
+
+    response = _post_vote(authenticated_client, club, player_last_week, velocidad=5)
+    assert response.status_code == 200
+    assert response.json()["velocidad"] == 5
+
+
+def test_votes_independent_per_player(authenticated_client, db):
+    user = db.query(models.User).filter(models.User.username == "testuser").first()
+    club = _create_club_with_owner(db, user)
+    player_a = _create_player_s5(db, club.id, user.id)
+    player_b = _create_player_s5(db, club.id, user.id)
+
+    response = _post_vote(authenticated_client, club, player_a)
+    assert response.status_code == 200
+
+    response = _post_vote(authenticated_client, club, player_b)
+    assert response.status_code == 200
+    assert response.json()["player_s5_id"] == player_b.id
 
 
 def test_get_vote_and_players_with_votes(authenticated_client, db):
     user = db.query(models.User).filter(models.User.username == "testuser").first()
     club = _create_club_with_owner(db, user)
     player = _create_player_s5(db, club.id, user.id)
-
-    club.voting_open_s5 = True
-    db.commit()
 
     authenticated_client.post(
         f"/api/clubs/{club.id}/players/{player.id}/vote?scale=s5",
@@ -127,21 +176,3 @@ def test_get_vote_and_players_with_votes(authenticated_client, db):
     target = next(item for item in players if item["id"] == player.id)
     assert target["velocidad"] == 4
     assert target["vote_average"]["velocidad"] == 4
-
-
-def test_toggle_voting_owner_only(client, db):
-    owner = _create_user(db, "owner_toggle")
-    member = _create_user(db, "member_toggle")
-    club = _create_club_with_owner(db, owner)
-    db.add(models.ClubUser(club_id=club.id, user_id=member.id, role="member"))
-    db.commit()
-
-    _login(client, "member_toggle", "password123")
-    response = client.post(f"/api/clubs/{club.id}/voting?scale=s5&action=open")
-    assert response.status_code == 403
-
-    _login(client, "owner_toggle", "password123")
-    response = client.post(f"/api/clubs/{club.id}/voting?scale=s5&action=open")
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["voting_open_s5"] is True

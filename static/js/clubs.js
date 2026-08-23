@@ -20,64 +20,6 @@ function getCurrentClubData() {
   return clubs.find(club => club.id == window.clubId) || null;
 }
 
-function updateVotingButtons() {
-  const votingActions = document.getElementById('votingActions');
-  const votingS5Btn = document.getElementById('votingS5Btn');
-  const votingS10Btn = document.getElementById('votingS10Btn');
-
-  if (!votingActions || !votingS5Btn || !votingS10Btn) return;
-
-  const clubData = getCurrentClubData();
-  const isOwner = currentUser && currentUser.clubRole === 'owner';
-
-  if (!clubData || !isOwner) {
-    votingActions.style.display = 'none';
-    return;
-  }
-
-  votingActions.style.display = 'flex';
-  votingS5Btn.textContent = clubData.voting_open_s5 ? 'Cerrar votacion S5' : 'Abrir votacion S5';
-  votingS10Btn.textContent = clubData.voting_open_s10 ? 'Cerrar votacion S10' : 'Abrir votacion S10';
-}
-
-async function toggleVoting(scale) {
-  if (!window.clubId) return;
-
-  const clubData = getCurrentClubData();
-  if (!clubData) return;
-
-  const isOpen = scale === 's10' ? clubData.voting_open_s10 : clubData.voting_open_s5;
-  const action = isOpen ? 'close' : 'open';
-
-  try {
-    const response = await fetch(`/api/clubs/${window.clubId}/voting?scale=${scale}&action=${action}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || 'Error al actualizar la votacion');
-    }
-
-    const payload = await response.json();
-    if (scale === 's10') {
-      clubData.voting_open_s10 = payload.voting_open_s10;
-    } else {
-      clubData.voting_open_s5 = payload.voting_open_s5;
-    }
-
-    if (typeof loadUserClubs === 'function') {
-      await loadUserClubs();
-    }
-
-    updateVotingButtons();
-  } catch (error) {
-    alert(error.message);
-  }
-}
-
 // Función de utilidad para traducir roles
 function translateRole(role) {
   switch (role) {
@@ -181,16 +123,6 @@ function setupEventListeners() {
     deleteClubBtn.addEventListener('click', () => confirmDeleteClub());
   }
 
-  const votingS5Btn = document.getElementById('votingS5Btn');
-  if (votingS5Btn) {
-    votingS5Btn.addEventListener('click', () => toggleVoting('s5'));
-  }
-
-  const votingS10Btn = document.getElementById('votingS10Btn');
-  if (votingS10Btn) {
-    votingS10Btn.addEventListener('click', () => toggleVoting('s10'));
-  }
-  
   // Cerrar modales con la tecla Escape
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
@@ -285,7 +217,6 @@ async function loadClubMembers() {
       if (typeof updateRoleBasedActions === 'function') {
         updateRoleBasedActions();
       }
-      updateVotingButtons();
     } else {
       console.error('Error response:', response.status, response.statusText);
     }

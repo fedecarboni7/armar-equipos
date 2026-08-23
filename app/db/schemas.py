@@ -112,8 +112,6 @@ class ClubResponse(BaseModel):
     id: int
     name: str
     creation_date: datetime
-    voting_open_s5: bool = False
-    voting_open_s10: bool = False
 
 
 class SkillVoteAverage(BaseModel):

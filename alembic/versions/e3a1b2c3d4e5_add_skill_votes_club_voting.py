@@ -1,4 +1,4 @@
-"""add skill votes and club voting flags
+"""add skill votes
 
 Revision ID: e3a1b2c3d4e5
 Revises: 4c2f6d9e1b7a
@@ -11,31 +11,12 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "e3a1b2c3d4e5"
-down_revision = "4c2f6d9e1b7a"
+down_revision = "d9a4c6e1f2ab"
 branch_labels = None
 depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "clubs",
-        sa.Column(
-            "voting_open_s5",
-            sa.Boolean(),
-            nullable=False,
-            server_default=sa.text("false"),
-        ),
-    )
-    op.add_column(
-        "clubs",
-        sa.Column(
-            "voting_open_s10",
-            sa.Boolean(),
-            nullable=False,
-            server_default=sa.text("false"),
-        ),
-    )
-
     op.create_table(
         "skill_votes",
         sa.Column("id", sa.Integer(), nullable=False),
@@ -77,5 +58,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index(op.f("ix_skill_votes_id"), table_name="skill_votes")
     op.drop_table("skill_votes")
-    op.drop_column("clubs", "voting_open_s10")
-    op.drop_column("clubs", "voting_open_s5")

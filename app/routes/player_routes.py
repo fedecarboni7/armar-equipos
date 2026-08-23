@@ -16,6 +16,7 @@ from app.db.models import PlayerScale5, PlayerScale10, User, MatchPlayer
 from app.db.schemas import PlayerCreate, PlayerResponse, PlayerSkillsWithVotes, SkillVoteCreate, SkillVoteResponse
 from app.utils.auth import get_current_user
 from app.utils import crud
+from app.utils.time_utils import get_calendar_week_bounds
 
 router = APIRouter()
 
@@ -129,8 +130,6 @@ def vote_player_skills(
         raise HTTPException(status_code=404, detail="Club no encontrado")
 
     is_s10 = scale == "s10"
-    if (is_s10 and not club.voting_open_s10) or (not is_s10 and not club.voting_open_s5):
-        raise HTTPException(status_code=403, detail="La votacion esta cerrada")
 
     if is_s10:
         player = (
@@ -167,6 +166,13 @@ def vote_player_skills(
     )
 
     if vote:
+        current_week_start, _ = get_calendar_week_bounds()
+        vote_week_start, _ = get_calendar_week_bounds(vote.updated_at)
+        if vote_week_start == current_week_start:
+            raise HTTPException(
+                status_code=400,
+                detail="Ya votaste por este jugador esta semana. Podras volver a votar el proximo lunes.",
+            )
         for field in crud.SKILL_FIELDS:
             setattr(vote, field, getattr(vote_data, field))
     else:

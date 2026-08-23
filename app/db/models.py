@@ -146,8 +146,6 @@ class Club(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String)
     creation_date = Column(DateTime, default=get_argentina_now)
-    voting_open_s5 = Column(Boolean, nullable=False, default=False)
-    voting_open_s10 = Column(Boolean, nullable=False, default=False)
 
     members = relationship("ClubUser", back_populates="club")
     players_s5 = relationship("PlayerScale5", back_populates="club")

@@ -2,7 +2,6 @@
 let currentScale = getCurrentScale();
 
 let currentUser = null;
-let clubVoting = { s5: false, s10: false };
 let currentVotingPlayer = null;
 
 // ==================== HELP MODAL (Players) ====================
@@ -64,26 +63,6 @@ function getScaleParam() {
     return currentScale === 10 ? 's10' : 's5';
 }
 
-function updateClubVotingState() {
-    const clubId = getCurrentClubId();
-    if (!clubId || clubId === 'my-players') {
-        clubVoting = { s5: false, s10: false };
-        return;
-    }
-
-    if (typeof getUserClubs !== 'function') {
-        clubVoting = { s5: false, s10: false };
-        return;
-    }
-
-    const clubs = getUserClubs();
-    const clubData = clubs.find(club => club.id == clubId);
-    clubVoting = {
-        s5: clubData ? !!clubData.voting_open_s5 : false,
-        s10: clubData ? !!clubData.voting_open_s10 : false,
-    };
-}
-
 async function loadClubRole(clubId) {
     if (!currentUser || !clubId || clubId === 'my-players') {
         return;
@@ -132,7 +111,7 @@ function formatDate(date) {
     }
     return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
-        if (!response.ok) throw new Error(`Error ${response.status}`);
+
 // Función para calcular promedio de habilidades
 function calculateAverage(player) {
     const skillKeys = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
@@ -144,15 +123,6 @@ function calculateAverage(player) {
     
     // No hacer conversión - cada tabla maneja su propia escala
     return Math.round(average * 10) / 10; // Redondear a 1 decimal
-
-        if (contextId !== 'my-players') {
-            await loadClubRole(contextId);
-        } else if (currentUser) {
-            currentUser.clubRole = null;
-        }
-
-        updateClubVotingState();
-
 }
 
 // Función para ordenar jugadores
@@ -422,8 +392,7 @@ function renderPlayerModal(player) {
     const lastModified = player.updated_at;
     const initial = player.name.charAt(0).toUpperCase();
     const isClubContext = getCurrentClubId() !== 'my-players';
-    const votingOpen = currentScale === 10 ? clubVoting.s10 : clubVoting.s5;
-    const showVoteButton = isClubContext && votingOpen;
+    const showVoteButton = isClubContext;
     const canEdit = canEditInContext();
     
     const avatarContent = `<div class="avatar-initials">${initial}</div>`;
@@ -1097,6 +1066,9 @@ async function loadPlayersForContext(contextId) {
         
         if (contextId !== 'my-players') {
             url += `&club_id=${contextId}`;
+            await loadClubRole(contextId);
+        } else if (currentUser) {
+            currentUser.clubRole = null;
         }
         
         const response = await fetch(url, {
