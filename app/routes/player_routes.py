@@ -13,7 +13,13 @@ from app.db.database_utils import (
 )
 from app.db import models
 from app.db.models import PlayerScale5, PlayerScale10, User, MatchPlayer
-from app.db.schemas import PlayerCreate, PlayerResponse, PlayerSkillsWithVotes, SkillVoteCreate, SkillVoteResponse
+from app.db.schemas import (
+    PlayerCreate,
+    PlayerResponse,
+    PlayerSkillsWithVotes,
+    SkillVoteCreate,
+    SkillVoteResponse,
+)
 from app.utils.auth import get_current_user
 from app.utils import crud
 from app.utils.time_utils import get_calendar_week_bounds
@@ -148,11 +154,21 @@ def vote_player_skills(
         raise HTTPException(status_code=404, detail="Jugador no encontrado")
 
     if is_s10:
-        if vote_data.player_s10_id not in (None, player_id) or vote_data.player_s5_id is not None:
-            raise HTTPException(status_code=400, detail="Jugador invalido para la escala")
+        if (
+            vote_data.player_s10_id not in (None, player_id)
+            or vote_data.player_s5_id is not None
+        ):
+            raise HTTPException(
+                status_code=400, detail="Jugador invalido para la escala"
+            )
     else:
-        if vote_data.player_s5_id not in (None, player_id) or vote_data.player_s10_id is not None:
-            raise HTTPException(status_code=400, detail="Jugador invalido para la escala")
+        if (
+            vote_data.player_s5_id not in (None, player_id)
+            or vote_data.player_s10_id is not None
+        ):
+            raise HTTPException(
+                status_code=400, detail="Jugador invalido para la escala"
+            )
 
     vote = (
         db.query(models.SkillVote)

@@ -50,7 +50,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["player_s10_id"], ["players_s10.id"]),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("voter_id", "player_s5_id", name="uq_skill_votes_voter_s5"),
-        sa.UniqueConstraint("voter_id", "player_s10_id", name="uq_skill_votes_voter_s10"),
+        sa.UniqueConstraint(
+            "voter_id", "player_s10_id", name="uq_skill_votes_voter_s10"
+        ),
     )
     op.create_index(op.f("ix_skill_votes_id"), "skill_votes", ["id"], unique=False)
 

@@ -78,7 +78,9 @@ class SkillVoteCreate(BaseModel):
     @model_validator(mode="after")
     def validate_player_reference(self):
         if (self.player_s5_id is None) == (self.player_s10_id is None):
-            raise ValueError("Debe incluirse player_s5_id o player_s10_id, pero no ambos")
+            raise ValueError(
+                "Debe incluirse player_s5_id o player_s10_id, pero no ambos"
+            )
         return self
 
 

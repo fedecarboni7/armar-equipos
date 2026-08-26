@@ -235,7 +235,9 @@ async def build_teams_api(
                     db.query(models.SkillVote)
                     .filter(
                         models.SkillVote.club_id == club_id,
-                        models.SkillVote.player_s10_id.in_([p.id for p in selected_players]),
+                        models.SkillVote.player_s10_id.in_(
+                            [p.id for p in selected_players]
+                        ),
                     )
                     .all()
                 )
@@ -246,7 +248,9 @@ async def build_teams_api(
                     db.query(models.SkillVote)
                     .filter(
                         models.SkillVote.club_id == club_id,
-                        models.SkillVote.player_s5_id.in_([p.id for p in selected_players]),
+                        models.SkillVote.player_s5_id.in_(
+                            [p.id for p in selected_players]
+                        ),
                     )
                     .all()
                 )
@@ -275,7 +279,9 @@ async def build_teams_api(
                 )
 
         # Preparar datos para el algoritmo
-        player_scores = build_player_scores(players_for_scoring, consider_goalkeeper_skill)
+        player_scores = build_player_scores(
+            players_for_scoring, consider_goalkeeper_skill
+        )
 
         # Generar equipos
         mejores_equipos, min_difference_total = find_best_combination(player_scores)

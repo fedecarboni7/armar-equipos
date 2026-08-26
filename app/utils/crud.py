@@ -36,9 +36,7 @@ def compute_effective_skills(
             totals[field] += getattr(vote, field)
 
     count = len(votes_list)
-    averages = {
-        field: round(totals[field] / count, 1) for field in SKILL_FIELDS
-    }
+    averages = {field: round(totals[field] / count, 1) for field in SKILL_FIELDS}
     return averages, averages
 
 
