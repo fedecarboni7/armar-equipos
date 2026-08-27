@@ -159,6 +159,8 @@ class PlayerSkillsWithVotes(BaseModel):
     photo_url: Optional[str] = None
     vote_average: SkillVoteAverage
     skills: SkillBaseValues
+    vote_count: int = 0
+    last_activity_at: datetime
 
 
 class TeamPlayerSkills(BaseModel):

@@ -152,10 +152,20 @@ async def armar_equipos_page(
     if not current_user:
         return RedirectResponse("/", status_code=302)
 
+    current_user_data = {
+        "id": current_user.id,
+        "username": current_user.username,
+        "clubRole": None,
+    }
+
     return templates.TemplateResponse(
         request=request,
         name="armar_equipos.html",
-        context={"request": request, "user": current_user},
+        context={
+            "request": request,
+            "user": current_user,
+            "currentUser": current_user_data,
+        },
     )
 
 
@@ -203,6 +213,7 @@ async def build_teams_api(
         # Obtener datos de los jugadores seleccionados
         current_user_id = current_user.id
         club_id = data.get("club_id")
+        mode = data.get("mode", "voted")
         scale = data.get("scale", "1-5")
         consider_goalkeeper_skill = parse_goalkeeper_skill_flag(
             data.get("considerar_habilidad_arquero", True)
@@ -216,6 +227,24 @@ async def build_teams_api(
                     content={"error": "No tenes permisos para acceder a este club"},
                     status_code=403,
                 )
+
+            if mode == "base":
+                member = (
+                    db.query(models.ClubUser)
+                    .filter(
+                        models.ClubUser.club_id == club_id,
+                        models.ClubUser.user_id == current_user_id,
+                    )
+                    .first()
+                )
+                if not member or member.role not in ("admin", "owner"):
+                    return JSONResponse(
+                        content={
+                            "error": "Solo administradores pueden usar el modo base"
+                        },
+                        status_code=403,
+                    )
+
             all_players = execute_with_retries(
                 query_players, db, current_user_id, club_id, scale
             )
@@ -236,53 +265,70 @@ async def build_teams_api(
         players_for_scoring = selected_players
         if club_id:
             votes_by_player = {}
-            if scale == "1-10":
-                votes = (
-                    db.query(models.SkillVote)
-                    .filter(
-                        models.SkillVote.club_id == club_id,
-                        models.SkillVote.player_s10_id.in_(
-                            [p.id for p in selected_players]
-                        ),
+            if mode == "voted":
+                if scale == "1-10":
+                    votes = (
+                        db.query(models.SkillVote)
+                        .filter(
+                            models.SkillVote.club_id == club_id,
+                            models.SkillVote.player_s10_id.in_(
+                                [p.id for p in selected_players]
+                            ),
+                        )
+                        .all()
                     )
-                    .all()
-                )
-                for vote in votes:
-                    votes_by_player.setdefault(vote.player_s10_id, []).append(vote)
-            else:
-                votes = (
-                    db.query(models.SkillVote)
-                    .filter(
-                        models.SkillVote.club_id == club_id,
-                        models.SkillVote.player_s5_id.in_(
-                            [p.id for p in selected_players]
-                        ),
+                    for vote in votes:
+                        votes_by_player.setdefault(vote.player_s10_id, []).append(vote)
+                else:
+                    votes = (
+                        db.query(models.SkillVote)
+                        .filter(
+                            models.SkillVote.club_id == club_id,
+                            models.SkillVote.player_s5_id.in_(
+                                [p.id for p in selected_players]
+                            ),
+                        )
+                        .all()
                     )
-                    .all()
-                )
-                for vote in votes:
-                    votes_by_player.setdefault(vote.player_s5_id, []).append(vote)
+                    for vote in votes:
+                        votes_by_player.setdefault(vote.player_s5_id, []).append(vote)
 
             players_for_scoring = []
             for player in selected_players:
-                effective, _ = crud.compute_effective_skills(
-                    player, votes_by_player.get(player.id, [])
-                )
-                players_for_scoring.append(
-                    SimpleNamespace(
-                        id=player.id,
-                        name=player.name,
-                        velocidad=effective["velocidad"],
-                        resistencia=effective["resistencia"],
-                        control=effective["control"],
-                        pases=effective["pases"],
-                        tiro=effective["tiro"],
-                        defensa=effective["defensa"],
-                        habilidad_arquero=effective["habilidad_arquero"],
-                        fuerza_cuerpo=effective["fuerza_cuerpo"],
-                        vision=effective["vision"],
+                if mode == "base":
+                    base_skills = {
+                        "velocidad": player.velocidad,
+                        "resistencia": player.resistencia,
+                        "control": player.control,
+                        "pases": player.pases,
+                        "tiro": player.tiro,
+                        "defensa": player.defensa,
+                        "habilidad_arquero": player.habilidad_arquero,
+                        "fuerza_cuerpo": player.fuerza_cuerpo,
+                        "vision": player.vision,
+                    }
+                    players_for_scoring.append(
+                        SimpleNamespace(id=player.id, name=player.name, **base_skills)
                     )
-                )
+                else:
+                    _base, effective, _avg = crud.compute_effective_skills(
+                        player, votes_by_player.get(player.id, [])
+                    )
+                    players_for_scoring.append(
+                        SimpleNamespace(
+                            id=player.id,
+                            name=player.name,
+                            velocidad=effective["velocidad"],
+                            resistencia=effective["resistencia"],
+                            control=effective["control"],
+                            pases=effective["pases"],
+                            tiro=effective["tiro"],
+                            defensa=effective["defensa"],
+                            habilidad_arquero=effective["habilidad_arquero"],
+                            fuerza_cuerpo=effective["fuerza_cuerpo"],
+                            vision=effective["vision"],
+                        )
+                    )
 
         # Preparar datos para el algoritmo
         player_scores = build_player_scores(

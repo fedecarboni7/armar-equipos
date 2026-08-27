@@ -62,6 +62,9 @@
                     Considerar habilidad de arquero para equilibrar equipos
                 </label>
             </div>
+
+            <!-- El toggle de modo de puntuación se renderiza sólo en clubes para admin/owner -->
+            <div id="scoring-mode-container"></div>
             
             <div class="players-list" id="players-list">
                 <!-- Players will be loaded here -->
@@ -241,7 +244,11 @@ Pedro"></textarea>
     </div>
 
     {% include '_footer.html' %}
-    
+
+    {% if currentUser %}
+    <script id="user-data" type="application/json">{{ currentUser | tojson | safe }}</script>
+    {% endif %}
+
     <!-- Scripts -->
     <script src="/static/js/utils.js?v={{ static_version }}"></script>
     <script src="/static/js/clubSelector.js?v={{ static_version }}"></script>

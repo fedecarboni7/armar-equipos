@@ -56,11 +56,9 @@
         </div>
         
 
-        <div class="players-table">
-            <div class="table-header">
-                <div class="header-cell" onclick="sortPlayers('name')">Nombre</div>
-                <div class="header-cell" onclick="sortPlayers('score')">Puntuación</div>
-                <div class="header-cell" onclick="sortPlayers('date')">Última Modificación</div>
+        <div class="players-table" id="players-table" data-columns="personal">
+            <div class="table-header" id="players-table-header">
+                <!-- Headers are rendered dynamically by JS -->
             </div>
             <div id="players-list">
                 <!-- Los jugadores se cargarán aquí -->

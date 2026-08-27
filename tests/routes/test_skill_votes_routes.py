@@ -174,8 +174,9 @@ def test_get_vote_and_players_with_votes(authenticated_client, db):
     assert players_response.status_code == 200
     players = players_response.json()
     target = next(item for item in players if item["id"] == player.id)
-    assert target["velocidad"] == 4
-    assert target["vote_average"]["velocidad"] == 4
+    # 1 vote: effective = base, vote_average = None (min 2 votes required)
+    assert target["velocidad"] == 3
+    assert target["vote_average"]["velocidad"] is None
 
 
 def test_fractional_average_with_multiple_voters(authenticated_client, db):

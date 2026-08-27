@@ -21,6 +21,9 @@ SKILL_FIELDS = (
 )
 
 
+MIN_VOTES_FOR_EFFECTIVE = 2
+
+
 def compute_effective_skills(
     player: models.PlayerScale5 | models.PlayerScale10,
     votes: Iterable[models.SkillVote],
@@ -28,7 +31,7 @@ def compute_effective_skills(
     base_values = {field: getattr(player, field) for field in SKILL_FIELDS}
 
     votes_list = list(votes)
-    if not votes_list:
+    if len(votes_list) < MIN_VOTES_FOR_EFFECTIVE:
         return base_values, base_values, {field: None for field in SKILL_FIELDS}
 
     totals = {field: 0 for field in SKILL_FIELDS}

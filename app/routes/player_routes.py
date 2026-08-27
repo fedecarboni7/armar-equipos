@@ -86,8 +86,16 @@ def get_players(
 
         response_payload = []
         for player in players:
+            player_votes = votes_by_player.get(player.id, [])
             base, effective, averages = crud.compute_effective_skills(
-                player, votes_by_player.get(player.id, [])
+                player, player_votes
+            )
+            vote_count = len(player_votes)
+            last_vote_at = (
+                max(v.updated_at for v in player_votes) if player_votes else None
+            )
+            last_activity_at = max(
+                filter(None, [player.updated_at, last_vote_at]),
             )
             response_payload.append(
                 {
@@ -108,6 +116,8 @@ def get_players(
                     "photo_url": player.photo_url,
                     "vote_average": averages,
                     "skills": base,
+                    "vote_count": vote_count,
+                    "last_activity_at": last_activity_at,
                 }
             )
 

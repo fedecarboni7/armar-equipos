@@ -1,5 +1,6 @@
 // Variables globales
 let players = [];
+let currentUser = null;
 let selectedPlayers = new Set();
 let manualAssignment = null;
 let filteredPlayers = [];
@@ -10,6 +11,7 @@ let currentScale = getCurrentScale();
 let loading = false;
 let hasResults = false; // Variable para saber si hay resultados generados
 let considerGoalkeeperSkill = true;
+let scoringMode = 'voted'; // 'voted' or 'base'
 
 // Import limits - should match backend MAX_LINES in ai_player_matcher.py
 const MAX_IMPORT_LINES = 30;
@@ -66,6 +68,85 @@ function initHelpModal() {
 }
 // ==================== END HELP MODAL ====================
 
+function loadCurrentUser() {
+    const userDataEl = document.getElementById('user-data');
+    if (!userDataEl) return;
+    try {
+        currentUser = JSON.parse(userDataEl.textContent);
+    } catch (error) {
+        console.error('Error parsing user data:', error);
+    }
+}
+
+async function loadClubRole(clubId) {
+    if (!currentUser || !clubId || clubId === 'my-players') {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/clubs/${clubId}/members`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const members = await response.json();
+        const member = members.find(item => item.user_id === currentUser.id || item.user_id === currentUser.userId);
+        currentUser.clubRole = member ? member.role : null;
+    } catch (error) {
+        console.error('Error al cargar rol del club:', error);
+    }
+}
+
+function canEditInContext() {
+    if (getCurrentClubId() === 'my-players') {
+        return true;
+    }
+
+    return currentUser && (currentUser.clubRole === 'admin' || currentUser.clubRole === 'owner');
+}
+
+function updateScoringModeToggle() {
+    const container = document.getElementById('scoring-mode-container');
+    if (!container) return;
+
+    const isClub = getCurrentClubId() !== 'my-players';
+    if (!isClub || !canEditInContext()) {
+        container.innerHTML = '';
+        scoringMode = 'voted';
+        return;
+    }
+
+    if (!document.getElementById('scoring-mode-toggle')) {
+        container.innerHTML = `
+            <div class="scoring-mode-option" style="margin-top:8px;">
+                <label for="scoring-mode-toggle">
+                    <input type="checkbox" id="scoring-mode-toggle">
+                    <span id="scoring-mode-label">Votación (promedio)</span>
+                </label>
+            </div>
+        `;
+        document.getElementById('scoring-mode-toggle').addEventListener('change', (e) => {
+            scoringMode = e.target.checked ? 'base' : 'voted';
+            updateScoringModeLabel();
+        });
+    }
+
+    document.getElementById('scoring-mode-toggle').checked = scoringMode === 'base';
+    updateScoringModeLabel();
+}
+
+function updateScoringModeLabel() {
+    const label = document.getElementById('scoring-mode-label');
+    if (label) {
+        label.textContent = scoringMode === 'base' ? 'Base (valor del dueño)' : 'Votación (promedio)';
+    }
+}
+
 function getManualContextName() {
     return getCurrentClubId() === 'my-players'
         ? 'creados'
@@ -116,6 +197,8 @@ function initManualAssignment() {
 // Initialize app
 async function init() {
     try {
+        loadCurrentUser();
+
         // Inicializar modal de ayuda
         initHelpModal();
         
@@ -212,6 +295,13 @@ async function loadPlayersForContext(contextId) {
             manualAssignment.setPlayers(players);
         }
         updateManualMode();
+
+        if (contextId !== 'my-players') {
+            await loadClubRole(contextId);
+        } else if (currentUser) {
+            currentUser.clubRole = null;
+        }
+        updateScoringModeToggle();
         
     } catch (error) {
         loading = false;
@@ -301,6 +391,8 @@ function setupEventListeners() {
             considerGoalkeeperSkill = e.target.checked;
         });
     }
+
+    // El listener del toggle de modo de puntuación se agrega al renderizarlo dinámicamente.
 
     // Generate teams button
     document.querySelector('.generate-btn').addEventListener('click', generateTeams);
@@ -566,7 +658,8 @@ async function generateTeams() {
             selected_player_ids: selectedPlayerIds,
             club_id: getCurrentClubId() !== 'my-players' ? parseInt(getCurrentClubId()) : null,
             scale: currentScale === 5 ? '1-5' : '1-10',
-            considerar_habilidad_arquero: considerGoalkeeperSkill
+            considerar_habilidad_arquero: considerGoalkeeperSkill,
+            mode: scoringMode
         };
         
         // Call the backend API
