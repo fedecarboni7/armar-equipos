@@ -362,8 +362,8 @@
 
 .players-table[data-columns="admin"] .table-header,
 .players-table[data-columns="admin"] .player-row {
-    grid-template-columns: minmax(160px, 1fr) 100px 115px 125px 85px 180px;
-    min-width: 905px;
+    grid-template-columns: minmax(160px, 1fr) 100px 115px 85px 180px;
+    min-width: 640px;
 }
 
 .player-name {
@@ -524,6 +524,10 @@
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 12px;
     margin-top: 20px;
+}
+
+.admin-skills-table th {
+    text-align: left;
 }
 
 .skill-detail-item {
@@ -754,8 +758,8 @@
 
     .players-table[data-columns="admin"] .table-header,
     .players-table[data-columns="admin"] .player-row {
-        grid-template-columns: minmax(140px, 1fr) 55px 85px 105px 60px 118px;
-        min-width: 637px;
+        grid-template-columns: minmax(140px, 1fr) 55px 85px 60px 118px;
+        min-width: 458px;
     }
     
     .header-cell {

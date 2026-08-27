@@ -293,6 +293,28 @@ h1 {
     margin-right: auto;
 }
 
+.scoring-controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.scoring-controls .scale-selector {
+    margin-bottom: 0;
+}
+
+.scoring-controls .scoring-mode-toggle {
+    margin-bottom: 0 !important;
+}
+
+@media (max-width: 520px) {
+    .scoring-controls {
+        flex-wrap: wrap;
+    }
+}
+
 .section-title {
     font-size: 1.5rem;
     font-weight: 600;

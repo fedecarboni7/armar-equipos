@@ -111,40 +111,59 @@ function canEditInContext() {
 }
 
 function updateScoringModeToggle() {
-    const container = document.getElementById('scoring-mode-container');
-    if (!container) return;
+    const containers = [
+        document.getElementById('scoring-mode-container'),
+        document.getElementById('scoring-mode-container-manual'),
+    ];
 
     const isClub = getCurrentClubId() !== 'my-players';
-    if (!isClub || !canEditInContext()) {
-        container.innerHTML = '';
-        scoringMode = 'voted';
-        return;
-    }
+    const show = isClub && canEditInContext();
 
-    if (!document.getElementById('scoring-mode-toggle')) {
+    containers.forEach(container => {
+        if (!container) return;
+        if (!show) {
+            container.innerHTML = '';
+            return;
+        }
+
         container.innerHTML = `
-            <div class="scoring-mode-option" style="margin-top:8px;">
-                <label for="scoring-mode-toggle">
-                    <input type="checkbox" id="scoring-mode-toggle">
-                    <span id="scoring-mode-label">Votación (promedio)</span>
-                </label>
+            <div class="scoring-mode-toggle" style="display:flex;justify-content:center;margin-bottom:16px;">
+                <div class="scale-toggle">
+                    <button class="scale-option scoring-btn${scoringMode === 'voted' ? ' active' : ''}" data-mode="voted">Votación</button>
+                    <button class="scale-option scoring-btn${scoringMode === 'base' ? ' active' : ''}" data-mode="base">Base</button>
+                </div>
             </div>
         `;
-        document.getElementById('scoring-mode-toggle').addEventListener('change', (e) => {
-            scoringMode = e.target.checked ? 'base' : 'voted';
-            updateScoringModeLabel();
-        });
-    }
 
-    document.getElementById('scoring-mode-toggle').checked = scoringMode === 'base';
-    updateScoringModeLabel();
+        container.querySelectorAll('.scoring-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                scoringMode = btn.dataset.mode;
+                updateScoringModeToggle();
+                updateAllPlayerRatings();
+                renderPlayers();
+                if (manualAssignment) {
+                    manualAssignment.render();
+                }
+            });
+        });
+    });
+
+    if (!show) {
+        scoringMode = 'voted';
+    }
 }
 
-function updateScoringModeLabel() {
-    const label = document.getElementById('scoring-mode-label');
-    if (label) {
-        label.textContent = scoringMode === 'base' ? 'Base (valor del dueño)' : 'Votación (promedio)';
+function getRating(player) {
+    if (scoringMode === 'base' && player.skills) {
+        return calculateAverage(player.skills);
     }
+    return calculateAverage(player);
+}
+
+function updateAllPlayerRatings() {
+    players.forEach(player => {
+        player.rating = getRating(player);
+    });
 }
 
 function getManualContextName() {
@@ -258,10 +277,10 @@ async function loadPlayersForContext(contextId) {
         const data = await response.json();
         players = data.players || data; // Manejar tanto {players: [...]} como [...]
         
-        // Calcular promedio para cada jugador
+        // Calcular promedio para cada jugador según el modo de puntuación actual
         players = players.map(player => ({
             ...player,
-            rating: calculateAverage(player)
+            rating: getRating(player)
         }));
         players = sortPlayersByName(players);
         

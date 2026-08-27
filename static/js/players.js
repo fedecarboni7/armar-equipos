@@ -224,7 +224,9 @@ function renderTableHeader() {
         html += `<div class="header-cell" data-sort="base" onclick="sortPlayers('base')">Base</div>`;
         html += `<div class="header-cell" data-sort="vote_avg" onclick="sortPlayers('vote_avg')">Votación</div>`;
     }
-    html += `<div class="header-cell" data-sort="score" onclick="sortPlayers('score')">Puntuación</div>`;
+    if (layout !== 'admin') {
+        html += `<div class="header-cell" data-sort="score" onclick="sortPlayers('score')">Puntuación</div>`;
+    }
     if (layout !== 'personal') {
         html += `<div class="header-cell" data-sort="votes" onclick="sortPlayers('votes')">Votos</div>`;
     }
@@ -394,10 +396,10 @@ function renderPlayers() {
         playerRow.className = 'player-row';
         playerRow.onclick = () => viewPlayer(player.id);
         
-        const score = calculateAverage(player);
         const lastModified = player.last_activity_at || player.updated_at;
         const layout = getTableLayout();
-        const baseScore = player.skills ? calculateAverage(player.skills) : score;
+        const score = calculateAverage(player);
+        const baseScore = player.skills ? calculateAverage(player.skills) : calculateAverage(player);
         const voteAvg = player.vote_average && player.vote_average.velocidad !== null
             ? calculateAverage(player.vote_average)
             : null;
@@ -410,7 +412,9 @@ function renderPlayers() {
             cells += `<div class="score">${roundSkill(baseScore)}/${currentScale}</div>`;
             cells += `<div class="score">${voteAvg !== null ? roundSkill(voteAvg) : '—'}/${currentScale}</div>`;
         }
-        cells += `<div class="score">${roundSkill(score)}/${currentScale}</div>`;
+        if (layout !== 'admin') {
+            cells += `<div class="score">${roundSkill(score)}/${currentScale}</div>`;
+        }
         if (layout !== 'personal') {
             cells += `<div class="vote-count">${player.vote_count || 0}</div>`;
         }
@@ -560,7 +564,7 @@ function renderPlayerModal(player) {
         }).join('');
         skillsHtml = `
             <div class="skills-detail-grid">
-                <table style="width:100%;border-collapse:collapse;">
+                    <table class="admin-skills-table" style="width:100%;border-collapse:collapse;">
                     <thead><tr><th>Habilidad</th><th>Base</th><th>Votación</th></tr></thead>
                     <tbody>${rows}</tbody>
                 </table>
