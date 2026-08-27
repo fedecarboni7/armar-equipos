@@ -176,3 +176,71 @@ def test_get_vote_and_players_with_votes(authenticated_client, db):
     target = next(item for item in players if item["id"] == player.id)
     assert target["velocidad"] == 4
     assert target["vote_average"]["velocidad"] == 4
+
+
+def test_fractional_average_with_multiple_voters(authenticated_client, db):
+    """Two voters with different skill values produce a non-integer average."""
+    user1 = db.query(models.User).filter(models.User.username == "testuser").first()
+    club = _create_club_with_owner(db, user1)
+    player = _create_player_s5(db, club.id, user1.id)
+
+    # First voter (voting all 4s)
+    authenticated_client.post(
+        f"/api/clubs/{club.id}/players/{player.id}/vote?scale=s5",
+        json={
+            **{k: 4 for k in SKILL_PAYLOAD},
+            "player_s5_id": player.id,
+        },
+    )
+
+    # Second user
+    user2 = models.User(
+        username="voter2", email="voter2@example.com", email_confirmed=1
+    )
+    user2.set_password("pass2")
+    db.add(user2)
+    db.commit()
+    db.refresh(user2)
+
+    db.add(models.ClubUser(club_id=club.id, user_id=user2.id, role="miembro"))
+    db.commit()
+
+    from fastapi.testclient import TestClient
+
+    from app.main import app as _app
+    from app.db.database import get_db as _get_db
+
+    def override_get_db():
+        try:
+            yield db
+        finally:
+            pass
+
+    _app.dependency_overrides[_get_db] = override_get_db
+    client2 = TestClient(_app)
+    client2.post(
+        "/login",
+        data={"username": "voter2", "password": "pass2"},
+        follow_redirects=False,
+    )
+
+    # Second voter (voting all 5s)
+    vote_resp = client2.post(
+        f"/api/clubs/{club.id}/players/{player.id}/vote?scale=s5",
+        json={
+            **{k: 5 for k in SKILL_PAYLOAD},
+            "player_s5_id": player.id,
+        },
+    )
+    assert vote_resp.status_code == 200
+
+    # Restore authenticated_client override and GET /api/players
+    _app.dependency_overrides[_get_db] = override_get_db
+    response = authenticated_client.get(f"/api/players?scale=1-5&club_id={club.id}")
+    assert response.status_code == 200
+    players = response.json()
+    target = next(item for item in players if item["id"] == player.id)
+
+    assert target["velocidad"] == 4.5
+    assert target["vote_average"]["velocidad"] == 4.5
+    assert target["skills"]["velocidad"] == 3

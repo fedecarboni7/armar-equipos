@@ -206,10 +206,15 @@ function formatDate(date) {
     return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
+// El backend envía los skills como promedio con decimales; el redondeo es solo de presentación.
+function roundSkill(value) {
+    return typeof value === 'number' ? Math.round(value) : value;
+}
+
 // Función para calcular promedio de habilidades
 function calculateAverage(player) {
     const skillKeys = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
-    const skillValues = skillKeys.map(key => player[key]).filter(val => typeof val === 'number');
+    const skillValues = skillKeys.map(key => player[key]).filter(val => typeof val === 'number').map(roundSkill);
     
     if (skillValues.length === 0) return 0;
     
@@ -407,15 +412,15 @@ function createRadarChart(canvasId, playerData) {
             datasets: [{
                 label: ' Puntos',
                 data: [
-                    playerData.velocidad,
-                    playerData.resistencia,
-                    playerData.pases,
-                    playerData.tiro,
-                    playerData.defensa,
-                    playerData.fuerza_cuerpo,
-                    playerData.control,
-                    playerData.habilidad_arquero,
-                    playerData.vision
+                    roundSkill(playerData.velocidad),
+                    roundSkill(playerData.resistencia),
+                    roundSkill(playerData.pases),
+                    roundSkill(playerData.tiro),
+                    roundSkill(playerData.defensa),
+                    roundSkill(playerData.fuerza_cuerpo),
+                    roundSkill(playerData.control),
+                    roundSkill(playerData.habilidad_arquero),
+                    roundSkill(playerData.vision)
                 ],
                 backgroundColor: 'rgba(200, 200, 200, 0.3)',
                 borderColor: 'rgba(180, 180, 180, 1)',
@@ -507,39 +512,39 @@ function renderPlayerModal(player) {
             <div class="skills-detail-grid">
                 <div class="skill-detail-item">
                     <span class="skill-detail-name">Velocidad</span>
-                    <span class="skill-detail-value">${player.velocidad}/${currentScale}</span>
+                    <span class="skill-detail-value">${roundSkill(player.velocidad)}/${currentScale}</span>
                 </div>
                 <div class="skill-detail-item">
                     <span class="skill-detail-name">Resistencia</span>
-                    <span class="skill-detail-value">${player.resistencia}/${currentScale}</span>
+                    <span class="skill-detail-value">${roundSkill(player.resistencia)}/${currentScale}</span>
                 </div>
                 <div class="skill-detail-item">
                     <span class="skill-detail-name">Pases</span>
-                    <span class="skill-detail-value">${player.pases}/${currentScale}</span>
+                    <span class="skill-detail-value">${roundSkill(player.pases)}/${currentScale}</span>
                 </div>
                 <div class="skill-detail-item">
                     <span class="skill-detail-name">Tiro</span>
-                    <span class="skill-detail-value">${player.tiro}/${currentScale}</span>
+                    <span class="skill-detail-value">${roundSkill(player.tiro)}/${currentScale}</span>
                 </div>
                 <div class="skill-detail-item">
                     <span class="skill-detail-name">Defensa</span>
-                    <span class="skill-detail-value">${player.defensa}/${currentScale}</span>
+                    <span class="skill-detail-value">${roundSkill(player.defensa)}/${currentScale}</span>
                 </div>
                 <div class="skill-detail-item">
                     <span class="skill-detail-name">Fuerza Cuerpo</span>
-                    <span class="skill-detail-value">${player.fuerza_cuerpo}/${currentScale}</span>
+                    <span class="skill-detail-value">${roundSkill(player.fuerza_cuerpo)}/${currentScale}</span>
                 </div>
                 <div class="skill-detail-item">
                     <span class="skill-detail-name">Control</span>
-                    <span class="skill-detail-value">${player.control}/${currentScale}</span>
+                    <span class="skill-detail-value">${roundSkill(player.control)}/${currentScale}</span>
                 </div>
                 <div class="skill-detail-item">
                     <span class="skill-detail-name">Habilidad Arquero</span>
-                    <span class="skill-detail-value">${player.habilidad_arquero}/${currentScale}</span>
+                    <span class="skill-detail-value">${roundSkill(player.habilidad_arquero)}/${currentScale}</span>
                 </div>
                 <div class="skill-detail-item">
                     <span class="skill-detail-name">Visión</span>
-                    <span class="skill-detail-value">${player.vision}/${currentScale}</span>
+                    <span class="skill-detail-value">${roundSkill(player.vision)}/${currentScale}</span>
                 </div>
             </div>
         </div>
@@ -572,39 +577,39 @@ function renderPlayerModal(player) {
                 <div class="skills-edit-grid">
                     <div class="skill-input">
                         <label for="edit-velocidad">Velocidad</label>
-                        <input type="number" id="edit-velocidad" min="1" max="${currentScale}" value="${player.velocidad}" />
+                        <input type="number" id="edit-velocidad" min="1" max="${currentScale}" value="${roundSkill(player.skills.velocidad)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-resistencia">Resistencia</label>
-                        <input type="number" id="edit-resistencia" min="1" max="${currentScale}" value="${player.resistencia}" />
+                        <input type="number" id="edit-resistencia" min="1" max="${currentScale}" value="${roundSkill(player.skills.resistencia)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-pases">Pases</label>
-                        <input type="number" id="edit-pases" min="1" max="${currentScale}" value="${player.pases}" />
+                        <input type="number" id="edit-pases" min="1" max="${currentScale}" value="${roundSkill(player.skills.pases)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-tiro">Tiro</label>
-                        <input type="number" id="edit-tiro" min="1" max="${currentScale}" value="${player.tiro}" />
+                        <input type="number" id="edit-tiro" min="1" max="${currentScale}" value="${roundSkill(player.skills.tiro)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-defensa">Defensa</label>
-                        <input type="number" id="edit-defensa" min="1" max="${currentScale}" value="${player.defensa}" />
+                        <input type="number" id="edit-defensa" min="1" max="${currentScale}" value="${roundSkill(player.skills.defensa)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-fuerza_cuerpo">Fuerza Cuerpo</label>
-                        <input type="number" id="edit-fuerza_cuerpo" min="1" max="${currentScale}" value="${player.fuerza_cuerpo}" />
+                        <input type="number" id="edit-fuerza_cuerpo" min="1" max="${currentScale}" value="${roundSkill(player.skills.fuerza_cuerpo)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-control">Control</label>
-                        <input type="number" id="edit-control" min="1" max="${currentScale}" value="${player.control}" />
+                        <input type="number" id="edit-control" min="1" max="${currentScale}" value="${roundSkill(player.skills.control)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-habilidad_arquero">Habilidad Arquero</label>
-                        <input type="number" id="edit-habilidad_arquero" min="1" max="${currentScale}" value="${player.habilidad_arquero}" />
+                        <input type="number" id="edit-habilidad_arquero" min="1" max="${currentScale}" value="${roundSkill(player.skills.habilidad_arquero)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-vision">Visión</label>
-                        <input type="number" id="edit-vision" min="1" max="${currentScale}" value="${player.vision}" />
+                        <input type="number" id="edit-vision" min="1" max="${currentScale}" value="${roundSkill(player.skills.vision)}" />
                     </div>
                 </div>
             </div>

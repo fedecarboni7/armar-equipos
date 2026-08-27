@@ -16,9 +16,10 @@ def test_compute_effective_skills_fallback_to_base():
         vision=5,
     )
 
-    effective, averages = crud.compute_effective_skills(player, [])
+    base, effective, averages = crud.compute_effective_skills(player, [])
 
     assert effective["velocidad"] == 2
+    assert base["velocidad"] == 2
     assert averages["velocidad"] is None
 
 
@@ -51,7 +52,8 @@ def test_compute_effective_skills_with_votes():
         vision=4,
     )
 
-    effective, averages = crud.compute_effective_skills(player, [vote])
+    base, effective, averages = crud.compute_effective_skills(player, [vote])
 
+    assert base["velocidad"] == 2
     assert effective["velocidad"] == 4
     assert averages["velocidad"] == 4

@@ -1,7 +1,7 @@
 """add skill votes
 
 Revision ID: e3a1b2c3d4e5
-Revises: 4c2f6d9e1b7a
+Revises: f1a2b3c4d5e6
 Create Date: 2026-05-25
 """
 
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = "e3a1b2c3d4e5"
-down_revision = "d9a4c6e1f2ab"
+down_revision = "f1a2b3c4d5e6"
 branch_labels = None
 depends_on = None
 

@@ -86,7 +86,7 @@ def get_players(
 
         response_payload = []
         for player in players:
-            effective, averages = crud.compute_effective_skills(
+            base, effective, averages = crud.compute_effective_skills(
                 player, votes_by_player.get(player.id, [])
             )
             response_payload.append(
@@ -105,7 +105,9 @@ def get_players(
                     "updated_at": player.updated_at,
                     "user_id": player.user_id,
                     "club_id": player.club_id,
+                    "photo_url": player.photo_url,
                     "vote_average": averages,
+                    "skills": base,
                 }
             )
 
@@ -190,7 +192,7 @@ def vote_player_skills(
         if vote_week_start == current_week_start:
             raise HTTPException(
                 status_code=400,
-                detail="Ya votaste por este jugador esta semana. Podras volver a votar el proximo lunes.",
+                detail="Ya votaste por este jugador esta semana. Podrás volver a votar el próximo lunes.",
             )
         for field in crud.SKILL_FIELDS:
             setattr(vote, field, getattr(vote_data, field))

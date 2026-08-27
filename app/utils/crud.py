@@ -24,11 +24,12 @@ SKILL_FIELDS = (
 def compute_effective_skills(
     player: models.PlayerScale5 | models.PlayerScale10,
     votes: Iterable[models.SkillVote],
-) -> Tuple[Dict[str, float], Dict[str, float | None]]:
+) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, float | None]]:
+    base_values = {field: getattr(player, field) for field in SKILL_FIELDS}
+
     votes_list = list(votes)
     if not votes_list:
-        base_values = {field: getattr(player, field) for field in SKILL_FIELDS}
-        return base_values, {field: None for field in SKILL_FIELDS}
+        return base_values, base_values, {field: None for field in SKILL_FIELDS}
 
     totals = {field: 0 for field in SKILL_FIELDS}
     for vote in votes_list:
@@ -37,7 +38,7 @@ def compute_effective_skills(
 
     count = len(votes_list)
     averages = {field: round(totals[field] / count, 1) for field in SKILL_FIELDS}
-    return averages, averages
+    return base_values, averages, averages
 
 
 def get_club_members(

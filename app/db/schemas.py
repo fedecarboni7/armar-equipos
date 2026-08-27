@@ -129,22 +129,60 @@ class SkillVoteAverage(BaseModel):
     vision: Optional[float] = None
 
 
+class SkillBaseValues(BaseModel):
+    velocidad: float
+    resistencia: float
+    control: float
+    pases: float
+    tiro: float
+    defensa: float
+    habilidad_arquero: float
+    fuerza_cuerpo: float
+    vision: float
+
+
 class PlayerSkillsWithVotes(BaseModel):
     id: int
     name: str
-    velocidad: int
-    resistencia: int
-    control: int
-    pases: int
-    tiro: int
-    defensa: int
-    habilidad_arquero: int
-    fuerza_cuerpo: int
-    vision: int
+    velocidad: float
+    resistencia: float
+    control: float
+    pases: float
+    tiro: float
+    defensa: float
+    habilidad_arquero: float
+    fuerza_cuerpo: float
+    vision: float
     updated_at: datetime
     user_id: Optional[int] = None
     club_id: Optional[int] = None
+    photo_url: Optional[str] = None
     vote_average: SkillVoteAverage
+    skills: SkillBaseValues
+
+
+class TeamPlayerSkills(BaseModel):
+    id: int
+    name: str
+    velocidad: float
+    resistencia: float
+    control: float
+    pases: float
+    tiro: float
+    defensa: float
+    habilidad_arquero: float
+    fuerza_cuerpo: float
+    vision: float
+
+
+class TeamOption(BaseModel):
+    team1: List[TeamPlayerSkills]
+    team2: List[TeamPlayerSkills]
+
+
+class BuildTeamsResponse(BaseModel):
+    teams: List[TeamOption]
+    difference: float
 
 
 # Schemas para ClubUser

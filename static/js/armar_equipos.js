@@ -231,10 +231,15 @@ document.addEventListener('scaleChanged', function (e) {
     loadPlayers();
 });
 
+// El backend envía los skills como promedio con decimales; el redondeo es solo de presentación.
+function roundSkill(value) {
+    return typeof value === 'number' ? Math.round(value) : value;
+}
+
 // Calcular promedio de habilidades
 function calculateAverage(player) {
     const skillKeys = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
-    const skillValues = skillKeys.map(key => player[key]).filter(val => typeof val === 'number');
+    const skillValues = skillKeys.map(key => player[key]).filter(val => typeof val === 'number').map(roundSkill);
     
     if (skillValues.length === 0) return 0;
     
@@ -435,8 +440,8 @@ function renderManualComparison() {
     // Calcular totales por equipo
     const totalsA = Object.fromEntries(skills.map(([k]) => [k, 0]));
     const totalsB = Object.fromEntries(skills.map(([k]) => [k, 0]));
-    teamA.forEach(p => skills.forEach(([k]) => totalsA[k] += p[k] || 0));
-    teamB.forEach(p => skills.forEach(([k]) => totalsB[k] += p[k] || 0));
+    teamA.forEach(p => skills.forEach(([k]) => totalsA[k] += roundSkill(p[k]) || 0));
+    teamB.forEach(p => skills.forEach(([k]) => totalsB[k] += roundSkill(p[k]) || 0));
     const totalA = Object.values(totalsA).reduce((a,b)=>a+b,0);
     const totalB = Object.values(totalsB).reduce((a,b)=>a+b,0);
 
@@ -632,15 +637,15 @@ function transformTeamsData(apiData) {
         [...teamOption.team1, ...teamOption.team2].forEach(player => {
             window.playerDataDict[player.name] = {
                 id: player.id,
-                velocidad: player.velocidad,
-                resistencia: player.resistencia,
-                control: player.control,
-                pases: player.pases,
-                fuerza_cuerpo: player.fuerza_cuerpo,
-                habilidad_arquero: player.habilidad_arquero,
-                defensa: player.defensa,
-                tiro: player.tiro,
-                vision: player.vision
+                velocidad: roundSkill(player.velocidad),
+                resistencia: roundSkill(player.resistencia),
+                control: roundSkill(player.control),
+                pases: roundSkill(player.pases),
+                fuerza_cuerpo: roundSkill(player.fuerza_cuerpo),
+                habilidad_arquero: roundSkill(player.habilidad_arquero),
+                defensa: roundSkill(player.defensa),
+                tiro: roundSkill(player.tiro),
+                vision: roundSkill(player.vision)
             };
         });
     });
@@ -673,7 +678,7 @@ function calculateTeamSkills(teamPlayers) {
     // Sum all skills
     teamPlayers.forEach(player => {
         Object.keys(teamSkills).forEach(skill => {
-            teamSkills[skill]["total"] += player[skill] || 0;
+            teamSkills[skill]["total"] += roundSkill(player[skill]) || 0;
         });
     });
     

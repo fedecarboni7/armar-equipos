@@ -10,6 +10,7 @@ from app.db.database import get_db
 from app.db.database_utils import execute_with_retries, query_clubs, query_players
 from app.db import models
 from app.db.models import User
+from app.db.schemas import BuildTeamsResponse
 from app.utils.ai_formations import create_formations
 from app.utils.ai_player_matcher import match_players, MAX_LINES
 from app.utils.auth import get_current_user
@@ -185,7 +186,7 @@ async def build_teams_api(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> BuildTeamsResponse:
     if not current_user:
         return JSONResponse(content={"error": "No autenticado"}, status_code=401)
 
@@ -334,9 +335,7 @@ async def build_teams_api(
                 }
             )
 
-        return JSONResponse(
-            content={"teams": teams_options, "difference": min_difference_total}
-        )
+        return {"teams": teams_options, "difference": min_difference_total}
 
     except Exception as e:
         logger.exception("Error building teams: %s", str(e))
