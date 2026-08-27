@@ -45,7 +45,6 @@ Project context and execution rules for AI coding agents (GitHub Copilot, OpenCo
 
 ### Database
 - SQLAlchemy async sessions via dependency injection (`get_db`).
-- Tests use SQLite in-memory — do not write tests that require Postgres.
 
 ### Migrations (Alembic)
 - All schema changes go through Alembic — never use `Base.metadata.create_all()` in production code.
