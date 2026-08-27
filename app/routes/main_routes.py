@@ -1,4 +1,3 @@
-import logging
 from types import SimpleNamespace
 
 from fastapi import APIRouter, Depends, Request
@@ -6,6 +5,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from requests import Session
 
 from app.config.config import templates
+from app.config.logging_config import logger
 from app.db.database import get_db
 from app.db.database_utils import execute_with_retries, query_clubs, query_players
 from app.db import models
@@ -59,6 +59,11 @@ def build_player_scores(selected_players, consider_goalkeeper_skill=True):
 @router.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def landing_page(request: Request):
     return templates.TemplateResponse(request=request, name="landing-page.html")
+
+
+@router.get("/video", response_class=HTMLResponse, include_in_schema=False)
+async def video_page(request: Request):
+    return templates.TemplateResponse(request=request, name="video.html")
 
 
 @router.get("/jugadores", response_class=HTMLResponse, include_in_schema=False)
@@ -188,9 +193,9 @@ async def build_teams_api(
         data = await request.json()
         selected_player_ids = data.get("selected_player_ids", [])
 
-        if len(selected_player_ids) < 4:
+        if len(selected_player_ids) < 3:
             return JSONResponse(
-                content={"error": "Necesitas al menos 4 jugadores para armar equipos"},
+                content={"error": "Necesitas al menos 3 jugadores para armar equipos"},
                 status_code=400,
             )
 
@@ -334,7 +339,7 @@ async def build_teams_api(
         )
 
     except Exception as e:
-        logging.exception("Error building teams: %s", str(e))
+        logger.exception("Error building teams: %s", str(e))
         return JSONResponse(
             content={"error": "Error interno al armar equipos"}, status_code=500
         )
@@ -410,13 +415,13 @@ async def match_players_api(
         return JSONResponse(content=result)
 
     except ValueError as e:
-        logging.warning("Validation error in match_players: %s", str(e))
+        logger.warning("Validation error in match_players: %s", str(e))
         return JSONResponse(
             content={"error": "Error de validación en los datos enviados"},
             status_code=400,
         )
     except Exception as e:
-        logging.exception("Error matching players: %s", str(e))
+        logger.exception("Error matching players: %s", str(e))
         return JSONResponse(
             content={"error": "Error al buscar coincidencias de jugadores"},
             status_code=500,

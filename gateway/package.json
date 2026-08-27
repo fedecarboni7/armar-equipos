@@ -1,0 +1,16 @@
+{
+  "name": "armar-equipos-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node --test index.test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

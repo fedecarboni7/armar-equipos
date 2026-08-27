@@ -18,3 +18,39 @@ html{line-height:1.15;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}bo
         font-size: 12px;
     }
 }
+/* Testimonials */
+.testimonials {
+    padding-top: 48px;
+    padding-bottom: 48px;
+}
+
+.testimonials-wrap {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.testimonial {
+    background: #f5f5f5;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.testimonial-stars {
+    color: #f5a623;
+    font-size: 22px;
+}
+
+.testimonial-body {
+    color: #333333;
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 0;
+    flex-grow: 1;
+}

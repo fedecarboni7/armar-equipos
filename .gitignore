@@ -221,3 +221,9 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Others
+opencode.json
+
+# Node
+node_modules/

@@ -356,6 +356,7 @@ function renderPlayers() {
         playerItem.innerHTML = `
             <div class="player-info">
                 <div class="checkbox ${isSelected ? 'checked' : ''}" data-player="${player.name}"></div>
+                ${renderPlayerAvatar(player, 40)}
                 <span class="player-name">${player.name}</span>
             </div>
             <span class="player-rating">${player.rating}/${currentScale}</span>
@@ -508,6 +509,26 @@ function renderManualComparison() {
     };
 }
 
+function checkReviewPrompt() {
+    const STORAGE_KEY = 'ae_review_prompted';
+    const COUNT_KEY = 'ae_teams_generated_count';
+
+    if (localStorage.getItem(STORAGE_KEY)) return;
+
+    const count = parseInt(localStorage.getItem(COUNT_KEY) || '0') + 1;
+    localStorage.setItem(COUNT_KEY, count);
+
+    if (count >= 3) {
+        localStorage.setItem(STORAGE_KEY, '1');
+        showReviewModal();
+    }
+}
+
+function showReviewModal() {
+    const modal = document.getElementById('review-modal');
+    if (modal) modal.style.display = 'flex';
+}
+
 // Generate optimized teams function
 async function generateTeams() {
     const generateBtn = document.querySelector('.generate-btn');
@@ -565,6 +586,8 @@ async function generateTeams() {
         
         // Render the results
         displayTeamsResults(transformedData);
+
+        checkReviewPrompt();
         
     } catch (error) {
         console.error('Error generating teams:', error);
@@ -667,9 +690,203 @@ function calculateTeamSkills(teamPlayers) {
     return [teamSkills, totalSkills, avgSkills];
 }
 
+function getOptionsCount(data) {
+    return Math.floor(data.len_teams / 2);
+}
+
+function getOptionIndexes(optionNumber) {
+    const team1Index = (optionNumber - 1) * 2;
+    return {
+        team1Index,
+        team2Index: team1Index + 1
+    };
+}
+
+function getTeamPlayersFromList(teamList) {
+    if (!teamList) {
+        return [];
+    }
+
+    return Array.from(teamList.querySelectorAll('.player-name'))
+        .map(player => player.textContent.trim())
+        .filter(Boolean);
+}
+
+function getOptionTeamPlayers(optionNumber) {
+    const { team1Index, team2Index } = getOptionIndexes(optionNumber);
+    const team1List = document.querySelector(`.team-list[data-index='${team1Index}']`);
+    const team2List = document.querySelector(`.team-list[data-index='${team2Index}']`);
+
+    let team1 = getTeamPlayersFromList(team1List);
+    let team2 = getTeamPlayersFromList(team2List);
+
+    if (team1.length === 0 && window.teams?.[team1Index]?.[0]) {
+        team1 = window.teams[team1Index][0];
+    }
+
+    if (team2.length === 0 && window.teams?.[team2Index]?.[0]) {
+        team2 = window.teams[team2Index][0];
+    }
+
+    return { team1, team2 };
+}
+
+function buildComparisonData(baseOption, compareOption) {
+    const baseTeams = getOptionTeamPlayers(baseOption);
+    const compareTeams = getOptionTeamPlayers(compareOption);
+
+    const movedOut = baseTeams.team1.filter(player => !compareTeams.team1.includes(player));
+    const movedIn = compareTeams.team1.filter(player => !baseTeams.team1.includes(player));
+    const totalPlayers = baseTeams.team1.length + baseTeams.team2.length;
+    const changedPlayers = movedOut.length;
+    const samePlayers = Math.max(totalPlayers - changedPlayers, 0);
+    const similarityPercent = totalPlayers
+        ? Math.round((samePlayers / totalPlayers) * 100)
+        : 0;
+
+    return {
+        movedOut,
+        movedIn,
+        changedPlayers,
+        similarityPercent
+    };
+}
+
+function buildCompareTableRows(movedOut, movedIn) {
+    const maxLen = Math.max(movedOut.length, movedIn.length);
+
+    if (maxLen === 0) {
+        return '<tr><td>—</td><td>—</td></tr>';
+    }
+
+    let rows = '';
+    for (let i = 0; i < maxLen; i++) {
+        const outName = movedOut[i] ? escapeHTML(movedOut[i]) : '—';
+        const inName = movedIn[i] ? escapeHTML(movedIn[i]) : '—';
+        rows += `<tr><td>${outName}</td><td>${inName}</td></tr>`;
+    }
+
+    return rows;
+}
+
+function buildCompareContentHtml(baseOption, compareOption) {
+    const comparison = buildComparisonData(baseOption, compareOption);
+    const changesLabel = comparison.changedPlayers === 1 ? 'cambio detectado' : 'cambios detectados';
+
+    return `
+        <div class="compare-stats">
+            <div class="compare-stat">
+                <span class="compare-stat-value">${comparison.changedPlayers}</span>
+                <span class="compare-stat-label">${changesLabel}</span>
+            </div>
+            <div class="compare-stat">
+                <span class="compare-stat-value">${comparison.similarityPercent}%</span>
+                <span class="compare-stat-label">similitud</span>
+            </div>
+        </div>
+        <div class="compare-table-wrapper">
+            <table class="compare-table">
+                <thead>
+                    <tr>
+                        <th>Sale de Equipo 1</th>
+                        <th>Entra a Equipo 1</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${buildCompareTableRows(comparison.movedOut, comparison.movedIn)}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+function buildCompareSelectOptions(currentOption, optionsCount) {
+    let optionsHtml = '';
+
+    for (let option = 1; option <= optionsCount; option++) {
+        if (option === currentOption) {
+            continue;
+        }
+
+        const isSelected = optionsHtml === '' ? ' selected' : '';
+        optionsHtml += `<option value="${option}"${isSelected}>Opción ${option}</option>`;
+    }
+
+    return optionsHtml;
+}
+
+function buildCompareSectionHtml(optionNumber, optionsCount) {
+    return `
+        <div class="compare-section" id="compare-section-${optionNumber}" data-option="${optionNumber}" style="display: none;">
+            <div class="compare-row">
+                <label class="compare-label" for="compare-select-${optionNumber}">Comparando con:</label>
+                <select id="compare-select-${optionNumber}" class="compare-select">
+                    ${buildCompareSelectOptions(optionNumber, optionsCount)}
+                </select>
+            </div>
+            <div class="compare-content" id="compare-content-${optionNumber}"></div>
+        </div>
+    `;
+}
+
+function updateCompareSection(optionNumber, compareOption) {
+    const content = document.getElementById(`compare-content-${optionNumber}`);
+    if (!content) {
+        return;
+    }
+
+    content.innerHTML = buildCompareContentHtml(optionNumber, compareOption);
+}
+
+function initCompareSections(resultsContainer, optionsCount) {
+    if (optionsCount < 2) {
+        return;
+    }
+
+    const compareButtons = resultsContainer.querySelectorAll('.compare-toggle');
+    const compareSelects = resultsContainer.querySelectorAll('.compare-select');
+
+    compareButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const optionNumber = parseInt(button.dataset.option, 10);
+            const section = document.getElementById(`compare-section-${optionNumber}`);
+            const select = document.getElementById(`compare-select-${optionNumber}`);
+
+            if (!section || !select) {
+                return;
+            }
+
+            const isOpen = section.classList.contains('open');
+            if (isOpen) {
+                section.classList.remove('open');
+                section.style.display = 'none';
+                button.classList.remove('active');
+                return;
+            }
+
+            section.classList.add('open');
+            section.style.display = 'flex';
+            button.classList.add('active');
+
+            const compareOption = parseInt(select.value, 10);
+            updateCompareSection(optionNumber, compareOption);
+        });
+    });
+
+    compareSelects.forEach(select => {
+        select.addEventListener('change', () => {
+            const optionNumber = parseInt(select.id.replace('compare-select-', ''), 10);
+            const compareOption = parseInt(select.value, 10);
+            updateCompareSection(optionNumber, compareOption);
+        });
+    });
+}
+
 // Display the teams results using the results template format
 function displayTeamsResults(data) {
     const resultsContainer = document.getElementById('teams-results');
+    const optionsCount = getOptionsCount(data);
+    const hasCompare = optionsCount > 1;
     
     // Generate HTML similar to results.html template
     let html = `<div class="results-section">`;
@@ -678,12 +895,18 @@ function displayTeamsResults(data) {
     for (let i = 0; i < data.len_teams - 1; i += 2) {
         const optionNumber = Math.floor(i / 2) + 1;
         
-        if (data.len_teams > 2) {
-            html += `<h2>Opción ${optionNumber}</h2>`;
-        }
-        
         html += `
             <div class="team-container" id="resultados-equipos${optionNumber}">
+                ${hasCompare ? `
+                    <div class="option-header">
+                        <div class="option-title">Opción ${optionNumber}</div>
+                        <button type="button" class="compare-toggle" data-option="${optionNumber}">
+                            <i class="fa-solid fa-code-compare" style="padding-right: 5px;"></i>
+                            Comparar
+                        </button>
+                    </div>
+                    ${buildCompareSectionHtml(optionNumber, optionsCount)}
+                ` : ''}
                 <div class="team">
                     <h2>Equipo 1</h2>
                     <ul class="team-list" data-index="${i}">
@@ -817,6 +1040,10 @@ function displayTeamsResults(data) {
     if (typeof createCarousel === 'function') {
         const carousels = resultsContainer.querySelectorAll('.carousel-container');
         carousels.forEach(carousel => createCarousel(carousel));
+    }
+
+    if (hasCompare) {
+        initCompareSections(resultsContainer, optionsCount);
     }
 }
 

@@ -20,14 +20,6 @@ Este proyecto tiene como objetivo proporcionar una aplicación web que ayude a o
 
 La herramienta puede ser utilizada por cualquier persona responsable de formar equipos y que tenga un conocimiento mínimo de las habilidades de los jugadores.
 
-## Desarrollo Futuro
-
-El proyecto continuará desarrollándose para incorporar características y funcionalidades adicionales. Estas pueden incluir:
-
-* **Seguimiento del Rendimiento del Equipo:** Hará un seguimiento del rendimiento del equipo a lo largo del tiempo para identificar áreas de mejora y realizar los ajustes necesarios.
-* **Nuevas habilidades**: Permitirá crear tu propio set de habilidades a comparar entre los equipos.
-* **Colaboración entre jugadores**: La puntuación de las habilidades sería calculada entre los inputs de distintos jugadores para lograr una evaluación más equilibrada y consensuada.
-
 ## Contribuir
 
 Las contribuciones a este proyecto son bienvenidas. Por favor, consultá las [Guías de Contribución](CONTRIBUTING.md) para más información.

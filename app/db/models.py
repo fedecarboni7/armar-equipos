@@ -45,6 +45,7 @@ class User(Base):
     email_confirmation_token = Column(String, nullable=True)
     email_confirmation_expires = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=get_argentina_now)
+    last_seen_at = Column(DateTime, nullable=True)
 
     players_s5 = relationship(
         "PlayerScale5",
@@ -102,6 +103,7 @@ class PlayerScale5(Base):
     habilidad_arquero = Column(Integer)
     fuerza_cuerpo = Column(Integer)
     vision = Column(Integer)
+    photo_url = Column(String, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     club_id = Column(Integer, ForeignKey("clubs.id"))
     updated_at = Column(DateTime, default=get_argentina_now, onupdate=get_argentina_now)
@@ -128,6 +130,7 @@ class PlayerScale10(Base):
     habilidad_arquero = Column(Integer)
     fuerza_cuerpo = Column(Integer)
     vision = Column(Integer)
+    photo_url = Column(String, nullable=True)
     user_id = Column(Integer, ForeignKey("users.id"))
     club_id = Column(Integer, ForeignKey("clubs.id"))
     updated_at = Column(DateTime, default=get_argentina_now, onupdate=get_argentina_now)
