@@ -966,7 +966,7 @@ async function submitVote() {
             renderPlayerModal(currentEditingPlayer);
         }
     } catch (error) {
-        alert('Error al enviar la votacion: ' + error.message);
+        alert('Error al enviar la votación: ' + error.message);
     }
 }
 
