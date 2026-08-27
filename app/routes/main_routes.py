@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from requests import Session
+from sqlalchemy.orm import Session
 
 from app.config.config import templates
 from app.config.logging_config import logger
@@ -214,6 +214,8 @@ async def build_teams_api(
         current_user_id = current_user.id
         club_id = data.get("club_id")
         mode = data.get("mode", "voted")
+        if mode not in {"voted", "base"}:
+            return JSONResponse(content={"error": "Modo inválido"}, status_code=400)
         scale = data.get("scale", "1-5")
         consider_goalkeeper_skill = parse_goalkeeper_skill_flag(
             data.get("considerar_habilidad_arquero", True)
