@@ -39,6 +39,12 @@ def test_get_home(client, db):
     assert response.status_code == 302
     assert response.headers["location"] == "/home"
 
+    response = client.get("/home")
+    assert response.status_code == 200
+    assert response.template.name == "armar_equipos.html"
+    assert response.context["currentUser"]["username"] == username
+    assert 'id="user-data"' in response.text
+
 
 def test_get_current_user(client, db):  # Create a unique user for this test
     user = User(username="testuser3", email="testuser3@example.com", email_confirmed=1)

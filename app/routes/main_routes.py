@@ -1,15 +1,20 @@
+from types import SimpleNamespace
+
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from requests import Session
+from sqlalchemy.orm import Session
 
 from app.config.config import templates
 from app.config.logging_config import logger
 from app.db.database import get_db
 from app.db.database_utils import execute_with_retries, query_clubs, query_players
+from app.db import models
 from app.db.models import User
+from app.db.schemas import BuildTeamsResponse
 from app.utils.ai_formations import create_formations
 from app.utils.ai_player_matcher import match_players, MAX_LINES
 from app.utils.auth import get_current_user
+from app.utils import crud
 from app.utils.team_optimizer import find_best_combination
 
 router = APIRouter()
@@ -69,10 +74,20 @@ async def players_page(
     if not current_user:
         return RedirectResponse("/login", status_code=302)
 
+    current_user_data = {
+        "id": current_user.id,
+        "username": current_user.username,
+        "clubRole": None,
+    }
+
     return templates.TemplateResponse(
         request=request,
         name="players.html",
-        context={"request": request, "user": current_user},
+        context={
+            "request": request,
+            "user": current_user,
+            "currentUser": current_user_data,
+        },
     )
 
 
@@ -137,10 +152,20 @@ async def armar_equipos_page(
     if not current_user:
         return RedirectResponse("/", status_code=302)
 
+    current_user_data = {
+        "id": current_user.id,
+        "username": current_user.username,
+        "clubRole": None,
+    }
+
     return templates.TemplateResponse(
         request=request,
         name="armar_equipos.html",
-        context={"request": request, "user": current_user},
+        context={
+            "request": request,
+            "user": current_user,
+            "currentUser": current_user_data,
+        },
     )
 
 
@@ -171,7 +196,7 @@ async def build_teams_api(
     request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-):
+) -> BuildTeamsResponse:
     if not current_user:
         return JSONResponse(content={"error": "No autenticado"}, status_code=401)
 
@@ -188,12 +213,40 @@ async def build_teams_api(
         # Obtener datos de los jugadores seleccionados
         current_user_id = current_user.id
         club_id = data.get("club_id")
+        mode = data.get("mode", "voted")
+        if mode not in {"voted", "base"}:
+            return JSONResponse(content={"error": "Modo inválido"}, status_code=400)
         scale = data.get("scale", "1-5")
         consider_goalkeeper_skill = parse_goalkeeper_skill_flag(
             data.get("considerar_habilidad_arquero", True)
         )
 
         if club_id:
+            user_clubs = execute_with_retries(query_clubs, db, current_user_id)
+            user_club_ids = {club.id for club in user_clubs} if user_clubs else set()
+            if club_id not in user_club_ids:
+                return JSONResponse(
+                    content={"error": "No tenes permisos para acceder a este club"},
+                    status_code=403,
+                )
+
+            if mode == "base":
+                member = (
+                    db.query(models.ClubUser)
+                    .filter(
+                        models.ClubUser.club_id == club_id,
+                        models.ClubUser.user_id == current_user_id,
+                    )
+                    .first()
+                )
+                if not member or member.role not in ("admin", "owner"):
+                    return JSONResponse(
+                        content={
+                            "error": "Solo administradores pueden usar el modo base"
+                        },
+                        status_code=403,
+                    )
+
             all_players = execute_with_retries(
                 query_players, db, current_user_id, club_id, scale
             )
@@ -211,8 +264,78 @@ async def build_teams_api(
                 status_code=400,
             )
 
+        players_for_scoring = selected_players
+        if club_id:
+            votes_by_player = {}
+            if mode == "voted":
+                if scale == "1-10":
+                    votes = (
+                        db.query(models.SkillVote)
+                        .filter(
+                            models.SkillVote.club_id == club_id,
+                            models.SkillVote.player_s10_id.in_(
+                                [p.id for p in selected_players]
+                            ),
+                        )
+                        .all()
+                    )
+                    for vote in votes:
+                        votes_by_player.setdefault(vote.player_s10_id, []).append(vote)
+                else:
+                    votes = (
+                        db.query(models.SkillVote)
+                        .filter(
+                            models.SkillVote.club_id == club_id,
+                            models.SkillVote.player_s5_id.in_(
+                                [p.id for p in selected_players]
+                            ),
+                        )
+                        .all()
+                    )
+                    for vote in votes:
+                        votes_by_player.setdefault(vote.player_s5_id, []).append(vote)
+
+            players_for_scoring = []
+            for player in selected_players:
+                if mode == "base":
+                    base_skills = {
+                        "velocidad": player.velocidad,
+                        "resistencia": player.resistencia,
+                        "control": player.control,
+                        "pases": player.pases,
+                        "tiro": player.tiro,
+                        "defensa": player.defensa,
+                        "habilidad_arquero": player.habilidad_arquero,
+                        "fuerza_cuerpo": player.fuerza_cuerpo,
+                        "vision": player.vision,
+                    }
+                    players_for_scoring.append(
+                        SimpleNamespace(id=player.id, name=player.name, **base_skills)
+                    )
+                else:
+                    _base, effective, _avg = crud.compute_effective_skills(
+                        player, votes_by_player.get(player.id, [])
+                    )
+                    players_for_scoring.append(
+                        SimpleNamespace(
+                            id=player.id,
+                            name=player.name,
+                            velocidad=effective["velocidad"],
+                            resistencia=effective["resistencia"],
+                            control=effective["control"],
+                            pases=effective["pases"],
+                            tiro=effective["tiro"],
+                            defensa=effective["defensa"],
+                            habilidad_arquero=effective["habilidad_arquero"],
+                            fuerza_cuerpo=effective["fuerza_cuerpo"],
+                            vision=effective["vision"],
+                        )
+                    )
+
         # Preparar datos para el algoritmo
-        player_scores = build_player_scores(selected_players, consider_goalkeeper_skill)
+        player_scores = build_player_scores(
+            players_for_scoring, consider_goalkeeper_skill
+        )
 
         # Generar equipos
         mejores_equipos, min_difference_total = find_best_combination(player_scores)
@@ -220,8 +343,8 @@ async def build_teams_api(
         # Formatear respuesta
         teams_options = []
         for equipos in mejores_equipos:
-            team1_players = [selected_players[i] for i in equipos[0]]
-            team2_players = [selected_players[i] for i in equipos[1]]
+            team1_players = [players_for_scoring[i] for i in equipos[0]]
+            team2_players = [players_for_scoring[i] for i in equipos[1]]
 
             teams_options.append(
                 {
@@ -260,9 +383,7 @@ async def build_teams_api(
                 }
             )
 
-        return JSONResponse(
-            content={"teams": teams_options, "difference": min_difference_total}
-        )
+        return {"teams": teams_options, "difference": min_difference_total}
 
     except Exception as e:
         logger.exception("Error building teams: %s", str(e))

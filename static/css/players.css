@@ -286,7 +286,8 @@
 .players-table {
     background-color: #2d2d2d;
     border-radius: 12px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -338,17 +339,38 @@
 
 .player-row:hover {
     background-color: rgba(255, 255, 255, 0.08);
-    transform: translateX(2px);
 }
 
 .player-row:last-child {
     border-bottom: none;
 }
 
+/* El número de columnas depende del contexto: personal, club-member o club-admin.
+   Cada layout fija un ancho mínimo por columna y un min-width total: si no entra,
+   el contenedor scrollea horizontalmente en vez de comprimir/superponer el texto. */
+.players-table[data-columns="personal"] .table-header,
+.players-table[data-columns="personal"] .player-row {
+    grid-template-columns: minmax(160px, 1fr) 125px 180px;
+    min-width: 545px;
+}
+
+.players-table[data-columns="member"] .table-header,
+.players-table[data-columns="member"] .player-row {
+    grid-template-columns: minmax(160px, 1fr) 125px 85px 180px;
+    min-width: 650px;
+}
+
+.players-table[data-columns="admin"] .table-header,
+.players-table[data-columns="admin"] .player-row {
+    grid-template-columns: minmax(160px, 1fr) 100px 115px 85px 180px;
+    min-width: 640px;
+}
+
 .player-name {
     display: flex;
     align-items: center;
     gap: 12px;
+    min-width: 0;
 }
 
 .player-initial {
@@ -360,6 +382,8 @@
 .player-full-name {
     font-weight: 500;
     color: #ffffff;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .score {
@@ -500,6 +524,10 @@
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 12px;
     margin-top: 20px;
+}
+
+.admin-skills-table th {
+    text-align: left;
 }
 
 .skill-detail-item {
@@ -711,6 +739,27 @@
     .player-row {
         grid-template-columns: 1fr 80px 120px;
         gap: 10px;
+        padding: 14px 12px;
+    }
+
+    /* En mobile se achican columnas y gaps para que "personal" entre sin scroll;
+       member/admin siguen scrolleando si no entran. */
+    .players-table[data-columns="personal"] .table-header,
+    .players-table[data-columns="personal"] .player-row {
+        grid-template-columns: minmax(140px, 1fr) 105px 118px;
+        min-width: 407px;
+    }
+
+    .players-table[data-columns="member"] .table-header,
+    .players-table[data-columns="member"] .player-row {
+        grid-template-columns: minmax(140px, 1fr) 105px 60px 118px;
+        min-width: 477px;
+    }
+
+    .players-table[data-columns="admin"] .table-header,
+    .players-table[data-columns="admin"] .player-row {
+        grid-template-columns: minmax(140px, 1fr) 55px 85px 60px 118px;
+        min-width: 458px;
     }
     
     .header-cell {

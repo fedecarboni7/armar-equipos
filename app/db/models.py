@@ -10,6 +10,7 @@ from sqlalchemy import (
     Boolean,
     Text,
     CheckConstraint,
+    UniqueConstraint,
 )
 from sqlalchemy import Date
 from sqlalchemy.orm import DeclarativeBase, relationship
@@ -58,6 +59,7 @@ class User(Base):
     )
     club_users = relationship("ClubUser", back_populates="user")
     matches_created = relationship("Match", back_populates="creator")
+    skill_votes = relationship("SkillVote", back_populates="voter")
 
     def set_password(self, password):
         self.password = pbkdf2_sha256.hash(password)
@@ -111,6 +113,7 @@ class PlayerScale5(Base):
     last_modifier = relationship("User", foreign_keys=[last_modified_by])
     club = relationship("Club", back_populates="players_s5")
     match_players = relationship("MatchPlayer", back_populates="player_s5")
+    skill_votes = relationship("SkillVote", back_populates="player_s5")
 
 
 class PlayerScale10(Base):
@@ -137,6 +140,7 @@ class PlayerScale10(Base):
     last_modifier = relationship("User", foreign_keys=[last_modified_by])
     club = relationship("Club", back_populates="players_s10")
     match_players_s10 = relationship("MatchPlayer", back_populates="player_s10")
+    skill_votes = relationship("SkillVote", back_populates="player_s10")
 
 
 class Club(Base):
@@ -150,6 +154,42 @@ class Club(Base):
     players_s5 = relationship("PlayerScale5", back_populates="club")
     players_s10 = relationship("PlayerScale10", back_populates="club")
     matches = relationship("Match", back_populates="club")
+    skill_votes = relationship("SkillVote", back_populates="club")
+
+
+class SkillVote(Base):
+    __tablename__ = "skill_votes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    club_id = Column(Integer, ForeignKey("clubs.id"), nullable=False)
+    voter_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    player_s5_id = Column(Integer, ForeignKey("players_s5.id"), nullable=True)
+    player_s10_id = Column(Integer, ForeignKey("players_s10.id"), nullable=True)
+    velocidad = Column(Integer, nullable=False)
+    resistencia = Column(Integer, nullable=False)
+    control = Column(Integer, nullable=False)
+    pases = Column(Integer, nullable=False)
+    tiro = Column(Integer, nullable=False)
+    defensa = Column(Integer, nullable=False)
+    habilidad_arquero = Column(Integer, nullable=False)
+    fuerza_cuerpo = Column(Integer, nullable=False)
+    vision = Column(Integer, nullable=False)
+    updated_at = Column(DateTime, default=get_argentina_now, onupdate=get_argentina_now)
+
+    __table_args__ = (
+        CheckConstraint(
+            "(player_s5_id IS NOT NULL AND player_s10_id IS NULL) OR "
+            "(player_s5_id IS NULL AND player_s10_id IS NOT NULL)",
+            name="ck_skill_votes_one_player",
+        ),
+        UniqueConstraint("voter_id", "player_s5_id", name="uq_skill_votes_voter_s5"),
+        UniqueConstraint("voter_id", "player_s10_id", name="uq_skill_votes_voter_s10"),
+    )
+
+    club = relationship("Club", back_populates="skill_votes")
+    voter = relationship("User", back_populates="skill_votes")
+    player_s5 = relationship("PlayerScale5", back_populates="skill_votes")
+    player_s10 = relationship("PlayerScale10", back_populates="skill_votes")
 
 
 class ClubUser(Base):

@@ -1,5 +1,6 @@
 // Variables globales
 let players = [];
+let currentUser = null;
 let selectedPlayers = new Set();
 let manualAssignment = null;
 let filteredPlayers = [];
@@ -10,6 +11,7 @@ let currentScale = getCurrentScale();
 let loading = false;
 let hasResults = false; // Variable para saber si hay resultados generados
 let considerGoalkeeperSkill = true;
+let scoringMode = 'voted'; // 'voted' or 'base'
 
 // Import limits - should match backend MAX_LINES in ai_player_matcher.py
 const MAX_IMPORT_LINES = 30;
@@ -66,6 +68,104 @@ function initHelpModal() {
 }
 // ==================== END HELP MODAL ====================
 
+function loadCurrentUser() {
+    const userDataEl = document.getElementById('user-data');
+    if (!userDataEl) return;
+    try {
+        currentUser = JSON.parse(userDataEl.textContent);
+    } catch (error) {
+        console.error('Error parsing user data:', error);
+    }
+}
+
+async function loadClubRole(clubId) {
+    if (!currentUser || !clubId || clubId === 'my-players') {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/clubs/${clubId}/members`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const members = await response.json();
+        const member = members.find(item => item.user_id === currentUser.id || item.user_id === currentUser.userId);
+        currentUser.clubRole = member ? member.role : null;
+    } catch (error) {
+        console.error('Error al cargar rol del club:', error);
+    }
+}
+
+function canEditInContext() {
+    if (getCurrentClubId() === 'my-players') {
+        return true;
+    }
+
+    return currentUser && (currentUser.clubRole === 'admin' || currentUser.clubRole === 'owner');
+}
+
+function updateScoringModeToggle() {
+    const containers = [
+        document.getElementById('scoring-mode-container'),
+        document.getElementById('scoring-mode-container-manual'),
+    ];
+
+    const isClub = getCurrentClubId() !== 'my-players';
+    const show = isClub && canEditInContext();
+
+    containers.forEach(container => {
+        if (!container) return;
+        if (!show) {
+            container.innerHTML = '';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="scoring-mode-toggle" style="display:flex;justify-content:center;margin-bottom:16px;">
+                <div class="scale-toggle">
+                    <button class="scale-option scoring-btn${scoringMode === 'voted' ? ' active' : ''}" data-mode="voted">Votación</button>
+                    <button class="scale-option scoring-btn${scoringMode === 'base' ? ' active' : ''}" data-mode="base">Base</button>
+                </div>
+            </div>
+        `;
+
+        container.querySelectorAll('.scoring-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                scoringMode = btn.dataset.mode;
+                updateScoringModeToggle();
+                updateAllPlayerRatings();
+                renderPlayers();
+                if (manualAssignment) {
+                    manualAssignment.render();
+                }
+            });
+        });
+    });
+
+    if (!show) {
+        scoringMode = 'voted';
+    }
+}
+
+function getRating(player) {
+    if (scoringMode === 'base' && player.skills) {
+        return calculateAverage(player.skills);
+    }
+    return calculateAverage(player);
+}
+
+function updateAllPlayerRatings() {
+    players.forEach(player => {
+        player.rating = getRating(player);
+    });
+}
+
 function getManualContextName() {
     return getCurrentClubId() === 'my-players'
         ? 'creados'
@@ -116,6 +216,8 @@ function initManualAssignment() {
 // Initialize app
 async function init() {
     try {
+        loadCurrentUser();
+
         // Inicializar modal de ayuda
         initHelpModal();
         
@@ -175,10 +277,10 @@ async function loadPlayersForContext(contextId) {
         const data = await response.json();
         players = data.players || data; // Manejar tanto {players: [...]} como [...]
         
-        // Calcular promedio para cada jugador
+        // Calcular promedio para cada jugador según el modo de puntuación actual
         players = players.map(player => ({
             ...player,
-            rating: calculateAverage(player)
+            rating: getRating(player)
         }));
         players = sortPlayersByName(players);
         
@@ -212,6 +314,13 @@ async function loadPlayersForContext(contextId) {
             manualAssignment.setPlayers(players);
         }
         updateManualMode();
+
+        if (contextId !== 'my-players') {
+            await loadClubRole(contextId);
+        } else if (currentUser) {
+            currentUser.clubRole = null;
+        }
+        updateScoringModeToggle();
         
     } catch (error) {
         loading = false;
@@ -231,10 +340,15 @@ document.addEventListener('scaleChanged', function (e) {
     loadPlayers();
 });
 
+// El backend envía los skills como promedio con decimales; el redondeo es solo de presentación.
+function roundSkill(value) {
+    return typeof value === 'number' ? Math.round(value) : value;
+}
+
 // Calcular promedio de habilidades
 function calculateAverage(player) {
     const skillKeys = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
-    const skillValues = skillKeys.map(key => player[key]).filter(val => typeof val === 'number');
+    const skillValues = skillKeys.map(key => player[key]).filter(val => typeof val === 'number').map(roundSkill);
     
     if (skillValues.length === 0) return 0;
     
@@ -296,6 +410,8 @@ function setupEventListeners() {
             considerGoalkeeperSkill = e.target.checked;
         });
     }
+
+    // El listener del toggle de modo de puntuación se agrega al renderizarlo dinámicamente.
 
     // Generate teams button
     document.querySelector('.generate-btn').addEventListener('click', generateTeams);
@@ -435,8 +551,8 @@ function renderManualComparison() {
     // Calcular totales por equipo
     const totalsA = Object.fromEntries(skills.map(([k]) => [k, 0]));
     const totalsB = Object.fromEntries(skills.map(([k]) => [k, 0]));
-    teamA.forEach(p => skills.forEach(([k]) => totalsA[k] += p[k] || 0));
-    teamB.forEach(p => skills.forEach(([k]) => totalsB[k] += p[k] || 0));
+    teamA.forEach(p => skills.forEach(([k]) => totalsA[k] += roundSkill(p[k]) || 0));
+    teamB.forEach(p => skills.forEach(([k]) => totalsB[k] += roundSkill(p[k]) || 0));
     const totalA = Object.values(totalsA).reduce((a,b)=>a+b,0);
     const totalB = Object.values(totalsB).reduce((a,b)=>a+b,0);
 
@@ -561,7 +677,8 @@ async function generateTeams() {
             selected_player_ids: selectedPlayerIds,
             club_id: getCurrentClubId() !== 'my-players' ? parseInt(getCurrentClubId()) : null,
             scale: currentScale === 5 ? '1-5' : '1-10',
-            considerar_habilidad_arquero: considerGoalkeeperSkill
+            considerar_habilidad_arquero: considerGoalkeeperSkill,
+            mode: scoringMode
         };
         
         // Call the backend API
@@ -632,15 +749,15 @@ function transformTeamsData(apiData) {
         [...teamOption.team1, ...teamOption.team2].forEach(player => {
             window.playerDataDict[player.name] = {
                 id: player.id,
-                velocidad: player.velocidad,
-                resistencia: player.resistencia,
-                control: player.control,
-                pases: player.pases,
-                fuerza_cuerpo: player.fuerza_cuerpo,
-                habilidad_arquero: player.habilidad_arquero,
-                defensa: player.defensa,
-                tiro: player.tiro,
-                vision: player.vision
+                velocidad: roundSkill(player.velocidad),
+                resistencia: roundSkill(player.resistencia),
+                control: roundSkill(player.control),
+                pases: roundSkill(player.pases),
+                fuerza_cuerpo: roundSkill(player.fuerza_cuerpo),
+                habilidad_arquero: roundSkill(player.habilidad_arquero),
+                defensa: roundSkill(player.defensa),
+                tiro: roundSkill(player.tiro),
+                vision: roundSkill(player.vision)
             };
         });
     });
@@ -673,7 +790,7 @@ function calculateTeamSkills(teamPlayers) {
     // Sum all skills
     teamPlayers.forEach(player => {
         Object.keys(teamSkills).forEach(skill => {
-            teamSkills[skill]["total"] += player[skill] || 0;
+            teamSkills[skill]["total"] += roundSkill(player[skill]) || 0;
         });
     });
     

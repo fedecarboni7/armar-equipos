@@ -1,6 +1,8 @@
 // Configuración de escala
 let currentScale = getCurrentScale();
 
+let currentUser = null;
+let currentVotingPlayer = null;
 // Photo upload state
 let pendingPhotoFile = null;
 
@@ -138,6 +140,55 @@ function initPlayersHelpModal() {
 }
 // ==================== END HELP MODAL ====================
 
+document.addEventListener('DOMContentLoaded', () => {
+    initPlayersHelpModal();
+
+    const currentUserData = document.getElementById('user-data');
+    if (currentUserData) {
+        try {
+            currentUser = JSON.parse(currentUserData.textContent);
+        } catch (error) {
+            console.error('Error parsing user data:', error);
+        }
+    }
+});
+
+function getScaleParam() {
+    return currentScale === 10 ? 's10' : 's5';
+}
+
+async function loadClubRole(clubId) {
+    if (!currentUser || !clubId || clubId === 'my-players') {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/clubs/${clubId}/members`, {
+            method: 'GET',
+            headers: { 'Accept': 'application/json' },
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const members = await response.json();
+        const member = members.find(item => item.user_id === currentUser.id || item.user_id === currentUser.userId);
+        currentUser.clubRole = member ? member.role : null;
+    } catch (error) {
+        console.error('Error al cargar rol del club:', error);
+    }
+}
+
+function canEditInContext() {
+    if (getCurrentClubId() === 'my-players') {
+        return true;
+    }
+
+    return currentUser && (currentUser.clubRole === 'admin' || currentUser.clubRole === 'owner');
+}
+
 // Variables globales
 let players = [];
 let filteredPlayers = []; // Nueva variable para jugadores filtrados
@@ -147,6 +198,42 @@ let loading = false;
 // Variables para ordenamiento
 let currentSort = { column: 'name', direction: 'asc' };
 
+// 'personal' (sin club), 'member' (club sin permisos) o 'admin' (club con permisos)
+function getTableLayout() {
+    if (getCurrentClubId() === 'my-players') return 'personal';
+    return canEditInContext() ? 'admin' : 'member';
+}
+
+function renderTableHeader() {
+    const header = document.getElementById('players-table-header');
+    if (!header) return;
+    const layout = getTableLayout();
+
+    const table = document.getElementById('players-table');
+    if (table) table.dataset.columns = layout;
+
+    const availableSorts = ['name', 'score', 'date'];
+    if (layout !== 'personal') availableSorts.push('votes');
+    if (layout === 'admin') availableSorts.push('base', 'vote_avg');
+    if (!availableSorts.includes(currentSort.column)) {
+        currentSort = { column: 'name', direction: 'asc' };
+    }
+
+    let html = `<div class="header-cell" data-sort="name" onclick="sortPlayers('name')">Nombre</div>`;
+    if (layout === 'admin') {
+        html += `<div class="header-cell" data-sort="base" onclick="sortPlayers('base')">Base</div>`;
+        html += `<div class="header-cell" data-sort="vote_avg" onclick="sortPlayers('vote_avg')">Votación</div>`;
+    }
+    if (layout !== 'admin') {
+        html += `<div class="header-cell" data-sort="score" onclick="sortPlayers('score')">Puntuación</div>`;
+    }
+    if (layout !== 'personal') {
+        html += `<div class="header-cell" data-sort="votes" onclick="sortPlayers('votes')">Votos</div>`;
+    }
+    html += `<div class="header-cell" data-sort="date" onclick="sortPlayers('date')">Última Modificación</div>`;
+    header.innerHTML = html;
+}
+
 // Función para formatear fecha
 function formatDate(date) {
     if (typeof date === 'string') {
@@ -155,10 +242,15 @@ function formatDate(date) {
     return date.toLocaleDateString('es-ES') + ' ' + date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
 }
 
+// El backend envía los skills como promedio con decimales; el redondeo es solo de presentación.
+function roundSkill(value) {
+    return typeof value === 'number' ? Math.round(value) : value;
+}
+
 // Función para calcular promedio de habilidades
 function calculateAverage(player) {
     const skillKeys = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
-    const skillValues = skillKeys.map(key => player[key]).filter(val => typeof val === 'number');
+    const skillValues = skillKeys.map(key => player[key]).filter(val => typeof val === 'number').map(roundSkill);
     
     if (skillValues.length === 0) return 0;
     
@@ -225,9 +317,21 @@ function applySortToFilteredPlayers() {
                 valueA = calculateAverage(a);
                 valueB = calculateAverage(b);
                 break;
+            case 'base':
+                valueA = a.skills ? calculateAverage(a.skills) : calculateAverage(a);
+                valueB = b.skills ? calculateAverage(b.skills) : calculateAverage(b);
+                break;
+            case 'vote_avg':
+                valueA = (a.vote_average && a.vote_average.velocidad !== null) ? calculateAverage(a.vote_average) : -1;
+                valueB = (b.vote_average && b.vote_average.velocidad !== null) ? calculateAverage(b.vote_average) : -1;
+                break;
+            case 'votes':
+                valueA = a.vote_count || 0;
+                valueB = b.vote_count || 0;
+                break;
             case 'date':
-                valueA = new Date(a.updated_at);
-                valueB = new Date(b.updated_at);
+                valueA = new Date(a.last_activity_at || a.updated_at);
+                valueB = new Date(b.last_activity_at || b.updated_at);
                 break;
             default:
                 return 0;
@@ -292,17 +396,31 @@ function renderPlayers() {
         playerRow.className = 'player-row';
         playerRow.onclick = () => viewPlayer(player.id);
         
+        const lastModified = player.last_activity_at || player.updated_at;
+        const layout = getTableLayout();
         const score = calculateAverage(player);
-        const lastModified = player.updated_at;
+        const baseScore = player.skills ? calculateAverage(player.skills) : calculateAverage(player);
+        const voteAvg = player.vote_average && player.vote_average.velocidad !== null
+            ? calculateAverage(player.vote_average)
+            : null;
         
-        playerRow.innerHTML = `
-            <div class="player-name">
+        let cells = `<div class="player-name">
                 ${renderPlayerAvatar(player, 40)}
                 <div class="player-full-name">${escapeHTML(player.name)}</div>
-            </div>
-            <div class="score">${score}/${currentScale}</div>
-            <div class="last-modified">${formatDate(lastModified)}</div>
-        `;
+            </div>`;
+        if (layout === 'admin') {
+            cells += `<div class="score">${roundSkill(baseScore)}/${currentScale}</div>`;
+            cells += `<div class="score">${voteAvg !== null ? roundSkill(voteAvg) : '—'}/${currentScale}</div>`;
+        }
+        if (layout !== 'admin') {
+            cells += `<div class="score">${roundSkill(score)}/${currentScale}</div>`;
+        }
+        if (layout !== 'personal') {
+            cells += `<div class="vote-count">${player.vote_count || 0}</div>`;
+        }
+        cells += `<div class="last-modified">${formatDate(lastModified)}</div>`;
+        
+        playerRow.innerHTML = cells;
         playersList.appendChild(playerRow);
     });
 }
@@ -314,21 +432,8 @@ function updateSortIndicators() {
         indicator.remove();
     });
     
-    // Agregar indicador a la columna actual
-    const headers = document.querySelectorAll('.table-header > div');
-    let targetHeader;
-    
-    switch (currentSort.column) {
-        case 'name':
-            targetHeader = headers[0];
-            break;
-        case 'score':
-            targetHeader = headers[1];
-            break;
-        case 'date':
-            targetHeader = headers[2];
-            break;
-    }
+    // Agregar indicador a la columna actual usando data-sort
+    const targetHeader = document.querySelector(`.header-cell[data-sort="${currentSort.column}"]`);
     
     if (targetHeader) {
         const indicator = document.createElement('span');
@@ -356,15 +461,15 @@ function createRadarChart(canvasId, playerData) {
             datasets: [{
                 label: ' Puntos',
                 data: [
-                    playerData.velocidad,
-                    playerData.resistencia,
-                    playerData.pases,
-                    playerData.tiro,
-                    playerData.defensa,
-                    playerData.fuerza_cuerpo,
-                    playerData.control,
-                    playerData.habilidad_arquero,
-                    playerData.vision
+                    roundSkill(playerData.velocidad),
+                    roundSkill(playerData.resistencia),
+                    roundSkill(playerData.pases),
+                    roundSkill(playerData.tiro),
+                    roundSkill(playerData.defensa),
+                    roundSkill(playerData.fuerza_cuerpo),
+                    roundSkill(playerData.control),
+                    roundSkill(playerData.habilidad_arquero),
+                    roundSkill(playerData.vision)
                 ],
                 backgroundColor: 'rgba(200, 200, 200, 0.3)',
                 borderColor: 'rgba(180, 180, 180, 1)',
@@ -431,8 +536,50 @@ function viewPlayer(id) {
 function renderPlayerModal(player) {
     const details = document.getElementById('player-details');
     const average = calculateAverage(player);
-    const lastModified = player.updated_at;
-
+    const lastModified = player.last_activity_at || player.updated_at;
+    const isClubContext = getCurrentClubId() !== 'my-players';
+    const showVoteButton = isClubContext;
+    const canEdit = canEditInContext();
+    const voteCount = player.vote_count || 0;
+    const hasVotes = voteCount >= 2;
+    const voteAvg = player.vote_average && player.vote_average.velocidad !== null
+        ? calculateAverage(player.vote_average) : null;
+    
+    const skillNames = [
+        ['velocidad', 'Velocidad'], ['resistencia', 'Resistencia'], ['pases', 'Pases'],
+        ['tiro', 'Tiro'], ['defensa', 'Defensa'], ['fuerza_cuerpo', 'Fuerza Cuerpo'],
+        ['control', 'Control'], ['habilidad_arquero', 'Habilidad Arquero'], ['vision', 'Visión']
+    ];
+    
+    let skillsHtml = '';
+    if (canEdit && isClubContext) {
+        let rows = skillNames.map(([key, label]) => {
+            const baseVal = player.skills ? roundSkill(player.skills[key]) : '—';
+            const avgVal = hasVotes && voteAvg !== null ? roundSkill(player.vote_average[key]) : '—';
+            return `<tr>
+                <td>${label}</td>
+                <td>${baseVal}</td>
+                <td>${avgVal}</td>
+            </tr>`;
+        }).join('');
+        skillsHtml = `
+            <div class="skills-detail-grid">
+                    <table class="admin-skills-table" style="width:100%;border-collapse:collapse;">
+                    <thead><tr><th>Habilidad</th><th>Base</th><th>Votación</th></tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                ${!hasVotes ? '<p style="color:#999;margin-top:8px;font-size:13px;">Sin votos suficientes (se necesitan al menos 2)</p>' : ''}
+            </div>`;
+    } else {
+        let items = skillNames.map(([key, label]) => {
+            return `<div class="skill-detail-item">
+                <span class="skill-detail-name">${label}</span>
+                <span class="skill-detail-value">${roundSkill(player[key])}/${currentScale}</span>
+            </div>`;
+        }).join('');
+        skillsHtml = `<div class="skills-detail-grid">${items}</div>`;
+    }
+    
     details.innerHTML = `
         <div class="player-detail-header">
             <div class="player-detail-avatar">
@@ -441,7 +588,7 @@ function renderPlayerModal(player) {
             <div class="player-detail-info">
                 <h3>${escapeHTML(player.name)}</h3>
                 <p class="average-score">Promedio General: ${average}/${currentScale}</p>
-                <p class="last-modified">Última Modificación: ${formatDate(lastModified)}</p>
+                <p class="last-modified">${isClubContext ? `Votos: ${voteCount} · Última actividad` : 'Última modificación'}: ${formatDate(lastModified)}</p>
             </div>
         </div>
         
@@ -450,44 +597,7 @@ function renderPlayerModal(player) {
         </div>
         
         <div id="view-mode" class="view-mode" style="display: ${isEditMode ? 'none' : 'block'}">
-            <div class="skills-detail-grid">
-                <div class="skill-detail-item">
-                    <span class="skill-detail-name">Velocidad</span>
-                    <span class="skill-detail-value">${player.velocidad}/${currentScale}</span>
-                </div>
-                <div class="skill-detail-item">
-                    <span class="skill-detail-name">Resistencia</span>
-                    <span class="skill-detail-value">${player.resistencia}/${currentScale}</span>
-                </div>
-                <div class="skill-detail-item">
-                    <span class="skill-detail-name">Pases</span>
-                    <span class="skill-detail-value">${player.pases}/${currentScale}</span>
-                </div>
-                <div class="skill-detail-item">
-                    <span class="skill-detail-name">Tiro</span>
-                    <span class="skill-detail-value">${player.tiro}/${currentScale}</span>
-                </div>
-                <div class="skill-detail-item">
-                    <span class="skill-detail-name">Defensa</span>
-                    <span class="skill-detail-value">${player.defensa}/${currentScale}</span>
-                </div>
-                <div class="skill-detail-item">
-                    <span class="skill-detail-name">Fuerza Cuerpo</span>
-                    <span class="skill-detail-value">${player.fuerza_cuerpo}/${currentScale}</span>
-                </div>
-                <div class="skill-detail-item">
-                    <span class="skill-detail-name">Control</span>
-                    <span class="skill-detail-value">${player.control}/${currentScale}</span>
-                </div>
-                <div class="skill-detail-item">
-                    <span class="skill-detail-name">Habilidad Arquero</span>
-                    <span class="skill-detail-value">${player.habilidad_arquero}/${currentScale}</span>
-                </div>
-                <div class="skill-detail-item">
-                    <span class="skill-detail-name">Visión</span>
-                    <span class="skill-detail-value">${player.vision}/${currentScale}</span>
-                </div>
-            </div>
+            ${skillsHtml}
         </div>
         
         <div id="edit-mode" class="edit-form" style="display: ${isEditMode ? 'block' : 'none'}">
@@ -518,55 +628,58 @@ function renderPlayerModal(player) {
                 <div class="skills-edit-grid">
                     <div class="skill-input">
                         <label for="edit-velocidad">Velocidad</label>
-                        <input type="number" id="edit-velocidad" min="1" max="${currentScale}" value="${player.velocidad}" />
+                        <input type="number" id="edit-velocidad" min="1" max="${currentScale}" value="${roundSkill(player.skills.velocidad)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-resistencia">Resistencia</label>
-                        <input type="number" id="edit-resistencia" min="1" max="${currentScale}" value="${player.resistencia}" />
+                        <input type="number" id="edit-resistencia" min="1" max="${currentScale}" value="${roundSkill(player.skills.resistencia)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-pases">Pases</label>
-                        <input type="number" id="edit-pases" min="1" max="${currentScale}" value="${player.pases}" />
+                        <input type="number" id="edit-pases" min="1" max="${currentScale}" value="${roundSkill(player.skills.pases)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-tiro">Tiro</label>
-                        <input type="number" id="edit-tiro" min="1" max="${currentScale}" value="${player.tiro}" />
+                        <input type="number" id="edit-tiro" min="1" max="${currentScale}" value="${roundSkill(player.skills.tiro)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-defensa">Defensa</label>
-                        <input type="number" id="edit-defensa" min="1" max="${currentScale}" value="${player.defensa}" />
+                        <input type="number" id="edit-defensa" min="1" max="${currentScale}" value="${roundSkill(player.skills.defensa)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-fuerza_cuerpo">Fuerza Cuerpo</label>
-                        <input type="number" id="edit-fuerza_cuerpo" min="1" max="${currentScale}" value="${player.fuerza_cuerpo}" />
+                        <input type="number" id="edit-fuerza_cuerpo" min="1" max="${currentScale}" value="${roundSkill(player.skills.fuerza_cuerpo)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-control">Control</label>
-                        <input type="number" id="edit-control" min="1" max="${currentScale}" value="${player.control}" />
+                        <input type="number" id="edit-control" min="1" max="${currentScale}" value="${roundSkill(player.skills.control)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-habilidad_arquero">Habilidad Arquero</label>
-                        <input type="number" id="edit-habilidad_arquero" min="1" max="${currentScale}" value="${player.habilidad_arquero}" />
+                        <input type="number" id="edit-habilidad_arquero" min="1" max="${currentScale}" value="${roundSkill(player.skills.habilidad_arquero)}" />
                     </div>
                     <div class="skill-input">
                         <label for="edit-vision">Visión</label>
-                        <input type="number" id="edit-vision" min="1" max="${currentScale}" value="${player.vision}" />
+                        <input type="number" id="edit-vision" min="1" max="${currentScale}" value="${roundSkill(player.skills.vision)}" />
                     </div>
                 </div>
             </div>
         </div>
         
         <div class="modal-actions">
-            <button class="btn btn-primary" id="edit-btn" onclick="toggleEditMode()" style="display: ${isEditMode ? 'none' : 'flex'}">
+            <button class="btn btn-primary" id="edit-btn" onclick="toggleEditMode()" style="display: ${isEditMode || !canEdit ? 'none' : 'flex'}">
                 ✏️ Editar
             </button>
-            <button class="btn btn-primary" id="save-btn" onclick="savePlayerEdits()" style="display: ${isEditMode ? 'flex' : 'none'}">
+            <button class="btn btn-primary" id="save-btn" onclick="savePlayerEdits()" style="display: ${isEditMode && canEdit ? 'flex' : 'none'}">
                 💾 Guardar
             </button>
-            <button class="btn btn-secondary" id="cancel-btn" onclick="cancelEdit()" style="display: ${isEditMode ? 'flex' : 'none'}">
+            <button class="btn btn-secondary" id="cancel-btn" onclick="cancelEdit()" style="display: ${isEditMode && canEdit ? 'flex' : 'none'}">
                 ❌ Cancelar
             </button>
-            <button class="btn btn-danger" onclick="deletePlayerFromModal(${player.id})">
+            <button class="btn btn-secondary" onclick="openVoteModal()" style="display: ${showVoteButton ? 'flex' : 'none'}">
+                🗳️ Votar
+            </button>
+            <button class="btn btn-danger" onclick="deletePlayerFromModal(${player.id})" style="display: ${canEdit ? 'flex' : 'none'}">
                 🗑️ Eliminar
             </button>
         </div>
@@ -727,6 +840,134 @@ function closeModal() {
     pendingPhotoFile = null;
     
     document.getElementById('playerModal').style.display = 'none';
+}
+
+function openVoteModal() {
+    if (!currentEditingPlayer) {
+        return;
+    }
+
+    currentVotingPlayer = currentEditingPlayer;
+    const modal = document.getElementById('voteModal');
+    const scaleLabel = document.getElementById('vote-scale');
+
+    if (scaleLabel) {
+        scaleLabel.textContent = currentScale;
+    }
+
+    setVoteInputLimits();
+    resetVoteInputs();
+    loadExistingVote();
+    modal.style.display = 'block';
+}
+
+function closeVoteModal() {
+    const modal = document.getElementById('voteModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    currentVotingPlayer = null;
+}
+
+function setVoteInputLimits() {
+    const inputs = document.querySelectorAll('#voteModal input[type="number"]');
+    inputs.forEach(input => {
+        input.min = 1;
+        input.max = currentScale;
+    });
+}
+
+function resetVoteInputs() {
+    const defaultValue = currentScale === 5 ? 3 : 5;
+    const fields = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
+    fields.forEach(field => {
+        const input = document.getElementById(`vote-${field}`);
+        if (input) {
+            input.value = defaultValue;
+        }
+    });
+}
+
+async function loadExistingVote() {
+    if (!currentVotingPlayer) return;
+
+    const clubId = getCurrentClubId();
+    if (!clubId || clubId === 'my-players') return;
+
+    const scaleParam = getScaleParam();
+    try {
+        const response = await fetch(`/api/clubs/${clubId}/players/${currentVotingPlayer.id}/vote?scale=${scaleParam}`, {
+            method: 'GET',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        if (!response.ok) {
+            return;
+        }
+
+        const vote = await response.json();
+        const fields = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
+        fields.forEach(field => {
+            const input = document.getElementById(`vote-${field}`);
+            if (input && typeof vote[field] === 'number') {
+                input.value = vote[field];
+            }
+        });
+    } catch (error) {
+        console.error('Error al cargar voto:', error);
+    }
+}
+
+async function submitVote() {
+    if (!currentVotingPlayer) return;
+
+    const clubId = getCurrentClubId();
+    if (!clubId || clubId === 'my-players') return;
+
+    const fields = ['velocidad', 'resistencia', 'pases', 'tiro', 'defensa', 'fuerza_cuerpo', 'control', 'habilidad_arquero', 'vision'];
+    const payload = {};
+    for (const field of fields) {
+        const input = document.getElementById(`vote-${field}`);
+        const value = input ? parseInt(input.value, 10) : NaN;
+        if (isNaN(value) || value < 1 || value > currentScale) {
+            alert(`El valor de ${field.replace('_', ' ')} debe estar entre 1 y ${currentScale}`);
+            return;
+        }
+        payload[field] = value;
+    }
+
+    const scaleParam = getScaleParam();
+    if (scaleParam === 's10') {
+        payload.player_s10_id = currentVotingPlayer.id;
+    } else {
+        payload.player_s5_id = currentVotingPlayer.id;
+    }
+
+    try {
+        const response = await fetch(`/api/clubs/${clubId}/players/${currentVotingPlayer.id}/vote?scale=${scaleParam}`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Error ${response.status}`);
+        }
+
+        closeVoteModal();
+        await loadPlayersForContext(getCurrentClubId());
+
+        const refreshed = players.find(p => p.id === currentEditingPlayer.id);
+        if (refreshed) {
+            currentEditingPlayer = refreshed;
+            renderPlayerModal(currentEditingPlayer);
+        }
+    } catch (error) {
+        alert('Error al enviar la votación: ' + error.message);
+    }
 }
 
 // Función para agregar un jugador
@@ -992,6 +1233,7 @@ async function savePlayer(playerData) {
 window.onclick = function(event) {
     const modal = document.getElementById('playerModal');
     const createModal = document.getElementById('createPlayerModal');
+    const voteModal = document.getElementById('voteModal');
     
     if (event.target === modal) {
         closeModal();
@@ -999,6 +1241,10 @@ window.onclick = function(event) {
     
     if (event.target === createModal) {
         closeCreateModal();
+    }
+
+    if (event.target === voteModal) {
+        closeVoteModal();
     }
 }
 
@@ -1023,6 +1269,9 @@ async function loadPlayersForContext(contextId) {
         
         if (contextId !== 'my-players') {
             url += `&club_id=${contextId}`;
+            await loadClubRole(contextId);
+        } else if (currentUser) {
+            currentUser.clubRole = null;
         }
         
         const response = await fetch(url, {
@@ -1045,6 +1294,7 @@ async function loadPlayersForContext(contextId) {
         }
         
         // Aplicar ordenamiento actual
+        renderTableHeader();
         if (players.length > 0) {
             applySortToFilteredPlayers();
             loading = false;

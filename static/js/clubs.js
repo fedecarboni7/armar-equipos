@@ -9,6 +9,17 @@ let pendingRoleChanges = new Map(); // Almacena los cambios pendientes
 window.clubId = null;
 window.currentUser = null;
 
+function getCurrentClubData() {
+  if (!window.clubId || window.clubId === 'my-players') {
+    return null;
+  }
+  if (typeof getUserClubs !== 'function') {
+    return null;
+  }
+  const clubs = getUserClubs();
+  return clubs.find(club => club.id == window.clubId) || null;
+}
+
 // Función de utilidad para traducir roles
 function translateRole(role) {
   switch (role) {
@@ -111,7 +122,7 @@ function setupEventListeners() {
   if (deleteClubBtn) {
     deleteClubBtn.addEventListener('click', () => confirmDeleteClub());
   }
-  
+
   // Cerrar modales con la tecla Escape
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {

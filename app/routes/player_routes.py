@@ -11,14 +11,30 @@ from app.db.database_utils import (
     query_players,
     has_club_write_permission,
 )
+from app.db import models
 from app.db.models import PlayerScale5, PlayerScale10, User, MatchPlayer
-from app.db.schemas import PlayerCreate, PlayerResponse
+from app.db.schemas import (
+    PlayerCreate,
+    PlayerResponse,
+    PlayerSkillsWithVotes,
+    SkillVoteCreate,
+    SkillVoteResponse,
+)
 from app.utils.auth import get_current_user
+from app.utils import crud
+from app.utils.time_utils import get_calendar_week_bounds
 from app.utils.r2 import process_player_photo, upload_player_photo, delete_player_photo
 
 from app.config.logging_config import logger
 
 router = APIRouter()
+
+
+def _ensure_club_member(db: Session, club_id: int, user_id: int) -> str:
+    role = get_club_user_role(db, club_id, user_id)
+    if not role:
+        raise HTTPException(status_code=403, detail="No sos miembro de este club")
+    return role
 
 
 @router.get("/api/players")
@@ -27,21 +43,217 @@ def get_players(
     club_id: int = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> List[PlayerResponse]:
+) -> List[PlayerSkillsWithVotes]:
     """Obtener jugadores según la escala especificada"""
     if not current_user:
         raise HTTPException(status_code=401, detail="No hay un usuario autenticado")
 
     try:
+        if club_id is not None:
+            _ensure_club_member(db, club_id, current_user.id)
+
         players = execute_with_retries(
             query_players, db, current_user.id, club_id, scale
         )
-        return players
+
+        if not players:
+            return []
+
+        votes_by_player = {}
+        if club_id is not None:
+            if scale == "1-10":
+                votes = (
+                    db.query(models.SkillVote)
+                    .filter(
+                        models.SkillVote.club_id == club_id,
+                        models.SkillVote.player_s10_id.in_([p.id for p in players]),
+                    )
+                    .all()
+                )
+                for vote in votes:
+                    votes_by_player.setdefault(vote.player_s10_id, []).append(vote)
+            else:
+                votes = (
+                    db.query(models.SkillVote)
+                    .filter(
+                        models.SkillVote.club_id == club_id,
+                        models.SkillVote.player_s5_id.in_([p.id for p in players]),
+                    )
+                    .all()
+                )
+                for vote in votes:
+                    votes_by_player.setdefault(vote.player_s5_id, []).append(vote)
+
+        response_payload = []
+        for player in players:
+            player_votes = votes_by_player.get(player.id, [])
+            base, effective, averages = crud.compute_effective_skills(
+                player, player_votes
+            )
+            vote_count = len(player_votes)
+            last_vote_at = (
+                max(v.updated_at for v in player_votes) if player_votes else None
+            )
+            last_activity_at = max(
+                filter(None, [player.updated_at, last_vote_at]),
+            )
+            response_payload.append(
+                {
+                    "id": player.id,
+                    "name": player.name,
+                    "velocidad": effective["velocidad"],
+                    "resistencia": effective["resistencia"],
+                    "control": effective["control"],
+                    "pases": effective["pases"],
+                    "tiro": effective["tiro"],
+                    "defensa": effective["defensa"],
+                    "habilidad_arquero": effective["habilidad_arquero"],
+                    "fuerza_cuerpo": effective["fuerza_cuerpo"],
+                    "vision": effective["vision"],
+                    "updated_at": player.updated_at,
+                    "user_id": player.user_id,
+                    "club_id": player.club_id,
+                    "photo_url": player.photo_url,
+                    "vote_average": averages,
+                    "skills": base,
+                    "vote_count": vote_count,
+                    "last_activity_at": last_activity_at,
+                }
+            )
+
+        return response_payload
     except OperationalError:
         raise HTTPException(
             status_code=500,
             detail="Error al acceder a la base de datos. Intentalo de nuevo más tarde.",
         )
+
+
+@router.post(
+    "/api/clubs/{club_id}/players/{player_id}/vote",
+    response_model=SkillVoteResponse,
+)
+def vote_player_skills(
+    club_id: int,
+    player_id: int,
+    vote_data: SkillVoteCreate,
+    scale: str = Query("s5", pattern="^(s5|s10)$"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="No hay un usuario autenticado")
+
+    _ensure_club_member(db, club_id, current_user.id)
+
+    club = db.query(models.Club).filter(models.Club.id == club_id).first()
+    if not club:
+        raise HTTPException(status_code=404, detail="Club no encontrado")
+
+    is_s10 = scale == "s10"
+
+    if is_s10:
+        player = (
+            db.query(PlayerScale10)
+            .filter(PlayerScale10.id == player_id, PlayerScale10.club_id == club_id)
+            .first()
+        )
+    else:
+        player = (
+            db.query(PlayerScale5)
+            .filter(PlayerScale5.id == player_id, PlayerScale5.club_id == club_id)
+            .first()
+        )
+
+    if not player:
+        raise HTTPException(status_code=404, detail="Jugador no encontrado")
+
+    if is_s10:
+        if (
+            vote_data.player_s10_id not in (None, player_id)
+            or vote_data.player_s5_id is not None
+        ):
+            raise HTTPException(
+                status_code=400, detail="Jugador invalido para la escala"
+            )
+    else:
+        if (
+            vote_data.player_s5_id not in (None, player_id)
+            or vote_data.player_s10_id is not None
+        ):
+            raise HTTPException(
+                status_code=400, detail="Jugador invalido para la escala"
+            )
+
+    vote = (
+        db.query(models.SkillVote)
+        .filter(
+            models.SkillVote.voter_id == current_user.id,
+            (models.SkillVote.player_s10_id == player_id)
+            if is_s10
+            else (models.SkillVote.player_s5_id == player_id),
+        )
+        .first()
+    )
+
+    if vote:
+        current_week_start, _ = get_calendar_week_bounds()
+        vote_week_start, _ = get_calendar_week_bounds(vote.updated_at)
+        if vote_week_start == current_week_start:
+            raise HTTPException(
+                status_code=400,
+                detail="Ya votaste por este jugador esta semana. Podrás volver a votar el próximo lunes.",
+            )
+        for field in crud.SKILL_FIELDS:
+            setattr(vote, field, getattr(vote_data, field))
+    else:
+        vote = models.SkillVote(
+            club_id=club_id,
+            voter_id=current_user.id,
+            player_s10_id=player_id if is_s10 else None,
+            player_s5_id=player_id if not is_s10 else None,
+            **{field: getattr(vote_data, field) for field in crud.SKILL_FIELDS},
+        )
+        db.add(vote)
+
+    db.commit()
+    db.refresh(vote)
+    return vote
+
+
+@router.get(
+    "/api/clubs/{club_id}/players/{player_id}/vote",
+    response_model=SkillVoteResponse,
+)
+def get_player_vote(
+    club_id: int,
+    player_id: int,
+    scale: str = Query("s5", pattern="^(s5|s10)$"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user:
+        raise HTTPException(status_code=401, detail="No hay un usuario autenticado")
+
+    _ensure_club_member(db, club_id, current_user.id)
+
+    is_s10 = scale == "s10"
+    vote = (
+        db.query(models.SkillVote)
+        .filter(
+            models.SkillVote.club_id == club_id,
+            models.SkillVote.voter_id == current_user.id,
+            (models.SkillVote.player_s10_id == player_id)
+            if is_s10
+            else (models.SkillVote.player_s5_id == player_id),
+        )
+        .first()
+    )
+
+    if not vote:
+        raise HTTPException(status_code=404, detail="Voto no encontrado")
+
+    return vote
 
 
 @router.post("/api/player")

@@ -174,7 +174,13 @@ async def get_user_clubs(
         clubs = execute_with_retries(query_clubs, db, current_user.id)
 
         # Convertir a formato JSON
-        clubs_data = [{"id": club.id, "name": club.name} for club in clubs]
+        clubs_data = [
+            {
+                "id": club.id,
+                "name": club.name,
+            }
+            for club in clubs
+        ]
 
         return clubs_data
 

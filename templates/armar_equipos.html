@@ -42,7 +42,10 @@
         <div id="automatic-mode" class="content-panel">
             <h2 class="section-title">Jugadores Disponibles</h2>
             
-            {% include '_scale_selector.html' %}
+            <div class="scoring-controls">
+                {% include '_scale_selector.html' %}
+                <div id="scoring-mode-container"></div>
+            </div>
             
             <div class="search-container">
                 <div class="search-icon">🔍</div>
@@ -62,7 +65,7 @@
                     Considerar habilidad de arquero para equilibrar equipos
                 </label>
             </div>
-            
+
             <div class="players-list" id="players-list">
                 <!-- Players will be loaded here -->
             </div>
@@ -74,8 +77,11 @@
 
         <!-- Manual Mode -->
         <div id="manual-mode" class="content-panel hidden">
-            {% include '_scale_selector.html' %}
-            
+            <div class="scoring-controls">
+                {% include '_scale_selector.html' %}
+                <div id="scoring-mode-container-manual"></div>
+            </div>
+
             <div class="teams-container">
                 <div class="team-section team-a">
                     <div class="team-header">
@@ -161,6 +167,12 @@
                     <h3>⚡ Generación Equilibrada</h3>
                     <p>Seleccioná jugadores y el sistema armará automáticamente los equipos más balanceados posibles usando un algoritmo de optimización basado en las habilidades de cada jugador.</p>
                 </div>
+
+                <div class="help-section">
+                    <h3>📊 Modo de puntuación</h3>
+                    <p>Admins y dueño pueden elegir entre puntuación <strong>Base</strong> (elegida por ellos mismos) o <strong>Votación</strong> (promedio de votos) para armar equipos.</p>
+                    <p>Los miembros no ven este control: siempre usan la puntuación votada.</p>
+                </div>
                 
                 <div class="help-section">
                     <h3>✏️ Creación Manual</h3>
@@ -241,7 +253,11 @@ Pedro"></textarea>
     </div>
 
     {% include '_footer.html' %}
-    
+
+    {% if currentUser %}
+    <script id="user-data" type="application/json">{{ currentUser | tojson | safe }}</script>
+    {% endif %}
+
     <!-- Scripts -->
     <script src="/static/js/utils.js?v={{ static_version }}"></script>
     <script src="/static/js/clubSelector.js?v={{ static_version }}"></script>
