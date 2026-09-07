@@ -4,6 +4,8 @@ from langchain_core.output_parsers import JsonOutputParser
 
 from app.config.llm import get_llm
 
+_chain = None
+
 
 # Define el template del prompt
 formation_prompt = PromptTemplate(
@@ -42,10 +44,10 @@ formation_prompt = PromptTemplate(
 # Crea la cadena LLM
 def _get_chain():
     """Create the LLM chain with lazy initialization."""
-    return formation_prompt | get_llm() | JsonOutputParser()
-
-
-chain = _get_chain()
+    global _chain
+    if _chain is None:
+        _chain = formation_prompt | get_llm() | JsonOutputParser()
+    return _chain
 
 allowed_formations = {
     5: {
@@ -147,6 +149,7 @@ async def create_formations(players, teams, allowed_formations=allowed_formation
     """
 
     formations = {"team1": {}, "team2": {}}
+    chain = _get_chain()
 
     # Función auxiliar para invocar chain.ainvoke asíncronamente
     async def get_formation_for_team(team):
