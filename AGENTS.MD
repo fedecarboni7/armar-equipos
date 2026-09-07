@@ -12,7 +12,7 @@ Project context and execution rules for AI coding agents (GitHub Copilot, OpenCo
 - **Frontend:** Vanilla JavaScript (ES6+), HTML, CSS — no build step, no framework
 - **Database:** PostgreSQL (psycopg3) in production; SQLite in-memory for tests
 - **Auth:** JWT via PyJWT, session via Itsdangerous
-- **AI:** LangChain + Google Gemini
+- **AI:** LangChain + Groq
 - **Email:** Brevo (sib-api-v3-sdk)
 - **Monitoring:** Sentry
 - **Package manager:** `uv` with `pyproject.toml`

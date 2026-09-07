@@ -1312,10 +1312,18 @@ async function processImportList() {
         });
         
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Error al buscar coincidencias');
+            const contentType = response.headers.get('Content-Type') || '';
+            if (contentType.includes('application/json')) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Error al buscar coincidencias');
+            }
+            throw new Error(`Error del servidor (${response.status}). Intentalo de nuevo en un momento.`);
         }
         
+        const contentType = response.headers.get('Content-Type') || '';
+        if (!contentType.includes('application/json')) {
+            throw new Error('El servidor devolvió una respuesta inesperada. Intentalo de nuevo en un momento.');
+        }
         const data = await response.json();
         importMatchResults = data;
         
