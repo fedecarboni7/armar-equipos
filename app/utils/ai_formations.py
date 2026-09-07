@@ -49,6 +49,7 @@ def _get_chain():
         _chain = formation_prompt | get_llm() | JsonOutputParser()
     return _chain
 
+
 allowed_formations = {
     5: {
         "2-1-1": ["GK", "CB", "CB", "CM", "ST"],
