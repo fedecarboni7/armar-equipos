@@ -58,11 +58,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg://armar_equipos_user:armar_equipos_pass@localhost:5432/armar_equipos_test
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-      BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
-      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
-      CRON_SECRET_TOKEN: ${{ secrets.CRON_SECRET_TOKEN }}
+      SECRET_KEY: ci-test-secret
 
     steps:
     - uses: actions/checkout@v4
