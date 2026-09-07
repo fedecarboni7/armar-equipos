@@ -141,7 +141,20 @@ function generarFormaciones(button) {
         },
         body: JSON.stringify(payload),  // Serializar el objeto completo como JSON
     })
-    .then(response => response.json())  // Cambiar a .json() si el backend responde con JSON
+    .then(async response => {
+        const contentType = response.headers.get('Content-Type') || '';
+        const data = contentType.includes('application/json')
+            ? await response.json()
+            : null;
+
+        if (!response.ok) {
+            throw new Error(data?.error || `Error del servidor (${response.status})`);
+        }
+        if (!data) {
+            throw new Error('El servidor devolvió una respuesta inesperada. Intentalo de nuevo en un momento.');
+        }
+        return data;
+    })
     .then(data => {
         if (button.contains(spinner)) {
             button.removeChild(spinner);

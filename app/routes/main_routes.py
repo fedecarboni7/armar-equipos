@@ -173,22 +173,22 @@ async def armar_equipos_page(
 async def show_formations(
     request: Request, current_user: User = Depends(get_current_user)
 ):
-    if not current_user:
-        request.session.clear()
-        return RedirectResponse("/", status_code=302)
+    try:
+        if not current_user:
+            request.session.clear()
+            return JSONResponse(content={"error": "No autenticado"}, status_code=401)
 
-    # Recibir los datos del frontend
-    data = await request.json()
+        data = await request.json()
+        player_data_dict = data.get("player_data_dict")
+        teams = data.get("teams")
+        formations = await create_formations(player_data_dict, teams)
 
-    # Extraer los valores del diccionario JSON recibido
-    player_data_dict = data.get("player_data_dict")
-    teams = data.get("teams")
-
-    # Generar las formaciones
-    formations = await create_formations(player_data_dict, teams)
-
-    # Retornar las formaciones como respuesta JSON
-    return JSONResponse(content=formations)
+        return JSONResponse(content=formations)
+    except Exception as e:
+        logger.exception("Error generating formations: %s", str(e))
+        return JSONResponse(
+            content={"error": "Error al generar formaciones"}, status_code=500
+        )
 
 
 @router.post("/api/build-teams", response_class=JSONResponse)

@@ -5,7 +5,7 @@ const https = require('https');
 
 const backendUrl = process.env.BACKEND_URL;
 const port = Number.parseInt(process.env.PORT || '3000', 10);
-const proxyConnectTimeoutMs = Number.parseInt(process.env.PROXY_CONNECT_TIMEOUT_MS || '2000', 10);
+const proxyConnectTimeoutMs = Number.parseInt(process.env.PROXY_CONNECT_TIMEOUT_MS || '30000', 10);
 const healthCheckTimeoutMs = Number.parseInt(process.env.HEALTH_CHECK_TIMEOUT_MS || '1500', 10);
 
 const CANONICAL_HOST = 'armarequipos.com';
@@ -314,6 +314,15 @@ function sendWakePage(response) {
   response.send(buildWakingPageHtml());
 }
 
+function isApiRequest(req) {
+  const requestPath = req.originalUrl || req.url || '/';
+  return req.method !== 'GET' || requestPath.startsWith('/api/') || requestPath === '/formations';
+}
+
+function sendApiUnavailable(response) {
+  response.status(503).json({ error: 'El servidor se está preparando. Intentalo de nuevo en un momento.' });
+}
+
 function proxyRequest(req, res) {
   const startedAt = Date.now();
   const method = req.method;
@@ -331,7 +340,11 @@ function proxyRequest(req, res) {
     proxyReq.destroy();
     fireAndForgetWakeRequest();
     if (!res.headersSent) {
-      sendWakePage(res);
+      if (isApiRequest(req)) {
+        sendApiUnavailable(res);
+      } else {
+        sendWakePage(res);
+      }
     }
     const durationMs = Date.now() - startedAt;
     console.log(`${method} ${originalPath} ${outcome} ${durationMs}ms`);
@@ -372,7 +385,11 @@ function proxyRequest(req, res) {
     outcome = 'waking';
     fireAndForgetWakeRequest();
     if (!res.headersSent) {
-      sendWakePage(res);
+      if (isApiRequest(req)) {
+        sendApiUnavailable(res);
+      } else {
+        sendWakePage(res);
+      }
     }
     const durationMs = Date.now() - startedAt;
     console.log(`${method} ${originalPath} ${outcome} ${durationMs}ms`);
