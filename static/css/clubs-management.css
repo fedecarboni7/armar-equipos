@@ -425,27 +425,136 @@
 }
 
 /* =====================================
-   NOTIFICATION BADGE ENHANCEMENT
+   NOTIFICATION BELL
    ===================================== */
 
 .notification-button {
     position: relative;
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: linear-gradient(145deg, #333 0%, #222 100%);
+    color: #bbb;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.notification-button:hover {
+    transform: translateY(-2px);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+.notification-button:focus-visible {
+    outline: 2px solid #007bff;
+    outline-offset: 3px;
+}
+
+.notification-button .bell-icon {
+    width: 21px;
+    height: 21px;
+    transition: transform 0.2s ease;
+}
+
+.notification-button:hover .bell-icon {
+    animation: bell-ring 0.6s ease;
+}
+
+.notification-button .bell-dot {
+    position: absolute;
+    top: 11px;
+    right: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #3a3a3a;
+    border: 2px solid #222;
+    transition: background 0.25s ease;
+    pointer-events: none;
+}
+
+/* Estado con invitaciones pendientes (mismo fondo, solo se enciende el icono) */
+.notification-button.has-notifications {
+    color: #fff;
+}
+
+.notification-button.has-notifications .bell-dot {
+    background: #ffd60a;
+    border-color: rgba(0, 0, 0, 0.25);
+    box-shadow: 0 0 8px rgba(255, 214, 10, 0.9);
+}
+
+.notification-button.has-notifications .bell-icon {
+    animation: bell-wiggle 2.5s ease-in-out infinite;
+    transform-origin: top center;
+}
+
+.notification-button.has-notifications:hover .bell-icon {
+    animation: bell-ring 0.6s ease;
 }
 
 .notification-badge {
     position: absolute;
-    top: -5px;
-    right: -5px;
-    background: #dc3545;
-    color: white;
-    border-radius: 50%;
-    width: 20px;
-    height: 20px;
+    top: -6px;
+    right: -6px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    background: linear-gradient(135deg, #ff4d6d 0%, #c9184a 100%);
+    color: #fff;
+    border-radius: 999px;
+    border: 2px solid #1e1e1e;
     font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: bold;
+    box-shadow: 0 2px 8px rgba(201, 24, 74, 0.6);
+    animation: badge-pop 0.3s ease-out;
+}
+
+@keyframes bell-ring {
+    0% { transform: rotate(0); }
+    20% { transform: rotate(18deg); }
+    40% { transform: rotate(-14deg); }
+    60% { transform: rotate(8deg); }
+    80% { transform: rotate(-6deg); }
+    100% { transform: rotate(0); }
+}
+
+@keyframes bell-wiggle {
+    0%, 90%, 100% { transform: rotate(0); }
+    92% { transform: rotate(14deg); }
+    94% { transform: rotate(-12deg); }
+    96% { transform: rotate(7deg); }
+    98% { transform: rotate(-4deg); }
+}
+
+@keyframes badge-pop {
+    from {
+        opacity: 0;
+        transform: scale(0.4);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .notification-button,
+    .notification-button .bell-icon,
+    .notification-badge {
+        animation: none;
+        transition: none;
+    }
 }
 
 /* =====================================

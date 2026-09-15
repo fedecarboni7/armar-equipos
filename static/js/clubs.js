@@ -229,9 +229,14 @@ async function loadClubMembers() {
 function updateInvitationsUI() {
   const badge = document.getElementById('invitationsBadge');
   const list = document.getElementById('invitationsList');
-  
+  const invitationsBtn = document.getElementById('invitationsBtn');
+
   badge.textContent = pendingInvitations.length;
   badge.style.display = pendingInvitations.length > 0 ? 'flex' : 'none';
+
+  if (invitationsBtn) {
+    invitationsBtn.classList.toggle('has-notifications', pendingInvitations.length > 0);
+  }
   
   list.innerHTML = pendingInvitations.length > 0 
     ? pendingInvitations.map(inv => `
