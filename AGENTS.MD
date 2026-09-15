@@ -8,9 +8,9 @@ Project context and execution rules for AI coding agents (GitHub Copilot, OpenCo
 
 **Armar Equipos** is a web application for forming balanced football teams.
 
-- **Backend:** Python 3.12, FastAPI, SQLAlchemy (async), Pydantic v2, Jinja2
+- **Backend:** Python 3.12, FastAPI, SQLAlchemy (sync), Pydantic v2, Jinja2
 - **Frontend:** Vanilla JavaScript (ES6+), HTML, CSS — no build step, no framework
-- **Database:** PostgreSQL (psycopg3) in production; SQLite in-memory for tests
+- **Database:** PostgreSQL (psycopg v3) in production and tests; tests require `DATABASE_URL`, run real Alembic migrations, and CI spins up a real Postgres service container
 - **Auth:** JWT via PyJWT, session via Itsdangerous
 - **AI:** LangChain + Groq
 - **Email:** Brevo (sib-api-v3-sdk)
@@ -32,7 +32,8 @@ Project context and execution rules for AI coding agents (GitHub Copilot, OpenCo
 
 
 ### Backend (FastAPI)
-- Use `async/await` on all endpoints.
+- Endpoint style is mixed: some handlers are `async def`, others are plain `def` (e.g. all of `clubs_routes.py`). Follow the convention of the file you are editing.
+- All database access is synchronous (`db.query(...)`, `db.commit()` on a `Session`) — never `await` DB calls.
 - Validate inputs/outputs with Pydantic schemas.
 - Raise `HTTPException` for error responses.
 - Never hardcode secrets; read from environment variables.
@@ -44,7 +45,7 @@ Project context and execution rules for AI coding agents (GitHub Copilot, OpenCo
 - No build tools, no bundlers, no frameworks.
 
 ### Database
-- SQLAlchemy async sessions via dependency injection (`get_db`).
+- SQLAlchemy sync sessions (`Session`/`sessionmaker` via `create_engine`) injected with the `get_db` dependency.
 
 ### Migrations (Alembic)
 - All schema changes go through Alembic — never use `Base.metadata.create_all()` in production code.
