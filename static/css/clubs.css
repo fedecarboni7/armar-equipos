@@ -463,6 +463,15 @@
     vertical-align: middle;
 }
 
+.pending-member-count {
+    display: block;
+    min-height: 1.1em;
+    margin-top: 3px;
+    color: #ffd700;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
 .btn-secondary {
     background-color: #808080;
     color: white;

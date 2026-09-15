@@ -236,7 +236,7 @@ function updateInvitationsUI() {
   list.innerHTML = pendingInvitations.length > 0 
     ? pendingInvitations.map(inv => `
       <div class="invitation-card">
-        <span>Unirse a ${inv.club_name}</span>
+        <span>Unirse al club: ${inv.club_name}</span>
         <div>
           <button class="btn" onclick="respondToInvitation(${inv.id}, false)">Rechazar</button>
           <button class="btn btn-primary" onclick="respondToInvitation(${inv.id}, true)">Aceptar</button>
@@ -353,7 +353,7 @@ async function confirmRoleChanges() {
 }
 
 // Funciones de acción
-function sendInvitation() {
+async function sendInvitation() {
   const username = document.getElementById('inviteUsernameInput').value; // Actualizado el ID
   if (!username) {
     alert('Por favor ingresa un nombre de usuario');
@@ -366,9 +366,10 @@ function sendInvitation() {
       body: JSON.stringify({ invited_username: username })
     })
     .then(response => response.json().then(data => ({ status: response.status, body: data })))
-    .then(({ status, body }) => {
+    .then(async ({ status, body }) => {
       if (status === 200) {
         alert('Invitación enviada con éxito');
+        await loadClubMembers();
         showMembersContent(); // Volver a la vista de miembros
       } else {
         alert(`Error al enviar la invitación: ${body.detail}`);

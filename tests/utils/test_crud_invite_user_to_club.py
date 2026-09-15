@@ -1,8 +1,12 @@
 from app.db import models
 from app.utils import crud
+from app.utils.email_service import EmailService
 
 
-def test_invite_user_to_club_username_is_lowercased_before_lookup(db):
+def test_invite_user_to_club_username_is_lowercased_before_lookup(db, monkeypatch):
+    monkeypatch.setattr(
+        EmailService, "send_club_invitation_email", lambda self, **kwargs: True
+    )
     owner = models.User(
         username="owner_invite_test",
         email="owner_invite_test@example.com",

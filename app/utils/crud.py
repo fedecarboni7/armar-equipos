@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 
 from app.db import models, schemas
 from app.db.models import get_argentina_now
+from app.config.logging_config import logger
 from app.utils.auth import get_current_user
+from app.utils.email_service import EmailService
 
 
 SKILL_FIELDS = (
@@ -324,6 +326,35 @@ def invite_user_to_club(
     )
     db.add(invitation)
     db.commit()
+
+    if invited_user.email is None:
+        logger.info(
+            "Omitiendo email de invitación para invited_user_id=%s por falta de email",
+            invited_user.id,
+        )
+        return invitation
+
+    club = db.query(models.Club).filter(models.Club.id == club_id).first()
+    inviter = db.query(models.User).filter(models.User.id == inviter_id).first()
+    try:
+        email_sent = EmailService().send_club_invitation_email(
+            to_email=invited_user.email,
+            invited_username=invited_user.username,
+            club_name=club.name,
+            inviter_username=inviter.username,
+            cc_email=inviter.email if inviter and inviter.email else None,
+        )
+        if not email_sent:
+            logger.error(
+                "No se pudo enviar el email de invitación invitation_id=%s",
+                invitation.id,
+            )
+    except Exception as e:
+        logger.error(
+            "Error enviando email de invitación invitation_id=%s: %s",
+            invitation.id,
+            e,
+        )
     return invitation
 
 

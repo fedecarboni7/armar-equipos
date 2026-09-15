@@ -73,6 +73,8 @@
                     <div class="stat-item">
                         <span class="stat-number" id="memberCount">0</span>
                         <span class="stat-label">Miembros</span>
+                        <br>
+                        <span id="pendingMemberCount" class="pending-member-count"></span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-number" id="playerCountS5">0</span>
@@ -377,11 +379,20 @@
         // Mostrar estadísticas de miembros en cards
         async function updateMemberStats(members) {
             const memberCountEl = document.getElementById('memberCount');
+            const pendingMemberCountEl = document.getElementById('pendingMemberCount');
             const playerCountS5El = document.getElementById('playerCountS5');
             const playerCountS10El = document.getElementById('playerCountS10');
+            const pendingMembers = members.filter(member => member.role === 'pending');
+            const activeMembers = members.length - pendingMembers.length;
             
             if (memberCountEl) {
-                memberCountEl.textContent = members.length;
+                memberCountEl.textContent = activeMembers;
+            }
+
+            if (pendingMemberCountEl) {
+                pendingMemberCountEl.textContent = pendingMembers.length > 0
+                    ? `(${pendingMembers.length} ${pendingMembers.length === 1 ? 'pendiente' : 'pendientes'})`
+                    : '';
             }
             
             if (window.clubId) {

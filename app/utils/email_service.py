@@ -207,6 +207,116 @@ class EmailService:
             logger.error(f"Error sending confirmation email: {e}")
             return False
 
+    def send_club_invitation_email(
+        self,
+        to_email: str,
+        invited_username: str,
+        club_name: str,
+        inviter_username: str,
+        cc_email: Optional[str] = None,
+    ) -> bool:
+        """Send a club invitation email via Brevo API."""
+        try:
+            clubs_url = f"{Settings().frontend_url}/clubes"
+            subject = f"Te invitaron al club {club_name} - Armar Equipos"
+
+            html_body = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Invitación a un club</title>
+                <style>
+                    body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1a1a1a; background-color: #eef1f5; margin: 0; padding: 0; }}
+                    .wrapper {{ width: 100%; padding: 32px 16px; }}
+                    .container {{ max-width: 480px; margin: 0 auto; }}
+                    .header {{ background-color: #1e293b; padding: 28px 24px; text-align: center; border-radius: 12px 12px 0 0; }}
+                    .header h1 {{ color: #ffffff; margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -0.2px; }}
+                    .content {{ background-color: #ffffff; padding: 32px 28px; border: 1px solid #e5e7eb; border-top: none; }}
+                    .content p {{ margin: 0 0 16px 0; font-size: 15px; color: #374151; }}
+                    .highlight {{ color: #1e293b; font-weight: 600; }}
+                    .features {{ margin: 0 0 20px 0; padding: 0; list-style: none; }}
+                    .features li {{ font-size: 14px; color: #374151; padding: 6px 0; }}
+                    .features li .check {{ color: #1e293b; font-weight: 600; margin-right: 8px; }}
+                    .notice {{ background-color: #f1f5f9; border-radius: 8px; padding: 14px 16px; margin: 0 0 20px 0; font-size: 14px; color: #374151; }}
+                    .notice strong {{ color: #1e293b; }}
+                    .button-wrap {{ text-align: center; margin: 28px 0 20px 0; }}
+                    .button {{ display: inline-block; padding: 13px 32px; background-color: #1e293b; color: #ffffff !important; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 15px; }}
+                    .divider {{ border: none; border-top: 1px solid #e5e7eb; margin: 24px 0; }}
+                    .signature {{ font-size: 14px; color: #6b7280; margin: 0; }}
+                    .footer {{ text-align: center; padding: 20px 16px 0 16px; }}
+                    .footer p {{ font-size: 12px; color: #9ca3af; margin: 4px 0; }}
+                </style>
+            </head>
+            <body>
+                <div class="wrapper">
+                    <div class="container">
+                        <div class="header">
+                            <h1>⚽ Armar Equipos</h1>
+                        </div>
+                        <div class="content">
+                            <p>¡Hola {invited_username}!</p>
+                            <p><span class="highlight">{inviter_username}</span> te invitó a sumarte al club <span class="highlight">{club_name}</span> en Armar Equipos.</p>
+                            <p>Al unirte vas a poder:</p>
+                            <ul class="features">
+                                <li><span class="check">✓</span>Compartir y ver los perfiles de jugadores del club</li>
+                                <li><span class="check">✓</span>Participar de las votaciones de habilidades</li>
+                                <li><span class="check">✓</span>Ver el historial de partidos registrados</li>
+                                <li><span class="check">✓</span>Armar equipos parejos para el próximo partido</li>
+                            </ul>
+                            <div class="button-wrap">
+                                <a href="{clubs_url}" class="button">Ver invitación</a>
+                            </div>
+                            <p class="notice">Si el botón no te lleva directo a la invitación, entrá a la sección <strong>Clubes</strong> y tocá la campanita de <strong>notificaciones</strong> para verla.</p>
+                            <hr class="divider">
+                            <p class="signature">Saludos,<br>El equipo de Armar Equipos</p>
+                        </div>
+                        <div class="footer">
+                            <p>Este es un email automático, por favor no respondas a este mensaje.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+
+            text_body = f"""
+            Hola {invited_username},
+
+            {inviter_username} te invitó a sumarte al club {club_name} en Armar Equipos.
+
+            Al unirte vas a poder:
+            - Compartir y ver los perfiles de jugadores del club
+            - Participar de las votaciones de habilidades
+            - Ver el historial de partidos registrados
+            - Armar equipos parejos para el próximo partido
+
+            Ver invitación: {clubs_url}
+
+            Saludos,
+            Equipo de Armar Equipos
+            """
+
+            email_data = {
+                "to": [{"email": to_email}],
+                "sender": {"name": self.from_name, "email": self.from_email},
+                "subject": subject,
+                "html_content": html_body,
+                "text_content": text_body,
+            }
+            if cc_email:
+                email_data["cc"] = [{"email": cc_email}]
+
+            send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(**email_data)
+            self.api_instance.send_transac_email(send_smtp_email)
+            return True
+        except ApiException as e:
+            logger.error(f"Brevo API error sending club invitation email: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Error sending club invitation email: {e}")
+            return False
+
 
 class PasswordResetService:
     @staticmethod
