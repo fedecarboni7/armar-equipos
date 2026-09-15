@@ -23,13 +23,31 @@
 .sidebar-header {
     padding: 20px;
     border-bottom: 1px solid #444;
-    background-color: #333;
+    background-color: #2d2d2d;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .sidebar-title {
     font-size: 18px;
     font-weight: 600;
     color: #ffffff;
+}
+
+.sidebar-close-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: var(--text-secondary, #666);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sidebar-close-btn:hover {
+    color: var(--text-primary, #111);
 }
 
 .sidebar-nav {
@@ -153,11 +171,34 @@
 
 /* Desktop: ocultar bottom nav y mostrar sidebar */
 @media (min-width: 769px) {
+    body {
+        transition-property: padding-left;
+        transition-duration: 0.3s;
+        transition-timing-function: ease;
+    }
+
+    body.sidebar-open {
+        padding-left: 300px;
+    }
+
+    body.sidebar-open .menu-btn {
+        display: none;
+    }
+
+    .navbar {
+        z-index: 1001;
+    }
+
     .bottom-nav {
         display: none;
     }
     
     .sidebar {
         display: flex;
+        left: 0;
+    }
+
+    .sidebar.minimized {
+        left: -300px;
     }
 }

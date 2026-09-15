@@ -85,11 +85,41 @@ function navigateTo(page) {
     }
 }
 
+const SIDEBAR_MINIMIZED_KEY = 'sidebarMinimized';
+
+function initializeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const isDesktop = window.matchMedia('(min-width: 769px)').matches;
+    const isMinimized = localStorage.getItem(SIDEBAR_MINIMIZED_KEY) === 'true';
+
+    if (sidebar && isDesktop && isMinimized) {
+        sidebar.classList.add('minimized');
+    }
+
+    document.body.classList.toggle('sidebar-open', isDesktop && !isMinimized);
+}
+
+document.addEventListener('DOMContentLoaded', initializeSidebar);
+
+document.addEventListener('click', (event) => {
+    if (event.target.closest('#sidebarCloseBtn')) {
+        toggleSidebar();
+    }
+});
+
 // Función común para toggle del sidebar
 function toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.querySelector('.sidebar-overlay');
-    
+
+    if (window.matchMedia('(min-width: 769px)').matches) {
+        const isMinimized = sidebar.classList.toggle('minimized');
+        localStorage.setItem(SIDEBAR_MINIMIZED_KEY, String(isMinimized));
+        document.body.classList.toggle('sidebar-open', !isMinimized);
+        overlay.classList.remove('active');
+        return;
+    }
+
     sidebar.classList.toggle('open');
     overlay.classList.toggle('active');
 }
