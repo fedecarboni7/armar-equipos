@@ -1,14 +1,15 @@
 # Estructura del Proyecto
 
-Última actualización: 2026-05-22
+Última actualización: 2026-09-15
 
 ```
 /
 ├── app/                        # Código principal de la aplicación FastAPI
 │   ├── config/                 # Configuración: settings, logging, OAuth, LLM
-│   ├── db/                     # Modelos SQLAlchemy y conexión a base de datos
+│   ├── db/                     # Modelos SQLAlchemy, schemas y conexión a base de datos
 │   ├── routes/                 # Endpoints FastAPI organizados por recurso
-│   └── utils/                  # Utilidades: auth, CRUD, AI, email, validación
+│   ├── utils/                  # Utilidades: auth, CRUD, AI, email, validación, R2
+│   └── main.py                 # Punto de entrada de la aplicación FastAPI
 │
 ├── alembic/                    # Migraciones de base de datos
 │   └── versions/               # Scripts de migración individuales
@@ -34,14 +35,24 @@
 │
 ├── scripts/                    # Scripts de utilidad para desarrollo/mantenimiento
 │
+├── gateway/                    # API gateway en Node.js (Express, pnpm)
+│   ├── index.js                # Puerta de enlace HTTP hacia el backend
+│   ├── index.test.js           # Tests del gateway
+│   └── package.json            # Dependencias del gateway
+│
 ├── .github/
 │   └── workflows/              # Pipelines de CI/CD (GitHub Actions)
 │
+├── .vscode/                    # Configuración del editor de desarrollo
+│
 ├── alembic.ini                 # Configuración de Alembic
+├── opencode.json               # Configuración de opencode (agente de IA)
 ├── pyproject.toml              # Dependencias y configuración del proyecto (uv)
+├── uv.lock                     # Lockfile de dependencias (uv)
 ├── Dockerfile                  # Imagen Docker para producción
+├── LICENSE                     # Licencia del proyecto (MIT)
 ├── README.md                   # Documentación principal
-├── AGENTS.md                   # Reglas para agentes de IA
+├── AGENTS.MD                   # Reglas para agentes de IA
 ├── DATABASE.md                 # Documentación de base de datos
 ├── CONTRIBUTING.md             # Guía de contribución
 └── CODE_OF_CONDUCT.md          # Código de conducta

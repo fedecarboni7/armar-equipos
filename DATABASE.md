@@ -1,6 +1,6 @@
 # DATABASE.md — Armar Equipos
 
-Última actualización: 2026-05-22
+Última actualización: 2026-09-15
 
 Schema de la base de datos generado a partir de `app/db/models.py`.
 
@@ -19,6 +19,7 @@ Schema de la base de datos generado a partir de `app/db/models.py`.
 - [password_reset_tokens](#password_reset_tokens)
 - [matches](#matches)
 - [match_players](#match_players)
+- [skill_votes](#skill_votes)
 
 ---
 
@@ -47,6 +48,7 @@ Usuarios registrados en la aplicación.
 | `players_s10` | one-to-many → `players_s10` | Jugadores creados por este usuario |
 | `club_users` | one-to-many → `club_users` | Membresías a clubes |
 | `matches_created` | one-to-many → `matches` | Partidos registrados por este usuario |
+| `skill_votes` | one-to-many → `skill_votes` | Votos de habilidades emitidos por este usuario |
 
 ---
 
@@ -67,6 +69,7 @@ Jugadores del sistema (puntuación de habilidades del 1 al 5).
 | habilidad_arquero | Integer | | Habilidad: arquero |
 | fuerza_cuerpo | Integer | | Habilidad: fuerza corporal |
 | vision | Integer | | Habilidad: visión de juego |
+| photo_url | String | NULLABLE | URL de la foto del jugador (Cloudflare R2) |
 | user_id | Integer | FK → users.id | Usuario propietario del jugador |
 | club_id | Integer | FK → clubs.id | Club al que pertenece el jugador |
 | updated_at | DateTime | DEFAULT/UPDATE now() | Última actualización del perfil |
@@ -80,6 +83,7 @@ Jugadores del sistema (puntuación de habilidades del 1 al 5).
 | `last_modifier` | many-to-one → `users` | Último usuario que modificó el jugador |
 | `club` | many-to-one → `clubs` | Club del jugador |
 | `match_players` | one-to-many → `match_players` | Participaciones del jugador en partidos |
+| `skill_votes` | one-to-many → `skill_votes` | Votos de habilidades del jugador |
 
 ---
 
@@ -100,6 +104,7 @@ Jugadores del sistema (puntuación de habilidades del 1 al 10). Misma estructura
 | habilidad_arquero | Integer | | Habilidad: arquero |
 | fuerza_cuerpo | Integer | | Habilidad: fuerza corporal |
 | vision | Integer | | Habilidad: visión de juego |
+| photo_url | String | NULLABLE | URL de la foto del jugador (Cloudflare R2) |
 | user_id | Integer | FK → users.id | Usuario propietario del jugador |
 | club_id | Integer | FK → clubs.id | Club al que pertenece el jugador |
 | updated_at | DateTime | DEFAULT/UPDATE now() | Última actualización del perfil |
@@ -113,6 +118,7 @@ Jugadores del sistema (puntuación de habilidades del 1 al 10). Misma estructura
 | `last_modifier` | many-to-one → `users` | Último usuario que modificó el jugador |
 | `club` | many-to-one → `clubs` | Club del jugador |
 | `match_players_s10` | one-to-many → `match_players` | Participaciones del jugador en partidos |
+| `skill_votes` | one-to-many → `skill_votes` | Votos de habilidades del jugador |
 
 ---
 
@@ -135,6 +141,7 @@ Clubes o grupos de jugadores.
 | `players_s10` | one-to-many → `players_s10` | Jugadores del club (1-10) |
 | `matches` | one-to-many → `matches` | Partidos jugados en este club |
 | `invitations` | one-to-many → `club_invitations` | Invitaciones emitidas por este club |
+| `skill_votes` | one-to-many → `skill_votes` | Votos de habilidades emitidos en este club |
 
 ---
 
@@ -257,6 +264,45 @@ Asociación de jugadores a partidos y equipos, con resultado individual.
 
 ---
 
+## skill_votes
+
+Votos de habilidades (escala 1-10) emitidos por los miembros de un club sobre un jugador.
+
+| Columna | Tipo | Constraints | Descripción |
+|---|---|---|---|
+| id | Integer | PK, indexed | Identificador único del voto |
+| club_id | Integer | FK → clubs.id, NOT NULL | Club en el que se emitió el voto |
+| voter_id | Integer | FK → users.id, NOT NULL | Usuario que emitió el voto |
+| player_s5_id | Integer | FK → players_s5.id, NULLABLE | Jugador votado (tabla players_s5) |
+| player_s10_id | Integer | FK → players_s10.id, NULLABLE | Jugador votado (tabla players_s10) |
+| velocidad | Integer | NOT NULL | Habilidad: velocidad |
+| resistencia | Integer | NOT NULL | Habilidad: resistencia |
+| control | Integer | NOT NULL | Habilidad: control de balón |
+| pases | Integer | NOT NULL | Habilidad: pases |
+| tiro | Integer | NOT NULL | Habilidad: tiro |
+| defensa | Integer | NOT NULL | Habilidad: defensa |
+| habilidad_arquero | Integer | NOT NULL | Habilidad: arquero |
+| fuerza_cuerpo | Integer | NOT NULL | Habilidad: fuerza corporal |
+| vision | Integer | NOT NULL | Habilidad: visión de juego |
+| updated_at | DateTime | DEFAULT/UPDATE now() | Última actualización del voto |
+
+### Constraints
+
+- `ck_skill_votes_one_player`: Exige que exactamente uno de `player_s5_id` o `player_s10_id` sea NOT NULL.
+- `uq_skill_votes_voter_s5`: Un solo voto por votante y jugador (players_s5).
+- `uq_skill_votes_voter_s10`: Un solo voto por votante y jugador (players_s10).
+
+### Relationships
+
+| Relación | Tipo | Descripción |
+|---|---|---|
+| `club` | many-to-one → `clubs` | Club donde se emitió el voto |
+| `voter` | many-to-one → `users` | Usuario que emitió el voto |
+| `player_s5` | many-to-one → `players_s5` | Jugador votado (s5) |
+| `player_s10` | many-to-one → `players_s10` | Jugador votado (s10) |
+
+---
+
 ## Entity Relationships
 
 ```
@@ -283,6 +329,11 @@ matches.created_by          → users.id
 match_players.match_id      → matches.id
 match_players.player_s5_id  → players_s5.id
 match_players.player_s10_id  → players_s10.id
+
+skill_votes.club_id      → clubs.id
+skill_votes.voter_id     → users.id
+skill_votes.player_s5_id → players_s5.id
+skill_votes.player_s10_id → players_s10.id
 ```
 
 ---
@@ -290,4 +341,5 @@ match_players.player_s10_id  → players_s10.id
 ## Notas
 
 - **players_s5 vs players_s10:** Existen dos tablas de jugadores activas. La diferencia es la escala de puntuación de habilidades: `players_s5` usa escala **1–5** y `players_s10` usa escala **1–10**.
+- **skill_votes:** Los votos de habilidades se emiten a nivel de club. En un club, las habilidades efectivas de un jugador se calculan como el promedio de los votos recibidos (`crud.compute_effective_skills`).
 - **email_confirmed:** Usa enteros en lugar de un enum/boolean: `0` (nuevo), `-1` (legacy), `1` (confirmado). Los usuarios legacy pueden hacer login sin confirmar email.
