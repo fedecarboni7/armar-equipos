@@ -601,6 +601,41 @@
     transform: translateY(-1px);
 }
 
+.share-modal-content {
+    max-width: 560px;
+}
+
+.share-modal-body {
+    color: #ccc;
+    line-height: 1.5;
+}
+
+.share-link-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 18px;
+}
+
+.share-link-row input {
+    min-width: 0;
+    flex: 1;
+    padding: 11px 12px;
+    border: 1px solid #555;
+    border-radius: 8px;
+    background: #1a1a1a;
+    color: #fff;
+}
+
+.share-error {
+    color: #ffb3aa;
+    margin-top: 14px;
+}
+
+.share-modal-actions {
+    margin-top: 22px;
+}
+
 .btn-secondary {
     background-color: #6c757d;
     color: white;
@@ -832,6 +867,11 @@
     
     .btn {
         justify-content: center;
+    }
+
+    .share-link-row {
+        align-items: stretch;
+        flex-direction: column;
     }
 }
 

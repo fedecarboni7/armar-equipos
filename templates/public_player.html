@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfil del jugador</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/public-player.css?v={{ static_version }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="/static/js/utils.js?v={{ static_version }}" defer></script>
+    <script src="/static/js/api.js?v={{ static_version }}" defer></script>
+    <script src="/static/js/ui.js?v={{ static_version }}" defer></script>
+    <script src="/static/js/players.js?v={{ static_version }}" defer></script>
+    <script src="/static/js/public-player.js?v={{ static_version }}" defer></script>
+</head>
+<body class="public-player-page" data-token="{{ token }}">
+    <main class="public-player-shell">
+        <header class="public-player-header">
+            <div class="public-brand">
+                <img src="/static/images/armar-equipos-logo-circle.png" alt="Logo de Armar Equipos">
+                <span>Armar Equipos</span>
+            </div>
+        </header>
+
+        <section id="public-player-content" class="public-player-content" aria-live="polite">
+            <div class="public-player-loading">Cargando perfil...</div>
+        </section>
+
+        <footer class="public-player-footer">Perfil público de solo lectura</footer>
+    </main>
+</body>
+</html>

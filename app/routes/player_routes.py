@@ -16,10 +16,13 @@ from app.db.models import PlayerScale5, PlayerScale10, User, MatchPlayer
 from app.db.schemas import (
     PlayerCreate,
     PlayerResponse,
+    PlayerShareResponse,
+    PlayerShareStatusResponse,
     PlayerSkillsWithVotes,
     SkillVoteCreate,
     SkillVoteResponse,
 )
+from app.config.settings import Settings
 from app.utils.auth import get_current_user
 from app.utils import crud
 from app.utils.time_utils import get_calendar_week_bounds
@@ -517,3 +520,88 @@ def delete_photo(
     db.commit()
     db.refresh(player)
     return player
+
+
+def _check_share_authorization(
+    db: Session, current_user: User, player, player_type: str
+):
+    if player is None:
+        raise HTTPException(status_code=404, detail="Jugador no encontrado")
+
+    if player.club_id is not None:
+        if not has_club_write_permission(db, player.club_id, current_user.id):
+            raise HTTPException(
+                status_code=403,
+                detail="No tenés permisos para compartir este jugador",
+            )
+    else:
+        if player.user_id != current_user.id:
+            raise HTTPException(
+                status_code=403,
+                detail="No tenés permisos para compartir este jugador",
+            )
+
+
+@router.post(
+    "/api/players/{player_type}/{player_id}/share",
+    response_model=PlayerShareResponse,
+)
+def generate_share_link(
+    player_type: Literal["s5", "s10"],
+    player_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Generar un enlace público de solo lectura para un jugador"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="No hay un usuario autenticado")
+
+    player = _get_player_by_type(db, player_type, player_id)
+    _check_share_authorization(db, current_user, player, player_type)
+
+    token = crud.generate_player_share_token(db, player)
+    share_url = f"{Settings().frontend_url}/p/{token}"
+    return {"share_token": token, "share_url": share_url}
+
+
+@router.get(
+    "/api/players/{player_type}/{player_id}/share-status",
+    response_model=PlayerShareStatusResponse,
+)
+def get_share_status(
+    player_type: Literal["s5", "s10"],
+    player_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Consultar el estado del enlace público de un jugador"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="No hay un usuario autenticado")
+
+    player = _get_player_by_type(db, player_type, player_id)
+    _check_share_authorization(db, current_user, player, player_type)
+
+    token = player.share_token
+    return {
+        "is_shared": token is not None,
+        "share_token": token,
+        "share_url": f"{Settings().frontend_url}/p/{token}" if token else None,
+    }
+
+
+@router.delete("/api/players/{player_type}/{player_id}/share")
+def revoke_share_link(
+    player_type: Literal["s5", "s10"],
+    player_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Revocar el enlace público de un jugador"""
+    if not current_user:
+        raise HTTPException(status_code=401, detail="No hay un usuario autenticado")
+
+    player = _get_player_by_type(db, player_type, player_id)
+    _check_share_authorization(db, current_user, player, player_type)
+
+    crud.revoke_player_share_token(db, player)
+    return {"message": "Enlace público revocado correctamente"}

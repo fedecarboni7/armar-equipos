@@ -67,6 +67,15 @@ async def video_page(request: Request):
     return templates.TemplateResponse(request=request, name="video.html")
 
 
+@router.get("/p/{token}", response_class=HTMLResponse, include_in_schema=False)
+async def public_player_page(request: Request, token: str):
+    return templates.TemplateResponse(
+        request=request,
+        name="public_player.html",
+        context={"token": token},
+    )
+
+
 @router.get("/jugadores", response_class=HTMLResponse, include_in_schema=False)
 async def players_page(
     request: Request, current_user: User = Depends(get_current_user)

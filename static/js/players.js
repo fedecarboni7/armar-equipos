@@ -451,24 +451,28 @@ document.addEventListener('scaleChanged', function (e) {
 });
 
 // Función para crear el radar chart
-function createRadarChart(canvasId, playerData) {
+function createRadarChart(canvasId, playerData, chartScale = currentScale, chartTheme = 'dark') {
     const ctx = document.getElementById(canvasId).getContext('2d');
+    const chartLineColor = chartTheme === 'public'
+        ? 'rgba(152, 221, 215, 0.55)'
+        : 'rgba(255, 255, 255, 0.2)';
+    const chartLabelColor = chartTheme === 'public' ? '#f4f7f8' : '#fff';
     
     return new Chart(ctx, {
         type: 'radar',
         data: {
-            labels: ['Velocidad', 'Resistencia', 'Pases', 'Tiro', 'Defensa', 'Fuerza Cuerpo', 'Control', 'Habilidad Arquero', 'Visión'],
+            labels: ['Velocidad', 'Cuerpo', 'Pases', 'Arquero', 'Defensa', 'Resistencia', 'Control', 'Tiro', 'Visión'],
             datasets: [{
                 label: ' Puntos',
                 data: [
                     roundSkill(playerData.velocidad),
-                    roundSkill(playerData.resistencia),
-                    roundSkill(playerData.pases),
-                    roundSkill(playerData.tiro),
-                    roundSkill(playerData.defensa),
                     roundSkill(playerData.fuerza_cuerpo),
-                    roundSkill(playerData.control),
+                    roundSkill(playerData.pases),
                     roundSkill(playerData.habilidad_arquero),
+                    roundSkill(playerData.defensa),
+                    roundSkill(playerData.resistencia),
+                    roundSkill(playerData.control),
+                    roundSkill(playerData.tiro),
                     roundSkill(playerData.vision)
                 ],
                 backgroundColor: 'rgba(200, 200, 200, 0.3)',
@@ -486,22 +490,22 @@ function createRadarChart(canvasId, playerData) {
             scales: {
                 r: {
                     beginAtZero: true,
-                    max: currentScale,
+                    max: chartScale,
                     min: 0,
                     ticks: {
                         display: false,
-                        stepSize: currentScale === 5 ? 1 : 2
+                        stepSize: chartScale === 5 ? 1 : 2
                     },
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.2)',
+                        color: chartLineColor,
                         lineWidth: 1
                     },
                     angleLines: {
-                        color: 'rgba(255, 255, 255, 0.2)',
+                        color: chartLineColor,
                         lineWidth: 1
                     },
                     pointLabels: {
-                        color: '#fff',
+                        color: chartLabelColor,
                         font: {
                             size: 13,
                             weight: '500'
@@ -679,6 +683,9 @@ function renderPlayerModal(player) {
             <button class="btn btn-secondary" onclick="openVoteModal()" style="display: ${showVoteButton ? 'flex' : 'none'}">
                 🗳️ Votar
             </button>
+            <button class="btn btn-secondary" onclick="openShareModal()" style="display: ${canEdit ? 'flex' : 'none'}">
+                <i class="fas fa-share-alt"></i> Compartir
+            </button>
             <button class="btn btn-danger" onclick="deletePlayerFromModal(${player.id})" style="display: ${canEdit ? 'flex' : 'none'}">
                 🗑️ Eliminar
             </button>
@@ -725,6 +732,138 @@ function renderPlayerModal(player) {
             setupPhotoInput('edit-photo-input', 'edit-photo-preview');
         }
     }, 100);
+}
+
+async function openShareModal() {
+    if (!currentEditingPlayer) return;
+
+    const modal = document.getElementById('sharePlayerModal');
+    const body = document.getElementById('share-player-body');
+    modal.style.display = 'block';
+    body.innerHTML = '<p>Cargando estado del enlace...</p>';
+
+    try {
+        const status = await fetchShareStatus();
+        renderShareModal(status);
+    } catch (error) {
+        renderShareError(error.message);
+    }
+}
+
+function getSharePlayerUrl() {
+    const playerType = getPlayerType();
+    return `/api/players/${playerType}/${currentEditingPlayer.id}/share`;
+}
+
+async function fetchShareStatus() {
+    const playerType = getPlayerType();
+    const response = await fetch(
+        `/api/players/${playerType}/${currentEditingPlayer.id}/share-status`,
+        { credentials: 'include' }
+    );
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Error ${response.status}`);
+    }
+    return response.json();
+}
+
+function renderShareError(message) {
+    document.getElementById('share-player-body').innerHTML = `
+        <p class="share-error">No se pudo cargar el enlace: ${escapeHTML(message)}</p>
+    `;
+}
+
+function renderShareModal(status) {
+    const body = document.getElementById('share-player-body');
+    if (!status.is_shared) {
+        body.innerHTML = `
+            <p>Generá un link público de solo lectura para compartir las estadísticas de este jugador.</p>
+            <p id="share-modal-error" class="share-error" hidden></p>
+            <div class="modal-actions share-modal-actions">
+                <button class="btn btn-primary" onclick="generateShareLink()">
+                    <i class="fas fa-link"></i> Generar link
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    body.innerHTML = `
+        <p>Este jugador tiene un enlace público activo.</p>
+        <div class="share-link-row">
+            <input id="share-link-input" type="text" value="${escapeHTML(status.share_url)}" readonly>
+            <button class="btn btn-secondary" onclick="copyShareLink()" id="copy-share-btn">
+                <i class="fas fa-copy"></i> Copiar
+            </button>
+        </div>
+        <p id="share-modal-error" class="share-error" hidden></p>
+        <div class="modal-actions share-modal-actions">
+            <button class="btn btn-danger" onclick="revokeShareLink()">
+                <i class="fas fa-ban"></i> Revocar acceso
+            </button>
+        </div>
+    `;
+}
+
+async function generateShareLink() {
+    try {
+        const response = await fetch(getSharePlayerUrl(), {
+            method: 'POST',
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Error ${response.status}`);
+        }
+        renderShareModal({ is_shared: true, ...(await response.json()) });
+    } catch (error) {
+        showShareModalError(error.message);
+    }
+}
+
+async function revokeShareLink() {
+    if (!confirm('¿Querés revocar el acceso público a este jugador?')) return;
+
+    try {
+        const response = await fetch(getSharePlayerUrl(), {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.detail || `Error ${response.status}`);
+        }
+        renderShareModal({ is_shared: false });
+    } catch (error) {
+        showShareModalError(error.message);
+    }
+}
+
+async function copyShareLink() {
+    const input = document.getElementById('share-link-input');
+    const button = document.getElementById('copy-share-btn');
+    try {
+        await navigator.clipboard.writeText(input.value);
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-check"></i> Copiado';
+        setTimeout(() => { button.innerHTML = originalText; }, 2000);
+    } catch (error) {
+        showShareModalError('No se pudo copiar el enlace.');
+    }
+}
+
+function showShareModalError(message) {
+    const error = document.getElementById('share-modal-error');
+    if (error) {
+        error.textContent = `No se pudo actualizar el enlace: ${message}`;
+        error.hidden = false;
+    }
+}
+
+function closeShareModal() {
+    const modal = document.getElementById('sharePlayerModal');
+    if (modal) modal.style.display = 'none';
 }
 
 // Función para toggle entre modo vista y edición
@@ -1234,6 +1373,7 @@ window.onclick = function(event) {
     const modal = document.getElementById('playerModal');
     const createModal = document.getElementById('createPlayerModal');
     const voteModal = document.getElementById('voteModal');
+    const shareModal = document.getElementById('sharePlayerModal');
     
     if (event.target === modal) {
         closeModal();
@@ -1245,6 +1385,10 @@ window.onclick = function(event) {
 
     if (event.target === voteModal) {
         closeVoteModal();
+    }
+
+    if (event.target === shareModal) {
+        closeShareModal();
     }
 }
 
@@ -1314,6 +1458,8 @@ async function loadPlayersForContext(contextId) {
 
 // Inicializar la aplicación
 document.addEventListener('DOMContentLoaded', function() {
+    if (!document.body.classList.contains('players-page')) return;
+
     // Inicializar modal de ayuda
     initPlayersHelpModal();
     // El clubSelector.js se encarga de cargar los clubes automáticamente

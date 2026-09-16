@@ -538,12 +538,12 @@ function renderManualComparison() {
     // Construir tabla de habilidades y contenedores de gráficos como en results
     const skills = [
         ['velocidad', 'Velocidad'],
+        ['fuerza_cuerpo', 'Cuerpo'],
+        ['pases', 'Pases'],
+        ['habilidad_arquero', 'Arquero'],
+        ['defensa', 'Defensa'],
         ['resistencia', 'Resistencia'],
         ['control', 'Control'],
-        ['pases', 'Pases'],
-        ['fuerza_cuerpo', 'Fuerza cuerpo'],
-        ['habilidad_arquero', 'Hab. Arquero'],
-        ['defensa', 'Defensa'],
         ['tiro', 'Tiro'],
         ['vision', 'Visión'],
     ];

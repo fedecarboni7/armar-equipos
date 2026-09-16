@@ -163,6 +163,32 @@ class PlayerSkillsWithVotes(BaseModel):
     last_activity_at: datetime
 
 
+class PlayerShareResponse(BaseModel):
+    share_token: str
+    share_url: str
+
+
+class PlayerShareStatusResponse(BaseModel):
+    is_shared: bool
+    share_token: Optional[str] = None
+    share_url: Optional[str] = None
+
+
+class PublicPlayerResponse(BaseModel):
+    name: str
+    photo_url: Optional[str] = None
+    scale: Literal["s5", "s10"]
+    velocidad: float
+    resistencia: float
+    control: float
+    pases: float
+    tiro: float
+    defensa: float
+    habilidad_arquero: float
+    fuerza_cuerpo: float
+    vision: float
+
+
 class TeamPlayerSkills(BaseModel):
     id: int
     name: str

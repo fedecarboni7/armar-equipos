@@ -1,5 +1,6 @@
+import uuid
 from datetime import timedelta
-from typing import Iterable, Tuple, Dict
+from typing import Iterable, Optional, Tuple, Dict
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -44,6 +45,47 @@ def compute_effective_skills(
     count = len(votes_list)
     averages = {field: round(totals[field] / count, 1) for field in SKILL_FIELDS}
     return base_values, averages, averages
+
+
+def generate_player_share_token(
+    db: Session,
+    player: models.PlayerScale5 | models.PlayerScale10,
+) -> str:
+    token = str(uuid.uuid4())
+    player.share_token = token
+    db.commit()
+    db.refresh(player)
+    return token
+
+
+def revoke_player_share_token(
+    db: Session,
+    player: models.PlayerScale5 | models.PlayerScale10,
+) -> None:
+    player.share_token = None
+    db.commit()
+
+
+def get_player_by_share_token(
+    db: Session, token: str
+) -> Tuple[Optional[models.PlayerScale5 | models.PlayerScale10], Optional[str]]:
+    if not token:
+        return None, None
+    player = (
+        db.query(models.PlayerScale5)
+        .filter(models.PlayerScale5.share_token == token)
+        .first()
+    )
+    if player is not None:
+        return player, "s5"
+    player = (
+        db.query(models.PlayerScale10)
+        .filter(models.PlayerScale10.share_token == token)
+        .first()
+    )
+    if player is not None:
+        return player, "s10"
+    return None, None
 
 
 def get_club_members(
