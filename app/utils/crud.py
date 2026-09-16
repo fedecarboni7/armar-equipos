@@ -238,22 +238,57 @@ def delete_club(
             status_code=403, detail="You don't have permission to delete this club"
         )
 
-    # Eliminar los miembros
-    db.query(models.ClubUser).filter(models.ClubUser.club_id == club_id).delete()
+    # Eliminar todo lo dependiente del club en orden (FKs sin ON DELETE CASCADE).
+    # match_players -> skill_votes -> matches -> jugadores -> miembros/invitaciones -> club
+    try:
+        match_ids = [
+            row[0]
+            for row in db.query(models.Match.id)
+            .filter(models.Match.club_id == club_id)
+            .all()
+        ]
 
-    # Eliminar los jugadores
-    db.query(models.PlayerScale5).filter(
-        models.PlayerScale5.club_id == club_id
-    ).delete()
+        # Eliminar los match_players asociados a los partidos del club
+        if match_ids:
+            db.query(models.MatchPlayer).filter(
+                models.MatchPlayer.match_id.in_(match_ids)
+            ).delete(synchronize_session=False)
 
-    # Delete pending invitations associated with the club
-    db.query(models.ClubInvitation).filter(
-        models.ClubInvitation.club_id == club_id
-    ).delete()
+        # Eliminar los votos de habilidades
+        db.query(models.SkillVote).filter(models.SkillVote.club_id == club_id).delete(
+            synchronize_session=False
+        )
 
-    # Eliminar el club
-    db.delete(club)
-    db.commit()
+        # Eliminar los partidos
+        db.query(models.Match).filter(models.Match.club_id == club_id).delete(
+            synchronize_session=False
+        )
+
+        # Eliminar los jugadores
+        db.query(models.PlayerScale5).filter(
+            models.PlayerScale5.club_id == club_id
+        ).delete(synchronize_session=False)
+
+        db.query(models.PlayerScale10).filter(
+            models.PlayerScale10.club_id == club_id
+        ).delete(synchronize_session=False)
+
+        # Eliminar los miembros
+        db.query(models.ClubUser).filter(models.ClubUser.club_id == club_id).delete(
+            synchronize_session=False
+        )
+
+        # Eliminar las invitaciones
+        db.query(models.ClubInvitation).filter(
+            models.ClubInvitation.club_id == club_id
+        ).delete(synchronize_session=False)
+
+        # Eliminar el club
+        db.delete(club)
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
     return club
 
 

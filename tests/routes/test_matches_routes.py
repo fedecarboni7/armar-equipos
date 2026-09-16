@@ -34,6 +34,37 @@ def create_club_with_players(db, user, n=4, scale=2):
     return club, players
 
 
+def create_club_with_s5_players(db, user, n=2, name="Test Club S5"):
+    club = models.Club(name=name)
+    db.add(club)
+    db.flush()
+
+    club_user = models.ClubUser(club_id=club.id, user_id=user.id, role="admin")
+    db.add(club_user)
+
+    players = []
+    for index in range(n):
+        player = models.PlayerScale5(
+            name=f"S5 Player {index + 1}",
+            velocidad=5,
+            resistencia=5,
+            control=5,
+            pases=5,
+            tiro=5,
+            defensa=5,
+            habilidad_arquero=5,
+            fuerza_cuerpo=5,
+            vision=5,
+            user_id=user.id,
+            club_id=club.id,
+        )
+        db.add(player)
+        players.append(player)
+
+    db.commit()
+    return club, players
+
+
 def _get_test_user(db):
     return db.query(models.User).filter(models.User.username == "testuser").first()
 
@@ -269,3 +300,144 @@ def test_leaderboard_orders_by_goals_tiebreaker(authenticated_client, db):
     standings = standings_response.json()
 
     assert standings[0]["player_id"] == players[0].id
+
+
+def test_create_match_rejects_player_from_other_club_s10(authenticated_client, db):
+    user = _get_test_user(db)
+    club_a, _ = create_club_with_players(db, user, n=1)
+    club_b, players_b = create_club_with_players(db, user, n=1)
+    played_at = date(2026, 5, 20).isoformat()
+
+    response = authenticated_client.post(
+        "/matches",
+        json={
+            "club_id": club_a.id,
+            "played_at": played_at,
+            "team_a_score": 1,
+            "team_b_score": 0,
+            "players": [
+                {
+                    "player_s10_id": players_b[0].id,
+                    "team": "A",
+                    "goals": 0,
+                    "assists": 0,
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 400
+    assert "no pertenece al club" in response.json()["detail"]
+
+
+def test_create_match_rejects_player_from_other_club_s5(authenticated_client, db):
+    user = _get_test_user(db)
+    club_a, _ = create_club_with_s5_players(db, user, n=1, name="Club A S5")
+    club_b, players_b = create_club_with_s5_players(db, user, n=1, name="Club B S5")
+    played_at = date(2026, 5, 20).isoformat()
+
+    response = authenticated_client.post(
+        "/matches",
+        json={
+            "club_id": club_a.id,
+            "played_at": played_at,
+            "team_a_score": 1,
+            "team_b_score": 0,
+            "players": [
+                {
+                    "player_s5_id": players_b[0].id,
+                    "team": "A",
+                    "goals": 0,
+                    "assists": 0,
+                },
+            ],
+        },
+    )
+
+    assert response.status_code == 400
+    assert "no pertenece al club" in response.json()["detail"]
+
+
+def test_update_match_rejects_player_from_other_club(authenticated_client, db):
+    user = _get_test_user(db)
+    club_a, players_a = create_club_with_players(db, user, n=2)
+    _, players_b = create_club_with_players(db, user, n=1)
+    played_at = date(2026, 5, 20).isoformat()
+
+    response = authenticated_client.post(
+        "/matches",
+        json={
+            "club_id": club_a.id,
+            "played_at": played_at,
+            "team_a_score": 1,
+            "team_b_score": 0,
+            "players": [
+                {
+                    "player_s10_id": players_a[0].id,
+                    "team": "A",
+                    "goals": 0,
+                    "assists": 0,
+                },
+                {
+                    "player_s10_id": players_a[1].id,
+                    "team": "B",
+                    "goals": 0,
+                    "assists": 0,
+                },
+            ],
+        },
+    )
+    assert response.status_code in (200, 201)
+    match_id = response.json()["id"]
+
+    patch_response = authenticated_client.patch(
+        f"/matches/{match_id}",
+        json={
+            "players": [
+                {
+                    "player_s10_id": players_b[0].id,
+                    "team": "A",
+                    "goals": 0,
+                    "assists": 0,
+                },
+            ],
+        },
+    )
+
+    assert patch_response.status_code == 400
+    assert "no pertenece al club" in patch_response.json()["detail"]
+
+
+def test_create_personal_match_with_clubless_player(authenticated_client, db):
+    user = _get_test_user(db)
+    player = models.PlayerScale10(
+        name="Personal Player",
+        velocidad=5,
+        resistencia=5,
+        control=5,
+        pases=5,
+        tiro=5,
+        defensa=5,
+        habilidad_arquero=5,
+        fuerza_cuerpo=5,
+        vision=5,
+        user_id=user.id,
+        club_id=None,
+    )
+    db.add(player)
+    db.commit()
+    played_at = date(2026, 5, 20).isoformat()
+
+    response = authenticated_client.post(
+        "/matches",
+        json={
+            "played_at": played_at,
+            "team_a_score": 1,
+            "team_b_score": 0,
+            "players": [
+                {"player_s10_id": player.id, "team": "A", "goals": 0, "assists": 0},
+            ],
+        },
+    )
+
+    assert response.status_code in (200, 201)

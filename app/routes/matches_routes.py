@@ -76,6 +76,16 @@ def _serialize_match(match: models.Match) -> schemas.MatchResponse:
     }
 
 
+def _ensure_player_in_match_club(
+    player: models.PlayerScale5 | models.PlayerScale10, club_id: Optional[int]
+) -> None:
+    if player.club_id != club_id:
+        raise HTTPException(
+            status_code=400,
+            detail="El jugador no pertenece al club de este partido",
+        )
+
+
 def _validate_player_stats(
     players: List[schemas.MatchPlayerCreate], team_a_score: int, team_b_score: int
 ) -> None:
@@ -168,6 +178,8 @@ async def create_match(
 
         if not player:
             raise HTTPException(status_code=404, detail="Jugador no encontrado")
+
+        _ensure_player_in_match_club(player, match_data.club_id)
 
         result = _compute_result(
             player_entry.team, match_data.team_a_score, match_data.team_b_score
@@ -479,6 +491,8 @@ async def update_match(
 
             if not player:
                 raise HTTPException(status_code=404, detail="Jugador no encontrado")
+
+            _ensure_player_in_match_club(player, match.club_id)
 
             result = _compute_result(player_entry.team, team_a_score, team_b_score)
             match_players.append(
