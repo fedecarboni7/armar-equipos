@@ -55,6 +55,23 @@ body {
     display: block;
 }
 
+.public-login-btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 8px;
+    background: var(--public-accent);
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: filter 0.2s ease;
+}
+
+.public-login-btn:hover {
+    filter: brightness(1.1);
+}
+
 .public-player-content {
     flex: 1;
     display: flex;
