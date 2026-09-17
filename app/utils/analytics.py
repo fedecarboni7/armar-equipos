@@ -194,3 +194,66 @@ def get_match_creator_stats(conn: Connection) -> dict:
         "total_matches": int(row.total_matches),
         "distinct_creators": int(row.distinct_creators),
     }
+
+
+def get_shared_profile_stats(conn: Connection) -> dict:
+    row = conn.execute(
+        text(
+            """
+            SELECT
+                COUNT(*) AS total_shared_links,
+                COUNT(DISTINCT user_id) AS distinct_sharing_users
+            FROM (
+                SELECT user_id FROM players_s5 WHERE share_token IS NOT NULL
+                UNION ALL
+                SELECT user_id FROM players_s10 WHERE share_token IS NOT NULL
+            ) AS shared_players
+            """
+        )
+    ).one()
+    return {
+        "total_shared_links": int(row.total_shared_links),
+        "distinct_sharing_users": int(row.distinct_sharing_users),
+    }
+
+
+def get_player_photo_stats(conn: Connection) -> dict:
+    row = conn.execute(
+        text(
+            """
+            SELECT
+                COUNT(*) AS total_players_with_photo,
+                COUNT(DISTINCT user_id) AS distinct_users_with_photo
+            FROM (
+                SELECT user_id FROM players_s5
+                WHERE photo_url IS NOT NULL AND photo_url != ''
+                UNION ALL
+                SELECT user_id FROM players_s10
+                WHERE photo_url IS NOT NULL AND photo_url != ''
+            ) AS players_with_photo
+            """
+        )
+    ).one()
+    return {
+        "total_players_with_photo": int(row.total_players_with_photo),
+        "distinct_users_with_photo": int(row.distinct_users_with_photo),
+    }
+
+
+def get_skill_vote_stats(conn: Connection) -> dict:
+    row = conn.execute(
+        text(
+            """
+            SELECT
+                COUNT(*) AS total_votes,
+                COUNT(DISTINCT club_id) AS distinct_clubs_with_votes,
+                COUNT(DISTINCT voter_id) AS distinct_voters
+            FROM skill_votes
+            """
+        )
+    ).one()
+    return {
+        "total_votes": int(row.total_votes),
+        "distinct_clubs_with_votes": int(row.distinct_clubs_with_votes),
+        "distinct_voters": int(row.distinct_voters),
+    }

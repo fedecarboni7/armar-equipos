@@ -12,6 +12,9 @@ from app.utils.analytics import (
     get_daily_new_clubs,
     get_daily_new_users,
     get_match_creator_stats,
+    get_player_photo_stats,
+    get_shared_profile_stats,
+    get_skill_vote_stats,
     get_weekly_cohort_retention,
     get_weekly_matches_created,
 )
@@ -95,6 +98,24 @@ async def admin_dashboard(
                 logger.error(f"Error loading match creator analytics: {e}")
                 match_creator_stats = {}
 
+            try:
+                shared_profile_stats = get_shared_profile_stats(conn)
+            except Exception as e:
+                logger.error(f"Error loading shared profile analytics: {e}")
+                shared_profile_stats = {}
+
+            try:
+                player_photo_stats = get_player_photo_stats(conn)
+            except Exception as e:
+                logger.error(f"Error loading player photo analytics: {e}")
+                player_photo_stats = {}
+
+            try:
+                skill_vote_stats = get_skill_vote_stats(conn)
+            except Exception as e:
+                logger.error(f"Error loading skill vote analytics: {e}")
+                skill_vote_stats = {}
+
         # Tasas de engagement
         player_creation_rate = (
             round((users_with_players / total_users) * 100, 1) if total_users > 0 else 0
@@ -121,6 +142,9 @@ async def admin_dashboard(
             "cohort_retention": cohort_retention,
             "weekly_matches": weekly_matches,
             "match_creator_stats": match_creator_stats,
+            "shared_profile_stats": shared_profile_stats,
+            "player_photo_stats": player_photo_stats,
+            "skill_vote_stats": skill_vote_stats,
         }
 
         return templates.TemplateResponse(

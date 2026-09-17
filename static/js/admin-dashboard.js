@@ -9,6 +9,9 @@ function createIcon(name, className = '') {
         'map-pin': `<svg class="${className}" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`,
         mail: `<svg class="${className}" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>`,
         alert: `<svg class="${className}" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3.05h16.94a2 2 0 0 0 1.71-3.05L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+        share: `<svg class="${className}" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
+        camera: `<svg class="${className}" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>`,
+        star: `<svg class="${className}" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24"><polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26 12,2"/></svg>`,
     };
 
     return iconMap[name] || '';
@@ -300,6 +303,9 @@ function renderDashboard(stats) {
     const app = document.getElementById('app');
     const totalPlayers = (stats.total_players_s5 || 0) + (stats.total_players_s10 || 0);
     const creatorStats = stats.match_creator_stats || {};
+    const sharedProfileStats = stats.shared_profile_stats || {};
+    const playerPhotoStats = stats.player_photo_stats || {};
+    const skillVoteStats = stats.skill_vote_stats || {};
     const lastUsersDay = (stats.daily_new_users || []).slice(-1)[0];
     const users24h = lastUsersDay ? Number(lastUsersDay.count) || 0 : 0;
     const lastClubsDay = (stats.daily_new_clubs || []).slice(-1)[0];
@@ -411,6 +417,24 @@ function renderDashboard(stats) {
                     <h3 class="metric-title">Partidos creados</h3>
                     <p class="metric-value">${creatorStats.total_matches || 0}</p>
                     <p class="metric-subtitle" style="color: #fbbf24;">registrados por ${creatorStats.distinct_creators || 0} usuarios distintos</p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-header">${createIcon('share', 'metric-icon purple')}</div>
+                    <h3 class="metric-title">Perfiles compartidos</h3>
+                    <p class="metric-value">${sharedProfileStats.total_shared_links || 0}</p>
+                    <p class="metric-subtitle" style="color: #a855f7;">compartidos por ${sharedProfileStats.distinct_sharing_users || 0} usuarios distintos</p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-header">${createIcon('camera', 'metric-icon orange')}</div>
+                    <h3 class="metric-title">Jugadores con foto</h3>
+                    <p class="metric-value">${playerPhotoStats.total_players_with_photo || 0}</p>
+                    <p class="metric-subtitle" style="color: #fb923c;">cargadas por ${playerPhotoStats.distinct_users_with_photo || 0} usuarios distintos</p>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-header">${createIcon('star', 'metric-icon yellow')}</div>
+                    <h3 class="metric-title">Votos de habilidades</h3>
+                    <p class="metric-value">${skillVoteStats.total_votes || 0}</p>
+                    <p class="metric-subtitle" style="color: #fbbf24;">en ${skillVoteStats.distinct_clubs_with_votes || 0} clubs distintos · ${skillVoteStats.distinct_voters || 0} usuarios votando</p>
                 </div>
                 <div class="metric-card">
                     <div class="metric-header">${createIcon('user-check', 'metric-icon green')}</div>
