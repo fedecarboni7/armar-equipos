@@ -14,12 +14,14 @@ from app.config.settings import Settings
 
 class EmailService:
     def __init__(self):
-        self.from_email = "armarequipos.app@gmail.com"
+        settings = Settings()
+        self.from_email = settings.brevo_from_email
+        self.reply_to_email = settings.brevo_reply_to_email
         self.from_name = "Armar Equipos"
 
         # Configure Brevo API
         configuration = sib_api_v3_sdk.Configuration()
-        configuration.api_key["api-key"] = Settings().brevo_api_key
+        configuration.api_key["api-key"] = settings.brevo_api_key
         self.api_instance = sib_api_v3_sdk.TransactionalEmailsApi(
             sib_api_v3_sdk.ApiClient(configuration)
         )
@@ -96,6 +98,7 @@ class EmailService:
             send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
                 to=[{"email": to_email}],
                 sender={"name": self.from_name, "email": self.from_email},
+                reply_to={"name": self.from_name, "email": self.reply_to_email},
                 subject=subject,
                 html_content=html_body,
                 text_content=text_body,
@@ -191,6 +194,7 @@ class EmailService:
             send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
                 to=[{"email": to_email}],
                 sender={"name": self.from_name, "email": self.from_email},
+                reply_to={"name": self.from_name, "email": self.reply_to_email},
                 subject=subject,
                 html_content=html_body,
                 text_content=text_body,
@@ -300,6 +304,7 @@ class EmailService:
             email_data = {
                 "to": [{"email": to_email}],
                 "sender": {"name": self.from_name, "email": self.from_email},
+                "reply_to": {"name": self.from_name, "email": self.reply_to_email},
                 "subject": subject,
                 "html_content": html_body,
                 "text_content": text_body,
